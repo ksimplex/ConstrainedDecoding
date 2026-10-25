@@ -132,6 +132,7 @@ samples = select_particles(out, __import__("numpy").random.default_rng(0))   # (
 | hidden-mass decomposition | `resampling_arms.py --arms K4_off_trace`, `diagnostics.hidden_mass` | done: 13% of particles have normalised weight < 10⁻⁶ at the first trigger step yet carry 4.7% of h₀ |
 | E3 ambiguity, CPU | `experiments/e3_ambiguity.py` | done: exact TV ≤ 4×10⁻¹⁶ at L = 4, 6; K = 16 ESS fraction 0.93–0.97 (unambiguous Dyck-1) vs 0.92 → 0.34 (ambiguous) and 0.89 → 0.30 (RNA) over L = 8–32 |
 | E1 trajectory bias across families | `experiments/e1_families.py`, `experiments/analysis/e1_analysis.py` | running: six families at N = 32, T = 16; step-exact, K = 4/16 defensive, K = 16 plain and no-resampling |
+| twist design, round 1 | `experiments/twist_lab.py` (CPU, synthetic, scale 8) | done: Monte Carlo look-ahead twists increase hidden mass (full rollout: 6.9% of h₀ below 10⁻⁶ vs 0.04% frozen) and lose to the frozen twist; resampling-off is the most efficient arm, defensive resampling recovers about half of its efficiency |
 | CPU controls | `experiments/controls/synthetic_control.py` | done: resampling, routes and float32 sampling all unbiased on synthetic denoisers |
 
 Cluster jobs ran on MIT Engaging (`mit_normal_gpu`, `--gres=gpu:l40s:1`), with `PYTHONPATH` set to the repo root.
