@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "twistroute"
+version = "0.1.0"
+description = "Exact constrained sampling for masked diffusion language models: route-generic twisted SMC"
+requires-python = ">=3.10"
+dependencies = ["numpy", "scipy", "torch>=2.1"]
+
+[project.optional-dependencies]
+models = ["transformers>=4.40"]      # OWT-130M also needs flash-attn (see README)
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["twistroute*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

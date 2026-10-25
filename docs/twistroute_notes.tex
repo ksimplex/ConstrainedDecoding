@@ -1,0 +1,889 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{booktabs,array,enumitem}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[capitalise,nameinlink]{cleveref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Zh}{\widehat{Z}}
+\newcommand{\wt}{\tilde w}
+\newcommand{\mask}{\texttt{m}}
+\newcommand{\op}[1]{\textup{\textsc{#1}}}
+\newcommand{\status}[1]{\textsf{\small[#1]}}
+\newcommand{\proofref}[1]{\par\noindent\textit{Proof.} #1\par\medskip}
+
+\title{Trajectory-exact constrained decoding for masked diffusion models:\\ routes, twists and ambiguity\\[4pt] \large Working notes}
+\author{}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+These notes describe a decoder that samples a masked diffusion language model conditioned on a hard constraint,
+in the sense of drawing from the model's own output distribution restricted to the constraint. The constraint can
+be a regular expression, a counting condition, a copy relation, a context-free grammar (ambiguous grammars
+included) or a tree structure. The decoder has two layers. The first is a \emph{route}: a tractable structure that
+computes the probability of the constraint under a product distribution and samples from that distribution
+restricted to the constraint. The second is twisted sequential Monte Carlo, which corrects the error that per-step
+constrained decoding makes when the denoiser revises its predictions after seeing its own outputs. We collect the
+mathematical results and algorithms behind both layers and the open directions. Results taken from the
+literature are stated with a reference to their proofs. Results that are new here, or new combinations of
+known pieces, are proved. Experimental results are not included.
+\end{abstract}
+
+\tableofcontents
+
+%======================================================================
+\section{Introduction}\label{sec:intro}
+%======================================================================
+
+\subsection{Masked diffusion sampling}
+A masked diffusion language model (MDLM) \cite{sahoo2024} produces a sequence of length $L$ by starting from a
+sequence of mask symbols and filling in positions over $T$ steps. At each step a neural \emph{denoiser} looks at
+the current partial sequence and outputs, for every masked position, a categorical distribution over the
+vocabulary. A \emph{scheduler} picks which positions to reveal at this step, and those positions are filled by
+sampling from the denoiser's distributions, independently across positions. The revealed positions stay fixed and
+the process repeats until nothing is masked. We call this procedure the \emph{native sampler}, and write $p$ for the
+distribution it induces over complete sequences (and over whole trajectories, when that matters).
+
+Two features of this sampler shape everything below. Within a step, the denoiser's predictions are a product
+distribution over positions. Across steps, those predictions change, because each call of the denoiser conditions
+on everything revealed so far.
+
+\subsection{What conditional sampling asks for}
+Let $C$ be a set of acceptable outputs: strings matching a pattern, balanced bracket sequences, RNA sequences that
+can fold into a valid secondary structure, and so on. The goal is to sample from
+\[
+  p(x\mid x\in C)=\frac{p(x)\,\one_C(x)}{p(C)},
+\]
+the model's own distribution restricted to $C$. Rejection sampling (run the native sampler until the output lies
+in $C$) achieves this exactly but is useless when $p(C)$ is small. Two cheaper methods guarantee $x\in C$.
+Each changes the distribution.
+
+\emph{Token masking} forbids, at each step, tokens that would make $C$ unreachable, and renormalises over the
+rest. It ignores how much of the model's probability stays inside $C$ after each choice, so it over-represents
+sequences whose early tokens leave little valid probability mass.
+
+\emph{Step-exact decoding} \cite{de26} goes further. At each step it computes the product distribution given by the
+denoiser's current predictions, restricts it to $C$, samples a complete sequence from that restricted
+distribution, and keeps the positions the scheduler chose to reveal. Each step is then exact for the product
+distribution the denoiser predicts at that moment. The composition over steps is still biased, as the following
+example shows.
+
+\begin{example}[Trajectory bias with two positions]\label{ex:bias}
+Let $L=2$, $T=2$, reveal position 1 at the first step and position 2 at the second, and let
+$C=\{(a,a):a\in V\}$, i.e.\ the two tokens must agree. Write $p^1(a)$ for the denoiser's prediction at position 1
+from the all-mask state, $p^2(a\mid\varnothing)$ for its prediction at position 2 from the same state, and
+$p^2(a\mid a)$ for its prediction at position 2 after position 1 has been revealed as $a$. The native conditional is
+\[
+  p(x=(a,a)\mid C)\ \propto\ p^1(a)\,p^2(a\mid a).
+\]
+Step-exact decoding draws position 1 from the restricted product at the first step, which gives $a$ with
+probability $\propto p^1(a)\,p^2(a\mid\varnothing)$; the second step is then forced. The two laws agree only if
+$p^2(a\mid a)/p^2(a\mid\varnothing)$ does not depend on $a$, i.e.\ only if revealing position 1 does not change
+the relative predictions at position 2. For a real language model it almost always does.
+\end{example}
+
+The ratio $p^2(a\mid a)/p^2(a\mid\varnothing)$ in \cref{ex:bias} is exactly the importance weight that corrects
+the error. It compares the probability of the constraint under the \emph{updated} predictions with its
+probability under the \emph{old} predictions, for the same partial sequence. TWISTER \cite{twister} applies
+this correction at every step and resamples a population of particles, using twisted sequential Monte Carlo.
+It proves that the result targets the native conditional exactly, for constraints given by deterministic finite
+automata (DFAs).
+
+\subsection{The approach in these notes}
+We separate the two concerns.
+\begin{enumerate}[nosep]
+  \item A \emph{route} handles everything that happens within one step. Given per-position weights, it computes
+    the probability of $C$ under the product distribution, samples from the product distribution restricted to
+    $C$, and checks membership in $C$. Automata are one kind of route. Grammar charts, factor graphs and
+    determinants are others, and each covers constraint families the others cannot handle efficiently.
+  \item A \emph{trajectory layer} handles what happens across steps. It is TWISTER's twisted SMC with the
+    automaton replaced by any route.
+\end{enumerate}
+The main theoretical observation (\cref{thm:traj}) is that the trajectory layer needs very little from the
+route. The route's sampler must draw from the same measure whose total its mass computation returns, and the last
+step must check membership in $C$ exactly. The route does not have to be unambiguous. An ambiguous grammar, which
+counts a string once per parse tree, gives the right answer as the number of particles grows. Ambiguity only
+increases the variance.
+
+The other main result concerns resampling (\cref{sec:resampling}). The SMC estimate of $p(C)$ is unbiased for
+every number of particles. When the denoiser's predictions at some intermediate step badly understate how likely
+the constraint is to be met in the end, adaptive resampling discards particles that would later have recovered.
+A non-trivial fraction of the estimate's expectation can then sit in events too rare to observe. We characterise
+this hidden mass exactly and give two remedies that keep the estimate unbiased and have guarantees that do not
+depend on the quality of the predictions.
+
+\subsection{What is known and what is new}
+Much of the step-level theory is known in the probabilistic-circuits literature, often in more general algebraic
+form. \Cref{sec:step} states it in our notation with references. The route-generic trajectory correction, the
+analysis of resampling, the remedies, the ambiguity bound and the superset construction are new here, as far as
+we know. Each result is tagged \status{background} (known, cited, proof referenced), \status{ours} (proved here)
+or \status{proposed} (a direction, not a result). \Cref{sec:status} lists all of them.
+
+\subsection{Outline}
+\Cref{sec:smc} reviews the parts of sequential Monte Carlo we use. \Cref{sec:setup} fixes notation.
+\Cref{sec:step} gives the step-level theory and \cref{sec:routes} the routes and their samplers.
+\Cref{sec:traj} contains the trajectory-exact decoder and its correctness theorem. \Cref{sec:resampling}
+analyses resampling, \cref{sec:ambiguity} ambiguity, and \cref{sec:beyond} constraints that need more than an exact
+route. \Cref{sec:approach} lists open directions.
+
+%======================================================================
+\section{Background: twisted sequential Monte Carlo}\label{sec:smc}
+%======================================================================
+
+This section collects standard facts; \cite{delmoral2004} is the reference for all of them.
+
+\paragraph{Importance sampling on paths.}
+Let $\gamma$ be an unnormalised target on trajectories $x_{0:T}$ with normaliser $\mathcal Z=\sum\gamma$, and let
+$q$ be a proposal with $q>0$ wherever $\gamma>0$. The weight $W=\gamma/q$ satisfies $\E_q[W]=\mathcal Z$, and the
+weighted samples $\{(x^k,W^k)\}$ estimate expectations under $\gamma/\mathcal Z$. Here
+$\gamma(x_{0:T})=p(x_{0:T})\one_C(x_T)$, so $\mathcal Z=p(C)$, which we write $h_0$.
+
+\paragraph{Sequential form and twists.}
+If $p$ and $q$ factorise over steps, $p=\prod_t\kappa_{t+1}$ and $q=\prod_tM_{t+1}$, the weight can be accumulated
+step by step. A \emph{twist} is a sequence of non-negative functions $\psi_0,\dots,\psi_T$ with $\psi_T=\one_C$.
+It defines intermediate targets $\gamma_t(x_{0:t})=p(x_{0:t})\psi_t(x_t)$ and \emph{potentials}
+\begin{equation}\label{eq:G}
+  G_{t+1}(x_t,x_{t+1})=\frac{\kappa_{t+1}(x_{t+1}\mid x_t)\,\psi_{t+1}(x_{t+1})}{M_{t+1}(x_{t+1}\mid x_t)\,\psi_t(x_t)}.
+\end{equation}
+The product $\psi_0(x_0)\prod_tG_{t+1}$ telescopes to $\gamma/q$, so the final weight is unchanged by the choice of
+twist. The twist only changes the intermediate weights, and therefore which particles survive resampling. The ideal
+twist is the \emph{Doob function} $h_t(x)=\Pr_p(X_T\in C\mid X_t=x)$. With $\psi_t=h_t$, the intermediate weights
+reflect exactly how likely each particle is to end in $C$.
+
+\paragraph{Resampling and the normalising-constant estimate.}
+With $K$ particles, the weights tend to concentrate on a few of them. A common diagnostic is the effective sample
+size $\mathrm{ESS}=(\sum_kW^k)^2/\sum_k(W^k)^2\in[1,K]$. Adaptive resampling draws $K$ new particles from the
+current ones in proportion to their weights whenever $\mathrm{ESS}$ falls below a threshold $\tau K$, and then
+resets the weights. The estimate
+\[
+  \Zh=\prod_{\text{resampling times}}\Big(\frac1K\sum_kW^k\Big)\times\Big(\frac1K\sum_kW^k\Big)_{\text{final}}
+\]
+is unbiased for $\mathcal Z$ at every $K$ \cite{delmoral2004}. The weighted particles are consistent for the
+normalised target as $K\to\infty$.
+
+%======================================================================
+\section{Setup and notation}\label{sec:setup}
+%======================================================================
+
+\paragraph{Tokens and classes.}
+Let $V$ be the vocabulary and $\mask\notin V$ the mask symbol. Constraints are usually stated over a small alphabet
+$\Sigma$ of token \emph{classes}, through a map $\phi:V\to\Sigma$ (digit, opening bracket, nucleotide). We write
+$C\subseteq\Sigma^L$, and a token sequence $x$ satisfies $C$ if $\phi(x)\in C$. For a partial sequence
+$x\in(V\cup\{\mask\})^L$, $\M(x)$ is the set of its masked positions.
+
+\paragraph{Native kernel.}
+Following \cite{twister}, one native step from $x$ to $x'$ has probability
+\begin{equation}\label{eq:native}
+  \kappa_{t+1}(x'\mid x)=s_{t+1}(r\mid x)\prod_{i\in r}p^i_\theta(x'_i\mid x),
+\end{equation}
+where $r\subseteq\M(x)$ is the set of positions revealed at the step, $s_{t+1}$ is the scheduler (for example,
+$L/T$ positions chosen uniformly among the masked ones) and $p^i_\theta(\cdot\mid x)$ is the denoiser's prediction at
+position $i$. The native path law is $p(x_{0:T})=\prod_t\kappa_{t+1}(x_{t+1}\mid x_t)$, with $x_0=\mask^L$ and
+$x_T$ fully revealed.
+
+\paragraph{Target.}
+The \emph{Doob path law} $p^\star(x_{0:T})\propto p(x_{0:T})\one_C(x_T)$ has terminal marginal $p(\cdot\mid C)$.
+It is a Markov chain with kernel $\kappa_{t+1}h_{t+1}/h_t$. The Doob function $h_t$ depends on the denoiser's
+outputs at every future state, so it cannot be computed directly.
+
+\paragraph{Frozen weights and the clamped sum.}
+For a partial sequence $x$, the class weights are
+\[
+  w_i(\sigma\mid x)=\sum_{v:\,\phi(v)=\sigma}p^i_\theta(v\mid x)\qquad(i\in\M(x)),
+\]
+and revealed positions are clamped to their class, $w_i(\sigma\mid x)=[\sigma=\phi(x_i)]$. The \emph{clamped sum} of
+a partial sequence $x'$ under the predictions made at $x$ is
+\begin{equation}\label{eq:clamped}
+  Z(x';x)=\sum_{y\in C}\ \prod_{i\in\M(x')}w_i(y_i\mid x)\prod_{i\notin\M(x')}[y_i=\phi(x'_i)].
+\end{equation}
+$\eta_t(x):=Z(x;x)$ is the probability that $C$ holds if every masked position is filled independently from the
+current predictions. TWISTER uses $\eta_t$ in place of $h_t$. We call it the \emph{frozen twist}, because it
+treats the current predictions as if they would not change.
+
+%======================================================================
+\section{Step-level theory}\label{sec:step}
+%======================================================================
+
+\subsection{The constraint polynomial}
+Every per-step quantity in constrained decoding is a query on a single polynomial.
+
+\begin{definition}[Constraint polynomial]
+For $C\subseteq\Sigma^L$ and $w\in\mathbb{R}_{\ge0}^{L\times\Sigma}$,
+$P_C(w)=\sum_{y\in C}\prod_{i=1}^Lw_{i,y_i}$.
+\end{definition}
+
+The frozen twist is $\eta_t(x)=P_C(w(x))$. The constrained marginals are
+$\mu_{i,\sigma}=\Pr_q(y_i=\sigma\mid C)=w_{i,\sigma}\,\partial_{i,\sigma}P_C(w)/P_C(w)$, and step-exact decoding needs
+samples from $q(y\mid C)\propto\prod_iw_{i,y_i}\one_C(y)$. $P_C$ is set-multilinear (each monomial contains one
+variable per position), so the marginal formula holds for any circuit that computes $P_C$.
+
+\begin{definition}[Structure circuit and derivations]
+A \emph{structure circuit} is a smooth, decomposable, monotone arithmetic circuit over the leaves $w_{i,\sigma}$
+with unit parameters. Automaton trellises, inside charts of grammars restricted to length $L$, and variable
+elimination with $0/1$ factors are all of this kind. A structure circuit $S$ computes
+\[
+  P_S(w)=\sum_{y\in\Sigma^L}d_S(y)\prod_iw_{i,y_i},
+\]
+where $d_S(y)\in\mathbb N$ is the number of \emph{derivations} of $y$ in $S$ (accepting paths of an automaton,
+parse trees of a grammar). $S$ represents $C$ if $\operatorname{supp}d_S=C$, and is \emph{unambiguous} if
+$d_S\equiv1$ on $C$.
+\end{definition}
+
+\subsection{Semirings and ambiguity}
+\begin{proposition}[\status{background}]\label{prop:semiring}
+Let $S$ represent $C$. Evaluated on leaves $w\ge0$:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+semiring & value of $S$ & equals the constrained query\\
+\midrule
+Boolean $(\lor,\land)$ & $[\exists y\in C$ consistent with $w]$ & always (completability)\\
+max-times & $\max_{y\in C}\prod_iw_{i,y_i}$ & always (MAP, recovered by backtracking)\\
+sum-product & $\sum_yd_S(y)\prod_iw_{i,y_i}$ & if and only if $d_S\equiv1$ on $C$\\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{proposition}
+\proofref{A special case of Wang et al.\ \cite{wang2024atlas}, Thm.~4 and Ex.~2: mapping a Boolean circuit into a
+semiring is tractable when the semiring is idempotent or the circuit is deterministic.}
+
+Every derivation of $y$ has weight $\prod_iw_{i,y_i}$. Idempotent addition counts the $d_S(y)$ copies once, and
+ordinary addition counts all of them. Top-down sampling from a smooth, decomposable, monotone circuit is correct
+for the polynomial the circuit computes, deterministic or not. Ambiguity therefore makes a sampler draw from the
+derivation-weighted distribution $\propto d_S(y)\prod_iw_{i,y_i}$. Dang and Ermon call their NFA variant a ``soft
+proxy'' for this reason \cite{de26}.
+
+\begin{corollary}[Exact MAP for any CFG \status{background}]
+For every context-free grammar $G$, including inherently ambiguous ones, Viterbi on the length-$L$ chart computes
+$\arg\max_{y\in L(G)\cap\Sigma^L}\prod_iw_{i,y_i}$ in $O(L^3|G|)$.
+\end{corollary}
+\proofref{The max-times row of \cref{prop:semiring} applied to the chart of \cref{sec:chart}.}
+
+\subsection{When is the step-level problem tractable?}
+\begin{theorem}[\status{background}]\label{thm:char}
+Fix $\Sigma$ and a family $\{C_L\}$. With all bounds polynomial in $L$ and $|\Sigma|$, the following are equivalent.
+\begin{enumerate}[label=(\alph*),nosep]
+  \item $P_{C_L}$ has a polynomial-size arithmetic circuit over $\mathbb R$. Subtraction is allowed; the circuit
+    need not be decomposable, deterministic or monotone.
+  \item A real-RAM algorithm computes $P_{C_L}(w)$ for every $w\ge0$.
+  \item A real-RAM algorithm computes all constrained marginals $\mu_{i,\sigma}(w)$ whenever $P_{C_L}(w)>0$.
+\end{enumerate}
+Given a circuit of size $s$, $P_C(w)$ costs $O(s)$, all $L|\Sigma|$ marginals together cost $O(s)$, and an exact
+sample from $q(\cdot\mid C)$ costs $O(Ls)$. If the circuit is smooth, decomposable and monotone, one top-down pass
+gives a sample.
+\end{theorem}
+\proofref{(b)$\Rightarrow$(a) is the completeness theorem of Broadrick et al.\ \cite{broadrick2025}, Prop.~5.4
+(Sec.~5.1, proof in App.~C). Their virtual-evidence marginalisation (Def.~5.1) is query (b) for $\one_C$ after
+one-hot encoding each position. Their proof uses Strassen's division elimination and a polynomial-identity
+argument on an open box; we checked that both steps go through for $P_C$ with correctness only on the positive
+orthant. (a)$\Rightarrow$(b) is evaluation, and all marginals come from one reverse-mode differentiation pass.
+(c)$\Rightarrow$(b) and the $O(Ls)$ sampler are self-reducibility under clamping \cite{jvv86}.}
+
+Broadrick et al.\ also show (their Prop.~4.9 and Thm.~4.10) that tractable marginals under hard evidence alone do
+not imply a small circuit. Condition (b) needs arbitrary weights, which decoding supplies, since the weights are
+the denoiser's predictions.
+
+\begin{remark}[Approximate sampling \status{background}]
+A polynomial-time almost-uniform sampler for $q(\cdot\mid C)$ that works for every clamped $w$ yields an FPRAS
+for $P_C$ \cite{jvv86}. An efficient sampler therefore implies
+efficient \emph{approximate} counting, which is weaker than (a) to (c). The route compiler uses the converse to
+decide when to refuse a constraint (\cref{sec:beyond}).
+\end{remark}
+
+\begin{remark}[Decomposable circuits do not cover everything \status{background}]\label{rem:arb}
+Encode a tree on nodes $\{0,\dots,n\}$ by head pointers $y_m\in\{0,\dots,n\}\setminus\{m\}$, and let $C$ be the
+set of arborescences rooted at $0$. Then $P_C$ is the directed spanning-tree polynomial. It has a polynomial-size
+circuit via the directed matrix-tree theorem (\cref{sec:det}). Every monotone circuit for it has size $2^{\Omega(n)}$
+\cite{jerrumsnir1982}. Smooth decomposable circuits with non-negative parameters are monotone, so no automaton,
+grammar or bounded-treewidth route is polynomial for this constraint, while exact decoding through a determinant
+is.
+\end{remark}
+
+
+%======================================================================
+\section{Routes and their exact samplers}\label{sec:routes}
+%======================================================================
+
+\begin{definition}[Route]
+A \emph{route} for $C$ provides three operations on weights $w\ge0$:
+\begin{itemize}[nosep]
+  \item $\op{Mass}(w)=\sum_yd(y)\prod_iw_{i,y_i}$, for a fixed $d\ge0$ with $\operatorname{supp}d\supseteq C$;
+  \item $\op{Sample}(w)$, an exact draw from $y\propto d(y)\prod_iw_{i,y_i}$;
+  \item $\op{Accepts}(y)=\one_C(y)$, an exact membership test.
+\end{itemize}
+The route is \emph{exact} if $d=\one_C$, \emph{derivation-weighted} if $d\in\mathbb N$ and $\operatorname{supp}d=C$,
+and a \emph{superset route} if $\operatorname{supp}d\supsetneq C$.
+\end{definition}
+
+The condition the trajectory layer relies on is that $\op{Sample}$ draws from exactly the measure whose total
+$\op{Mass}$ returns. The routes below all satisfy it. In each case the correctness of the mass computation and
+the sampler is standard; we give the recursions and references.
+
+\subsection{Automata}
+For a finite automaton $(Q,q_0,\delta,F)$ over $\Sigma$, the forward recursion
+\[
+  \alpha_0(q)=[q=q_0],\qquad\alpha_i(q)=\sum_{q',\sigma:\,q\in\delta(q',\sigma)}\alpha_{i-1}(q')\,w_{i,\sigma},
+  \qquad\op{Mass}=\sum_{q\in F}\alpha_L(q),
+\]
+costs $O(L|\delta|)$. $\op{Sample}$ is forward filtering, backward sampling. Draw
+$q_L\propto\alpha_L(q)[q\in F]$; then, for $i=L,\dots,1$, draw $(q_{i-1},\sigma_i)$ with probability
+$\propto\alpha_{i-1}(q_{i-1})w_{i,\sigma_i}[q_i\in\delta(q_{i-1},\sigma_i)]$. For a DFA, $d=\one_C$. For an NFA,
+$d(y)$ is the number of accepting paths of $y$.
+
+Constraints that compile to automata include forbidden and required motifs (via an Aho--Corasick
+automaton), counts such as ``exactly $k$ tokens of class $c$'' or ``a fraction within a band'' (a
+counter automaton with $O(Lk)$ states in any variable order), regular expressions over classes, bounded-depth
+bracketing, sliding-window all-different constraints, and products of these.
+
+\subsection{Grammar charts}\label{sec:chart}
+For a grammar in Chomsky normal form with nonterminals $N$, binary rules $A\to BC$ and lexical rules $A\to\sigma$,
+the inside algorithm on the chart of length $L$,
+\begin{gather*}
+  \beta(A,i,i{+}1)=\sum_\sigma[A\to\sigma]\,w_{i,\sigma},\qquad
+  \beta(A,i,j)=\sum_{A\to BC}\ \sum_{i<k<j}\beta(B,i,k)\,\beta(C,k,j),\\
+  \op{Mass}=\beta(S,0,L),
+\end{gather*}
+costs $O(L^3|G|)$. The leaves for all positions come from one matrix product of the $L\times|V|$ denoiser output
+with the $|V|\times|N_{\mathrm{pre}}|$ lexical map.
+
+\begin{algorithm}[h]
+\caption{Top-down chart sampler}\label{alg:chart}
+\begin{algorithmic}[1]
+\State push $(S,0,L)$
+\While{the stack is non-empty}
+  \State pop $(A,i,j)$
+  \If{$j=i+1$} draw $\sigma\propto[A\to\sigma]\,w_{i,\sigma}$ and set $y_i\gets\sigma$
+  \Else\ draw $(A\to BC,\,k)\propto\beta(B,i,k)\,\beta(C,k,j)$; push $(B,i,k)$ and $(C,k,j)$
+  \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\Cref{alg:chart} draws each parse tree with probability proportional to its weight. The
+sampled string therefore has probability $\propto d(y)\prod_iw_{i,y_i}$, where $d(y)$ is its number of parse
+trees. On a GPU, all spans of one
+length are processed together and the draws are batched over particles.
+
+\begin{example}[Grammars used in the experiments]
+\leavevmode
+\begin{itemize}[nosep]
+  \item Unambiguous Dyck-1, $S\to(S)S\mid\varepsilon$, converted to CNF.
+  \item Ambiguous Dyck-1, $S\to SS\mid(S)\mid()$. It generates the same language, but a string with several
+    adjacent blocks has several parse trees.
+  \item An RNA pairing grammar in the style of Nussinov and Jacobson \cite{nussinov1980}. Every base is paired,
+    pairs do not cross, and each pair is one of AU, UA, GC, CG, GU, UG. Parse trees correspond one to one with
+    secondary structures, so $d(y)$ is the number of structures $y$ can fold into. This number can grow
+    exponentially with $L$; $(GC)^n$ has Catalan$(n)$ structures.
+\end{itemize}
+\end{example}
+
+\subsection{Factor graphs}
+If $C$ is given by $0/1$ factors and an elimination order has induced width $\omega$, variable elimination
+computes $\op{Mass}$ in $O(L|\Sigma|^{\omega+1})$. $\op{Sample}$ eliminates in that order and
+samples in reverse. Derivations here are assignments, so $d=\one_C$. The case that motivates this route is the
+same-order copy relation $y_i=y_{i+k}$ for $i\le k$ \cite{sz26}, which has width 1:
+\[
+  \op{Mass}=\prod_{i\le k}\ \sum_\sigma w_{i,\sigma}w_{i+k,\sigma}\times\prod_{i>2k}\ \sum_\sigma w_{i,\sigma}.
+\]
+An automaton that reads positions in order needs $|\Sigma|^k$ states for the same relation.
+
+\subsection{Determinants}\label{sec:det}
+Let $w_m(h)$ be the weight that node $m$ has head $h$. Let $\hat L$ be the $n\times n$ matrix on the non-root
+nodes with $\hat L_{mm}=\sum_{h\ne m}w_m(h)$ (the root included in the sum) and $\hat L_{hm}=-w_m(h)$ for $h\ne m$.
+The directed matrix-tree theorem gives $\op{Mass}=\det\hat L$. Differentiating $\log\det\hat L$
+gives the marginals
+\[
+  \mu_m(h)=w_m(h)\big([\hat L^{-1}]_{mm}-[h\ne0]\,[\hat L^{-1}]_{mh}\big)
+\]
+(see \cite{koo2007}). Both cost $O(n^3)$. $\op{Sample}$ is Wilson's algorithm \cite{wilson1996}: for each node not
+yet in the tree, run the random walk that moves from $m$ to $h$ with probability $w_m(h)/\sum_{h'}w_m(h')$ until
+it reaches the tree, erase the loops of the path and add the path to the tree. The resulting arborescence has
+probability $\propto\prod_mw_m(y_m)$. By \cref{rem:arb} no polynomial monotone route exists for this constraint.
+
+\subsection{From classes to tokens}
+A route draws a class sequence $y$. Each revealed position then draws a token within its class,
+$v\propto p^i_\theta(v\mid x)[\phi(v)=y_i]$. The combined token-level law is
+$\prod_ip^i_\theta(v_i\mid x)\one_C(\phi(v))/Z$, which is what the trajectory layer requires.
+
+\subsection{Route compiler}
+The compiler turns a constraint specification into a route. It estimates the cost of one pass for each candidate
+from compile-time statistics ($O(L|\delta|)$ for a chain, $O(L^3|G|)$ for a chart, $O(L|\Sigma|^{\omega+1})$ for
+variable elimination, $O(n^3)$ for a determinant) and picks the cheapest. Which route is cheapest depends on the
+representation and the variable order as well as on the constraint: copy is exponential as an in-order automaton
+and linear as a factor graph. When no candidate fits the budget, or the family has \#P-hard counting (for
+example, CNF clauses over positions), the compiler refuses instead of approximating.
+
+%======================================================================
+\section{Trajectory-exact decoding with any route}\label{sec:traj}
+%======================================================================
+
+\subsection{The step-exact proposal}
+Write $Z_d(x';x)$ for the clamped sum \eqref{eq:clamped} with $\one_C$ replaced by the route's $d$, and
+$\eta_t(x)=Z_d(x;x)$.
+
+\begin{lemma}[Step-exact proposal \status{background}]\label{lem:prop}
+The kernel
+\[
+  M_{t+1}(x'\mid x)=s_{t+1}(r\mid x)\prod_{i\in r}p^i_\theta(x'_i\mid x)\,\frac{Z_d(x';x)}{Z_d(x;x)}
+\]
+is a probability kernel. It is sampled by drawing $r$ from the native scheduler, drawing a complete class sequence
+$y\sim\op{Sample}(w(x))$ with revealed positions clamped, drawing tokens within classes at the positions in $r$, and
+revealing only those positions.
+\end{lemma}
+\proofref{TWISTER \cite{twister}, Prop.~3.6, proof in App.~A, stated for DFAs. The proof uses only the fact that
+the sampler draws from the measure whose total is $Z_d(x;x)$, so it applies to any route.}
+
+Combining \cref{lem:prop} with \eqref{eq:G}, the scheduler and the token probabilities cancel, and the potential
+becomes
+\begin{equation}\label{eq:potential}
+  G_{t+1}(x,x')=\frac{Z_d(x;x)}{\psi_t(x)}\cdot\frac{\psi_{t+1}(x')}{Z_d(x';x)}.
+\end{equation}
+TWISTER takes $\psi_t=\eta_t$ for $t<T$, which gives $G_{t+1}=Z_d(x';x')/Z_d(x';x)$: the mass of the new partial
+sequence under the new predictions, divided by its mass under the old predictions. In \cref{ex:bias} this ratio
+is $p^2(a\mid a)/p^2(a\mid\varnothing)$.
+
+\subsection{The algorithm}
+\Cref{alg:smc} is TWISTER with the automaton replaced by a route. It has two optional parameters, introduced in
+\cref{sec:resampling}: defensive mixing $\epsilon$ and twist power $\beta$. With $\epsilon=0$ and $\beta=1$ it is
+TWISTER's algorithm. With $K=1$ and the weights ignored, it is step-exact decoding \cite{de26}.
+
+\begin{algorithm}[h]
+\caption{Route-generic twisted SMC (one run with $K$ particles)}\label{alg:smc}
+\begin{algorithmic}[1]
+\Require route $(\op{Mass},\op{Sample},\op{Accepts})$; denoiser; $T$; $K$; ESS threshold $\tau$;
+  $\epsilon\in[0,1)$; $\beta\in(0,1]$
+\State for each $k$: $x^k\gets\mask^L$, $\eta^k\gets\op{Mass}(w(x^k))$, $\log W^k\gets\beta\log\eta^k$; set $\log\Zh\gets0$
+\For{$t=0,\dots,T-1$}
+  \For{each particle $k$}
+    \State draw $r\sim s_{t+1}(\cdot\mid x^k)$ and $y\sim\op{Sample}(w(x^k))$; draw tokens within classes on $r$;
+      $x'\gets x^k$ revealed on $r$
+    \State $z\gets Z_d(x';x^k)$ \Comment{mass of $x'$ under the old predictions}
+    \If{$t<T-1$} call the denoiser at $x'$; $\eta'\gets Z_d(x';x')$; $\psi'\gets(\eta')^\beta$
+    \Else\ $\psi'\gets\op{Accepts}(x')$ \Comment{exact membership at the last step}
+    \EndIf
+    \State $\log W^k\gets\log W^k+(1-\beta)\log\eta^k+\log\psi'-\log z$; \ $x^k\gets x'$; \ $\eta^k\gets\eta'$
+  \EndFor
+  \If{$t<T-1$ and $\mathrm{ESS}(W)<\tau K$}
+    \State $\log\Zh\gets\log\Zh+\log\frac1K\sum_kW^k$; \ $\wt\gets W/\sum_kW^k$; \ $\pi\gets(1-\epsilon)\wt+\epsilon/K$
+    \State draw ancestors $a_1,\dots,a_K$ from $\pi$ (independently, or systematically); for each $k$:
+      $x^k\gets x^{a_k}$, $\eta^k\gets\eta^{a_k}$, $W^k\gets\wt_{a_k}/\pi_{a_k}$
+  \EndIf
+\EndFor
+\State $\log\Zh\gets\log\Zh+\log\frac1K\sum_kW^k$
+\State \Return weighted particles $\{(x^k,W^k)\}$ and $\Zh$
+\end{algorithmic}
+\end{algorithm}
+
+Per particle and step, the algorithm makes one denoiser call, one route sample and two mass evaluations: the
+clamped pass under the old predictions and the pass under the new ones. The latter is reused at the next step.
+
+\subsection{Correctness}
+\begin{theorem}[Route-generic trajectory exactness \status{ours}]\label{thm:traj}
+Assume the denoiser gives every token positive probability. Let the route satisfy $\operatorname{supp}d\supseteq
+C$, with ambiguity allowed. Let the twists satisfy $\psi_t(x)>0$ whenever $h_t(x)>0$, and $\psi_T=\one_C$; for
+instance $\psi_t=\eta_t^\beta$ with any $\beta>0$. Let $W(x_{0:T})=\psi_0(x_0)\prod_{t<T}G_{t+1}$ and
+$q=\prod_tM_{t+1}$. Then:
+\begin{enumerate}[label=(\roman*),nosep]
+  \item $q(x_{0:T})\,W(x_{0:T})=p(x_{0:T})\,\one_C(x_T)$ for every path;
+  \item the weighted particles of \cref{alg:smc} target the Doob path law $p^\star$ and are consistent for
+    $p(\cdot\mid C)$ as $K\to\infty$;
+  \item $\E[\Zh]=h_0$ for every $K\ge1$, every $\epsilon\in[0,1)$, and every resampling rule whose decision at
+    each step depends only on the current particles and weights;
+  \item the derivation count affects only the variance: the factor $d(x_T)$ introduced by the last proposal step
+    cancels in the last potential.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) By \cref{lem:prop}, $q=\prod_t\kappa_{t+1}Z_d(x_{t+1};x_t)/Z_d(x_t;x_t)$. Multiplying by
+\eqref{eq:potential}, the factors $Z_d$ cancel, and the twists telescope to
+$qW=\psi_0\prod_t\kappa_{t+1}\psi_{t+1}/\psi_t=p\,\psi_T=p\,\one_C$. The divisions are legitimate on the relevant
+paths. If $x'$ can still be completed to an element of $C$, some $y\in C$ agrees with $x'$; then $d(y)>0$, so
+$Z_d(x';x)>0$ under the positivity assumption, and $M_{t+1}(x'\mid x)>0$. If $\psi_t(x)=0$, the particle already
+has weight zero, and we set $0/0=0$.
+
+(ii) follows from (i) by the standard Feynman--Kac argument \cite{delmoral2004}.
+
+(iii) Unbiasedness of $\Zh$ for multinomial resampling with adaptive decisions is standard \cite{delmoral2004}.
+For $\epsilon>0$ we check that the reweighted resampling step preserves conditional expectations. Let
+$\mathcal F$ be the particle system just before a resampling step, with weights $W^k$ and mean $\bar W$. For any
+$f$,
+\[
+  \E\Big[\bar W\,\frac1K\sum_j\frac{\wt_{a_j}}{\pi_{a_j}}f(x^{a_j})\Bigm|\mathcal F\Big]=\bar W\sum_k\wt_kf(x^k)
+  =\frac1K\sum_kW^kf(x^k),
+\]
+because $\pi_k>0$ wherever $\wt_k>0$. A resampling step therefore leaves the conditional expectation of the
+weighted particle measure unchanged, whether or not it fires. Iterating over steps gives $\E[\Zh]=\E_q[W]$, which
+equals $h_0$ by (i).
+
+(iv) At the last step $x_T$ is fully revealed, so $Z_d(x_T;x_{T-1})=d(x_T)$, and \eqref{eq:potential} gives
+$G_T=Z_d(x_{T-1};x_{T-1})\one_C(x_T)/\big(\psi_{T-1}(x_{T-1})\,d(x_T)\big)$.
+\end{proof}
+
+The theorem separates what each kind of decoding needs. Step-exact decoding needs an exact route
+(\cref{thm:char}). Trajectory-exact decoding needs a route whose sampler matches its mass, a twist that is
+positive on completable states, and an exact membership test at the end. Any NFA or CFG chart, ambiguous or not,
+meets these conditions in polynomial time per particle. This does not contradict the \#P-hardness of computing the
+exact future-validity function for general CFGs, because SMC never computes $h_t$; it is exact only in the limit
+$K\to\infty$.
+
+\begin{proposition}[Terminal twist \status{ours}]
+If an ambiguous route's own value $Z_d(x_T;x_T)=d(x_T)$ is used as the terminal twist in place of $\one_C$, the
+particles target $\propto p(x_{0:T})\,d(x_T)$, the derivation-weighted law.
+\end{proposition}
+\begin{proof}
+Replace $\psi_T=\one_C$ by $\psi_T=d$ in the telescoping product of \cref{thm:traj}(i).
+\end{proof}
+
+\begin{remark}[Relation to prior work]
+For unambiguous routes, \cref{thm:traj} is TWISTER's argument \cite{twister} (Thm.~4.2, proof in App.~D)
+applied to a different route. Their proof uses the DFA only to compute $Z$. Dang et al.\ \cite{dang2026icml}
+(Thm.~4.3 and the remark that follows it) observe, for NFAs in autoregressive SMC, that the derivation-weighted
+distribution is still a valid proposal. \Cref{thm:traj} combines these observations for masked diffusion and for
+every route of \cref{sec:routes}. We have not found the terminal-twist pitfall or the analysis of
+\cref{sec:resampling} stated elsewhere.
+\end{remark}
+
+\subsection{Choosing the twist separately from the proposal}
+The proof of \cref{thm:traj} uses two facts: the proposal density can be computed, and the twists telescope. The
+twist can therefore be chosen freely.
+
+\begin{proposition}[Free intermediate twists \status{background}]\label{prop:free}
+Let $M_{t+1}$ be any kernel with computable density and $M_{t+1}(x'\mid x)>0$ whenever
+$\kappa_{t+1}(x'\mid x)h_{t+1}(x')>0$. Let $\psi_t\ge0$ with $\psi_t>0$ where $h_t>0$, and $\psi_T=\one_C$. With
+the potentials \eqref{eq:G}, $qW=p\,\one_C$, and (ii) and (iii) of \cref{thm:traj} hold. The same is true for
+random twists $\psi_t(x,\xi_t)$, where the auxiliary randomness $\xi_t$ is drawn afresh at each step and the same
+realisation is used in the numerator at step $t$ and the denominator at step $t+1$.
+\end{proposition}
+\proofref{The deterministic case is the standard twisted-SMC construction \cite{delmoral2004}; \cite{zhao2024} uses it for
+autoregressive language models. For random twists, include $\xi_t$ in the state; each realisation appears once in a
+numerator and once in a denominator, so the product still telescopes path by path.}
+
+With the step-exact proposal, the twist used to decide which particles survive can thus be chosen independently of
+the route used to propose. For example, $\psi_t=\eta_t^\beta$ gives the potential
+$G_{t+1}=\eta_t(x)^{1-\beta}\eta_{t+1}(x')^\beta/Z_d(x';x)$, which is the update in \cref{alg:smc}.
+
+\subsection{A two-sided identity}
+\begin{lemma}[\status{ours}]\label{lem:twosided}
+Under the conditions of \cref{thm:traj},
+\[
+  \E_q[W]=h_0,\qquad\E_p\big[\one_C(x_T)/W(x_{0:T})\big]=\Pr\nolimits_q(x_T\in C).
+\]
+The second expectation is over native paths. For an exact or derivation-weighted route, $\Pr_q(x_T\in C)=1$.
+\end{lemma}
+\begin{proof}
+By \cref{thm:traj}(i), $\E_p[\one_C/W]=\sum_{\text{paths}}p\,\one_C\,q/(p\,\one_C)$, which is the $q$-probability of
+ending in $C$.
+\end{proof}
+The first identity is checked with proposal runs, the second with native samples. Native paths whose weight exceeds
+every observed proposal weight point to regions the proposal rarely visits. Running \cref{alg:smc} with resampling switched off
+alongside the main run is also useful, because it separates the effect of the proposal and twist from the effect
+of resampling.
+
+%======================================================================
+\section{Resampling with an over-confident twist}\label{sec:resampling}
+%======================================================================
+
+\Cref{thm:traj}(iii) says $\E[\Zh]=h_0$. If the distribution of $\Zh$ has most of its expectation in rare
+events, the average over any feasible number of runs can still fall well short of $h_0$. This section shows how
+adaptive resampling with the frozen twist can create such rare events, and gives two remedies. The statements
+are exact and make no assumption about the denoiser.
+
+\subsection{Continuation values and hidden mass}
+\begin{lemma}[Continuation value \status{ours}]\label{lem:cont}
+Without further resampling, the expected product of the remaining potentials from state $x$ at step $s$ is
+\[
+  V_s(x):=\E_q\Big[\prod_{t\ge s}G_{t+1}\Bigm|x_s=x\Big]=\frac{h_s(x)}{\psi_s(x)}.
+\]
+\end{lemma}
+\begin{proof}
+From step $s$ on, the product of the proposal kernels and the potentials telescopes to $p\,\psi_T/\psi_s$ along
+every path. Summing over continuations gives $\Pr_p(X_T\in C\mid X_s=x)/\psi_s(x)$.
+\end{proof}
+
+Suppose resampling fires at step $s$, with cumulative weights $W^k_s$ and normalised weights $\wt_k$. By
+\cref{thm:traj}(iii) and \cref{lem:cont}, any unbiased continuation of the run has
+\[
+  \E[\Zh\mid\mathcal F_s]=\sum_kc_k,\qquad c_k:=\frac1KW^k_s\,\frac{h_s(x^k_s)}{\psi_s(x^k_s)}.
+\]
+Write $W^k_s=\rho^k_s\,\psi_s(x^k_s)$, where $\rho^k_s$ is the ratio $p/q$ along particle $k$'s path up to $s$.
+Then
+\begin{equation}\label{eq:mismatch}
+  \wt_k\propto\rho^k_s\,\psi_s(x^k_s),\qquad c_k\propto\rho^k_s\,h_s(x^k_s).
+\end{equation}
+Resampling allocates offspring in proportion to $\psi_s$, while each particle's share of the expectation is
+proportional to $h_s$.
+
+\begin{proposition}[Hidden mass under multinomial resampling \status{ours}]\label{prop:hidden}
+Under multinomial resampling ($\pi=\wt$), particle $k$ has at least one offspring with probability
+$1-(1-\wt_k)^K\le K\wt_k$; when it does, its contribution to the run's estimate is multiplied by about
+$1/(K\wt_k)$. For $\varepsilon>0$ define the hidden mass
+\[
+  H_\varepsilon=\frac1{h_0}\,\E\Big[\sum_kc_k\,\one\{\wt_k<\varepsilon\}\Big].
+\]
+Over $R$ independent runs, the expected number of runs in which some particle with $\wt_k<\varepsilon$ has an
+offspring is at most $RK\varepsilon\,\E[N_\varepsilon]$, where $N_\varepsilon$ is the number of such particles in
+a run. When this number is much smaller than 1, the average of $\Zh$ over the $R$ runs misses a fraction of about
+$H_\varepsilon$ of $h_0$ with high probability, although $\E[\Zh]=h_0$.
+\end{proposition}
+\begin{proof}
+The offspring count of particle $k$ is binomial with parameters $K$ and $\wt_k$, which gives the first bound; a
+union bound over particles and runs gives the second. On the event that particle $k$ has $n_k$ offspring, they
+carry weight $\bar W$ each, against an expected share $c_k$ that \cref{lem:cont} assigns to a weight of
+$W^k_s=K\bar W\wt_k$; hence the factor $n_k/(K\wt_k)$.
+\end{proof}
+
+Tail diagnostics fitted to the observed values of $\Zh$, such as the generalised-Pareto shape estimate, cannot
+detect the missing mass, because the events that carry it are absent from the sample.
+
+\begin{corollary}[A perfect twist hides nothing \status{ours}]
+If $\psi_s=h_s$, then $c_k=\wt_k\sum_jc_j$ by \eqref{eq:mismatch}, so $H_\varepsilon\le K\varepsilon$.
+\end{corollary}
+Hidden mass is therefore a measure of twist error. It is large when, among the particles of one run, $\psi_s$
+understates $h_s$ by orders of magnitude for some of them: the frozen twist is \emph{over-confident} that the
+constraint has become unreachable.
+
+\begin{remark}[Estimating $H_\varepsilon$]
+Runs with resampling switched on and off have the same distribution up to the first step at which resampling would
+fire. $H_\varepsilon$ can therefore be estimated from runs without resampling: record each particle's weight at
+every step, find the first step at which $\mathrm{ESS}<\tau K$, and add up the final contributions of the particles
+whose normalised weight at that step was below $\varepsilon$.
+\end{remark}
+
+\begin{remark}[Why the frozen twist can be over-confident]
+$\eta_t(x)$ evaluates the constraint under the denoiser's current predictions. Nothing forces those predictions to
+be consistent with what the denoiser will predict later. A denoiser can assign a completion almost zero probability
+at one step and a substantial probability after a few more tokens are revealed. $h_t$ averages over these later
+revisions and $\eta_t$ ignores them. A synthetic denoiser whose predictions depend little on context has little
+hidden mass, so tests on such models can miss the effect.
+\end{remark}
+
+\subsection{Defensive resampling}
+\begin{proposition}[\status{ours}]\label{prop:defensive}
+Resample from $\pi=(1-\epsilon)\wt+\epsilon/K$ and give each offspring the weight $\wt_a/\pi_a$, as in
+\cref{alg:smc}. Then:
+\begin{enumerate}[label=(\roman*),nosep]
+  \item $\E[\Zh]=h_0$;
+  \item every post-resampling weight is at most $1/(1-\epsilon)$, and every particle has at least one offspring
+    with probability at least $1-(1-\epsilon/K)^K\ge1-e^{-\epsilon}$, however small its weight;
+  \item for any non-negative continuation values $g_k$, the resampling step adds a conditional relative variance
+    of at most $1/\epsilon$:
+    \[
+      \frac{\operatorname{Var}\big(\frac1K\sum_j\frac{\wt_{a_j}}{\pi_{a_j}}g_{a_j}\bigm|\mathcal F\big)}{(\sum_k\wt_kg_k)^2}
+      \le\frac1\epsilon\,\frac{\sum_k(\wt_kg_k)^2}{(\sum_k\wt_kg_k)^2}\le\frac1\epsilon.
+    \]
+\end{enumerate}
+Under multinomial resampling the same ratio is $\frac1K\big(\sum_k\wt_kg_k^2/(\sum_k\wt_kg_k)^2-1\big)$, which
+has no bound when a particle with small $\wt_k$ has a large $g_k$.
+\end{proposition}
+\begin{proof}
+(i) is \cref{thm:traj}(iii). (ii) follows from $\pi_k\ge(1-\epsilon)\wt_k$ and $\pi_k\ge\epsilon/K$. For (iii),
+let $Y=(\wt_a/\pi_a)\,g_a$ with $a\sim\pi$. Then $\E Y=\sum_k\wt_kg_k$ and
+$\E Y^2=\sum_k\wt_k^2g_k^2/\pi_k\le(K/\epsilon)\sum_k(\wt_kg_k)^2$. The variance of an average of $K$
+independent copies is at most $\E Y^2/K$, and $\sum_k(\wt_kg_k)^2\le(\sum_k\wt_kg_k)^2$ because $g\ge0$.
+\end{proof}
+Taking $g_k=V_s(x^k)$ (\cref{lem:cont}) covers the situation of \cref{prop:hidden}. The construction is the
+resampling counterpart of defensive importance sampling \cite{hesterberg1995}. When the twist is
+accurate it costs some resampling efficiency, and in exchange its variance bound holds whatever the twist's errors.
+
+\subsection{Tempered intermediate twists}
+\begin{proposition}[\status{ours}]\label{prop:tempered}
+For $\beta\in(0,1]$, let $\psi_t=\eta_t^\beta$ for $t<T$ and $\psi_T=\one_C$, with the step-exact proposal. The
+potential is $G_{t+1}=\eta_t(x)^{1-\beta}\eta_{t+1}(x')^\beta/Z_d(x';x)$, and (ii) and (iii) of \cref{thm:traj}
+hold. In \eqref{eq:mismatch}, $\wt_k\propto\rho^k_s\,\eta_s(x^k_s)^\beta$, so
+\[
+  \frac{c_k}{\wt_k}\propto h_s(x^k_s)^{1-\beta}\Big(\frac{h_s(x^k_s)}{\eta_s(x^k_s)}\Big)^\beta.
+\]
+\end{proposition}
+\begin{proof}
+$\eta_t^\beta>0$ wherever $\eta_t>0$, which includes every completable state, so \cref{prop:free} applies. The
+formula for $\wt_k$ is \eqref{eq:mismatch} with $\psi_s=\eta_s^\beta$.
+\end{proof}
+An over-confidence factor $h_s/\eta_s=\delta^{-1}$ thus enters resampling as $\delta^{-\beta}$. The price is that
+resampling uses only part of the information in the frozen twist. At $\beta\to0$, particles are resampled on the
+path ratio $\rho$ alone; $\beta=1$ is TWISTER. The two remedies can be combined.
+
+\begin{remark}[When tempering is enough]
+Tempering removes hidden mass only if the tempered mismatch is large enough to be sampled. By
+\cref{prop:hidden}, a particle whose normalised weight is reduced by a factor $\delta^\beta$ relative to its
+share of the expectation has an offspring in some run out of $R$ only if $RK\delta^\beta\gtrsim1$, which requires
+$\beta\lesssim\log(RK)/\log(1/\delta)$. When the frozen twist is over-confident by many orders of magnitude, this
+forces $\beta$ close to $0$ and discards most of the look-ahead. Defensive resampling has no such condition,
+because its retention probability $1-e^{-\epsilon}$ does not depend on $\delta$. It is therefore the safer default;
+tempering is a complement for moderate twist errors.
+\end{remark}
+
+%======================================================================
+\section{Ambiguity}\label{sec:ambiguity}
+%======================================================================
+
+By \cref{thm:traj}, an ambiguous route gives the correct target. It costs variance in two ways. The proposal
+favours completions with many derivations, and the twist $\eta_d=\sum_yd(y)q(y)$ overstates how reachable $C$ is,
+in proportion to the ambiguity of the remaining completions.
+
+\begin{proposition}[Single-step cost of ambiguity \status{ours}]\label{prop:amb}
+Suppose $1\le d(y)\le D$ on $C$. Importance sampling from $q_d(y)\propto d(y)q(y)\one_C(y)$ to $q(y\mid C)$ uses
+weights proportional to $1/d(y)$, and its ESS fraction satisfies
+\[
+  \frac{(\E_{q_d}[1/d])^2}{\E_{q_d}[1/d^2]}\ge\frac{4D}{(1+D)^2}.
+\]
+The twist ratio satisfies $1\le\eta_d/\eta\le D$.
+\end{proposition}
+\begin{proof}
+Let $X=1/d(y)$ with $y\sim q_d$, so $X\in[m,M]$ with $m=1/D$ and $M=1$, and write $\mu=\E X$. From
+$(X-m)(M-X)\ge0$ we get $X^2\le(m+M)X-mM$, hence $\E X^2\le(m+M)\mu-mM$. The quadratic
+$\frac{(m+M)^2}{4mM}\mu^2-(m+M)\mu+mM$ has discriminant zero, so it is non-negative, which gives
+$\E X^2\le\frac{(m+M)^2}{4mM}\mu^2$ (Kantorovich's inequality). Substituting $m=1/D$ and $M=1$ gives the ESS
+bound. The twist bound is immediate from $1\le d\le D$.
+\end{proof}
+
+The bound is informative when the ambiguity is bounded. For the RNA pairing grammar, $D$ grows exponentially with
+$L$ and the bound is vacuous. Early in decoding, though, the twist only sees the ambiguity of completions consistent
+with the current partial sequence, which can be much smaller than $D$. Whether a per-step measure of this kind
+controls the ESS of whole trajectories is open (\cref{sec:approach}).
+
+Exact counting that ignores derivations is out of reach for ambiguous grammars in general. For CFG constraints on
+hidden Markov models, the exact constrained likelihood is NP-hard already at ambiguity 2, and an FPRAS exists when
+the ambiguity is polynomially bounded \cite{marzouk2022}. This suggests approximate twists under bounded ambiguity. By \cref{prop:free}, approximate or randomised twists are allowed, provided the proposal
+density is exact and the terminal twist is $\one_C$.
+
+%======================================================================
+\section{Beyond exact routes}\label{sec:beyond}
+%======================================================================
+
+\subsection{A regular superset with Boolean pruning \status{ours}}
+For a CFG constraint $C$, choose a DFA for a regular superset $R\supseteq C$: the lexer or class-level DFA,
+bracketing up to a depth bound with an overflow state that accepts everything, or the regular part of a schema. Use
+the chain route for $R$ as the proposal, with twist
+\[
+  \psi_t(x)=Z_R(x;x)\cdot\mathrm{comp}_C(x),\qquad\psi_T=\one_C,
+\]
+where $\mathrm{comp}_C(x)\in\{0,1\}$ reports whether $x$ can be completed to an element of $C$ (an emptiness test
+for the intersection of a context-free and a regular language). By \cref{prop:free} this is exact provided
+\begin{enumerate}[nosep]
+  \item $C\subseteq R$, so the proposal reaches every completable state, and
+  \item $\mathrm{comp}_C$ never reports 0 for a completable state. Reporting 1 for a dead state only wastes a
+    particle.
+\end{enumerate}
+Exact completability checkers satisfy condition 2. A checker that accepts a state only if one of a few sampled
+fillings can be extended may reject completable states, and then biases the target. A regular \emph{subset} (an
+overflow state that rejects) violates condition 1 and is biased unless the depth bound provably covers every string
+of length $L$. Pruning turns one accept-or-reject decision at the end into deaths at individual steps, which
+resampling can repair. $R$ should be tight enough that the per-step death rate stays well below $1-1/K$.
+
+\paragraph{Redrawing \status{proposed}.}
+Instead of letting a proposal that lands on a dead state kill its particle, redraw until $\mathrm{comp}_C$
+accepts. The potential then needs the acceptance probability $a(x)$ of a single draw. Using an unbiased estimate of
+$a(x)$ (the accepted fraction among $m$ extra draws) keeps the algorithm valid by the random-twist part of
+\cref{prop:free}.
+
+\subsection{Conjunctions}
+Conjunctions of automaton constraints compile to product automata, whose size is the product of the factors'
+sizes. A CFG intersected with a regular language is context-free, by the Bar-Hillel construction, with a grammar polynomial in both. A copy relation conjoined with local constraints stays a
+factor graph as long as the combined width stays bounded. A determinant route conjoined with other constraints does
+not fit any single route described here. A conjunction whose counting problem is \#P-hard is refused.
+
+\subsection{The intractable boundary}
+If a constraint family has no FPRAS, it has no polynomial-time almost-uniform sampler either \cite{jvv86}. The
+trajectory layer can still be run with a superset route and a weaker twist, but its variance can grow
+exponentially with $L$. Refusing such constraints is the correct behaviour for the compiler.
+
+%======================================================================
+\section{Open directions}\label{sec:approach}
+%======================================================================
+
+\begin{enumerate}[leftmargin=*]
+  \item \emph{Better twists.} \Cref{prop:hidden} makes the over-confidence of the frozen twist the main practical
+    limit, and \cref{prop:free} leaves the intermediate twists free. Candidates:
+    \begin{enumerate}[nosep,label=(\alph*)]
+      \item tempering and defensive resampling (\cref{prop:defensive,prop:tempered}), which are cheap and come with
+        guarantees that do not depend on the twist;
+      \item look-ahead twists, which evaluate $Z$ under the predictions made after one or more speculative
+        reveals, at the cost of extra denoiser calls;
+      \item mixture twists $\psi_t=(1-\lambda)\eta_t+\lambda\hat h_t$, where $\hat h_t$ is an unbiased estimate of
+        $h_t$ from native rollouts and the $\eta_t$ term keeps the twist positive;
+      \item learned twists $\psi_\vartheta\approx h_t$ fitted to native rollouts, as in twisted SMC for
+        autoregressive models \cite{zhao2024}, with $\eta_t$ as a feature or baseline;
+      \item approximate-count twists for bounded ambiguity \cite{marzouk2022}.
+    \end{enumerate}
+  \item \emph{Mixing the native kernel into the proposal.} $M_\alpha=(1-\alpha)M+\alpha\kappa$ has a computable
+    density, and $G\le\psi_{t+1}/(\alpha\psi_t)$ for every step. It reaches regions the step-exact proposal rarely
+    visits, at the price of proposals that leave $C$ and get weight zero.
+  \item \emph{Trajectory ESS under ambiguity.} Bound the ESS of whole paths in terms of a per-step ambiguity
+    measure, such as the spread of $d$ over completions consistent with the current partial sequence, instead of the
+    global range $D$ in \cref{prop:amb}.
+  \item \emph{An online guard against hidden mass.} \Cref{prop:hidden} expresses the hidden mass through
+    $h_s/\psi_s$, which cannot be observed. An estimate or upper bound available during a run (for example, from a
+    small population of particles that is never resampled) would turn the offline diagnostic into a check made
+    while decoding.
+  \item \emph{Routes for RNA and mRNA design.} A route for a fixed target structure (a tree-shaped factor graph
+    over paired and unpaired positions) and charts with a bound $W$ on pair span (cost $O(LW^2|G|)$). An external
+    energy model can enter through the twist, and \cref{prop:free} covers this without change.
+  \item \emph{Calibrated sampling and best-of-$K$.} Exact conditional sampling should eventually beat mode-seeking
+    decoding in best-of-$K$ selection as $K$ grows. Where the crossover lies is open.
+\end{enumerate}
+
+%======================================================================
+\section{Summary of results}\label{sec:status}
+%======================================================================
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{>{\raggedright}p{6.4cm}l>{\raggedright\arraybackslash}p{5cm}}
+\toprule
+result & status & source or note\\
+\midrule
+Semirings and ambiguity (\cref{prop:semiring}); MAP for any CFG & background & \cite{wang2024atlas}\\
+Circuit characterisation (\cref{thm:char}) & background & \cite{broadrick2025,jvv86}\\
+Spanning trees separate monotone from general circuits (\cref{rem:arb}) & background & \cite{jerrumsnir1982}\\
+Step-exact proposal (\cref{lem:prop}); free twists (\cref{prop:free}) & background & \cite{twister,delmoral2004}\\
+Routes with single-pass exact samplers; compiler with refusal & ours (system) & \cref{sec:routes}\\
+Route-generic trajectory exactness (\cref{thm:traj}) & ours & extends \cite{twister}; compare \cite{dang2026icml}\\
+Terminal-twist pitfall & ours & \\
+Two-sided identity (\cref{lem:twosided}) & ours & diagnostic\\
+Continuation value and hidden mass (\cref{lem:cont,prop:hidden}) & ours & \\
+Defensive resampling (\cref{prop:defensive}) & ours & compare \cite{hesterberg1995}\\
+Tempered intermediate twists (\cref{prop:tempered}) & ours & \\
+Single-step cost of ambiguity (\cref{prop:amb}) & ours & \\
+Regular superset with Boolean pruning & ours & \cref{sec:beyond}\\
+Better twists; trajectory ESS; online guard & proposed & \cref{sec:approach}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%======================================================================
+\begin{thebibliography}{99}\small
+\bibitem{broadrick2025} O.~Broadrick, S.~Agarwal, G.~Van den Broeck and M.~Bl\"aser. The limits of tractable marginalization. arXiv:2506.12020, 2025.
+\bibitem{dang2026icml} M.~Dang, J.~Song, H.~Zhang, H.~Zhao, G.~Van den Broeck and S.~Ermon. Mitigating bias in locally constrained decoding via tractable proposals. ICML 2026; arXiv:2606.01926.
+\bibitem{de26} M.~Dang and S.~Ermon. Constrained decoding for diffusion language models via efficient inference over finite automata. arXiv:2607.07026, 2026.
+\bibitem{delmoral2004} P.~Del Moral. \emph{Feynman--Kac Formulae: Genealogical and Interacting Particle Systems with Applications}. Springer, 2004. doi:10.1007/978-1-4684-9393-1.
+\bibitem{hesterberg1995} T.~Hesterberg. Weighted average importance sampling and defensive mixture distributions. \emph{Technometrics} 37(2), 1995. doi:10.1080/00401706.1995.10484303.
+\bibitem{jerrumsnir1982} M.~Jerrum and M.~Snir. Some exact complexity results for straight-line computations over semirings. \emph{J.\ ACM} 29(3), 1982. doi:10.1145/322326.322341.
+\bibitem{jvv86} M.~R.~Jerrum, L.~G.~Valiant and V.~V.~Vazirani. Random generation of combinatorial structures from a uniform distribution. \emph{Theor.\ Comput.\ Sci.} 43:169--188, 1986. doi:10.1016/0304-3975(86)90174-X.
+\bibitem{koo2007} T.~Koo, A.~Globerson, X.~Carreras and M.~Collins. Structured prediction models via the matrix-tree theorem. In \emph{Proc.\ EMNLP-CoNLL 2007}, pp.~141--150. ACL Anthology D07-1015.
+\bibitem{marzouk2022} R.~Marzouk and C.~de la Higuera. Marginal inference queries in hidden Markov models under context-free grammar constraints. arXiv:2206.12862, 2022.
+\bibitem{nussinov1980} R.~Nussinov and A.~B.~Jacobson. Fast algorithm for predicting the secondary structure of single-stranded RNA. \emph{PNAS} 77(11), 1980. doi:10.1073/pnas.77.11.6309.
+\bibitem{sahoo2024} S.~S.~Sahoo, M.~Arriola, Y.~Schiff, A.~Gokaslan, E.~Marroquin, J.~T.~Chiu et al. Simple and effective masked diffusion language models. arXiv:2406.07524, 2024.
+\bibitem{sz26} J.~Su and W.~Zhang. Constraints are graphs, not chains: exact decoding for diffusion language models. arXiv:2609.32900, 2026.
+\bibitem{twister} A.~Thimmaiah, L.~Marinov, J.~Srinivasa, H.~Vikalo, J.~J.~Li and M.~Gligoric. Twist, don't tilt: trajectory-exact constrained decoding for masked diffusion models. arXiv:2609.35609, 2026.
+\bibitem{wang2024atlas} B.~Wang, D.~D.~Mau\'a, G.~Van den Broeck and Y.~Choi. A compositional atlas for algebraic circuits. arXiv:2412.05481, 2024.
+\bibitem{wilson1996} D.~B.~Wilson. Generating random spanning trees more quickly than the cover time. In \emph{Proc.\ STOC 1996}. doi:10.1145/237814.237880.
+\bibitem{zhao2024} S.~Zhao, R.~Brekelmans, A.~Makhzani and R.~Grosse. Probabilistic inference in language models via twisted sequential Monte Carlo. arXiv:2404.17546, 2024.
+\end{thebibliography}
+\end{document}

@@ -1,0 +1,88 @@
+[
+{
+"family": "copy",
+"kind": "copy",
+"A": 2,
+"map": [
+0,
+1,
+1,
+1
+],
+"N": 32,
+"pairs": 16,
+"n": 50000
+},
+{
+"family": "counting",
+"kind": "exactly_k",
+"A": 2,
+"map": [
+0,
+1,
+1,
+1
+],
+"cls": 1,
+"N": 32,
+"count": 8,
+"n": 50000
+},
+{
+"family": "dyck1_unamb",
+"kind": "cfg",
+"grammar": "dyck1_unamb",
+"A": 2,
+"map": [
+0,
+1,
+1,
+1
+],
+"N": 32,
+"n": 50000
+},
+{
+"family": "rna_pair",
+"kind": "cfg",
+"grammar": "rna_pair",
+"A": 4,
+"map": [
+2,
+1,
+0,
+3
+],
+"N": 32,
+"n": 50000
+},
+{
+"family": "counting",
+"kind": "exactly_k",
+"A": 2,
+"map": [
+0,
+1,
+1,
+1
+],
+"cls": 1,
+"N": 64,
+"count": 16,
+"n": 50000
+},
+{
+"family": "copy",
+"kind": "copy",
+"A": 2,
+"map": [
+0,
+1,
+1,
+1
+],
+"N": 64,
+"pairs": 32,
+"n": 50000
+}
+]
