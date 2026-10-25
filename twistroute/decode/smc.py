@@ -149,11 +149,12 @@ def _log_potential(eta_cur, psi2, z_old, beta):
     return (1.0 - beta) * eta_cur + psi2 - z_old
 
 
-def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, horizon, m, gen):
+def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, horizon, m, gen, mean="arith"):
     """log of the mean over m speculative step-exact rollouts of j = horizon steps from x2 (which is x_{t+1}) of
-    the TWISTER potential product prod G = prod eta(x'') / Z(x''; x'). eta(x2) times this gain is an unbiased,
-    positive estimate of E_kappa[eta_{t+1+j}(X) | x2]; when the rollout reaches step T the final twist is the
-    indicator and the estimate is unbiased for the Doob function h_{t+1}(x2). Returns (P,) log gains."""
+    the TWISTER potential product prod G = prod eta(x'') / Z(x''; x'). With mean="arith", eta(x2) times this gain
+    is an unbiased, positive estimate of E_kappa[eta_{t+1+j}(X) | x2] (of the Doob function h_{t+1}(x2) when
+    the rollout reaches step T). mean="geom" averages log gains instead: biased low but far less dispersed,
+    which is what resampling needs (twist_design_findings.md). Returns (P,) log gains."""
     P = x2.shape[0]
     rep = lambda v: v.repeat_interleave(m, 0)
     sp = _Particles(rep(x2), rep(y2), rep(lp2), rep(lw2), rep(eta2))
@@ -170,14 +171,17 @@ def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, h
         if last:
             break
         sp.lp, sp.lw = lp3, lw3
-    return _lmexp(acc.view(P, m), -1)
+    acc = acc.view(P, m)
+    if mean == "geom":
+        return torch.where(torch.isneginf(acc).any(-1), torch.full_like(acc[:, 0], NEG_INF), acc.mean(-1))
+    return _lmexp(acc, -1)
 
 
 # ----------------------------------------------------------------------------------------------- driver
 @torch.no_grad()
 def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, return_particles=False,
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
-                lookahead=0, lookahead_draws=1, mix_native=0.0):
+                lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -191,6 +195,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                  product of `lookahead_draws` speculative rollouts of j steps (j >= T covers the whole remaining
                  trajectory, giving an unbiased estimate of the Doob function). Costs j * lookahead_draws extra
                  denoiser calls per particle per step. 0 = frozen twist.
+    lookahead_mean    "arith" (unbiased gain) or "geom" (mean of log gains over the draws)
+    lookahead_shrink  lambda in [0, 1]: log psi = beta * (log eta + lambda * log gain)
     mix_native   a in [0, 1): propose each step from (1 - a) M + a kappa, mixing in the native kernel; the
                  potential then uses the mixture density and is bounded by psi' / (a psi).
     Returns a dict with per-run 'logZ' (log Z_hat), 'ess_min', 'n_res', validity checks, 'eta0'; with
@@ -206,6 +212,12 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         raise ValueError("mix_native must lie in [0, 1)")
     if lookahead < 0 or lookahead_draws < 1:
         raise ValueError("lookahead must be >= 0 and lookahead_draws >= 1")
+    if lookahead_mean not in ("arith", "geom") or not 0.0 <= lookahead_shrink <= 1.0:
+        raise ValueError("lookahead_mean must be 'arith' or 'geom' and lookahead_shrink in [0, 1]")
+    def la(xx, yy, lpp, lww, ee, tt):
+        g = _lookahead_log_gain(den, classes, route, xx, yy, lpp, lww, ee, tt, T, nt, lookahead, lookahead_draws,
+                                gen, lookahead_mean)
+        return torch.where(torch.isneginf(g), g, lookahead_shrink * g)
     general = lookahead > 0 or mix_native > 0           # otherwise the TWISTER / tempered update below
     dev = classes.onehot.device
     P, nt, beta = nrun * K, N // T, float(twist_power)
@@ -221,8 +233,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     if general:
         psi0 = logw
         if lookahead > 0:
-            psi0 = beta * (eta0 + _lookahead_log_gain(den, classes, route, x, ycls, lp, lw, eta0, -1, T, nt,
-                                                      lookahead, lookahead_draws, gen))
+            psi0 = beta * (eta0 + la(x, ycls, lp, lw, eta0, -1))
             logw = psi0
     s = _Particles(x, ycls, lp, lw, eta0.clone(), None if psi0 is None else psi0.clone())
     logZ = torch.zeros(nrun, dtype=torch.float64, device=dev)
@@ -238,8 +249,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
             logw = logw + _log_potential(s.eta, psi2, z_old, beta)
         else:
             if lookahead > 0 and not last:
-                psi2 = beta * (eta2 + _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt,
-                                                          lookahead, lookahead_draws, gen))
+                psi2 = beta * (eta2 + la(x2, y2, lp2, lw2, eta2, t))
             if log_ratio is None:
                 log_ratio = z_old - s.eta
             # log G = log psi_{t+1}(x') - log psi_t(x) - log(M(x'|x) / kappa(x'|x))

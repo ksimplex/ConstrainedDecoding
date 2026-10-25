@@ -106,7 +106,9 @@ def test_defensive_runs_keep_low_weight_particles():
 
 
 @pytest.mark.parametrize("opts", [dict(lookahead=1), dict(lookahead=2, lookahead_draws=3), dict(lookahead=8),
-                                  dict(mix_native=0.3), dict(lookahead=2, mix_native=0.2, defensive=0.25)])
+                                  dict(mix_native=0.3), dict(lookahead=2, mix_native=0.2, defensive=0.25),
+                                  dict(lookahead=2, lookahead_draws=3, lookahead_mean="geom"),
+                                  dict(lookahead=1, lookahead_shrink=0.5)])
 def test_lookahead_and_native_mixture_unbiased_and_valid(opts):
     """Look-ahead twists (random, positive, reused consistently) and the native-kernel mixture proposal keep
     E[Z_hat] = h0 (notes, free intermediate twists), and every finite-weight particle is valid."""
@@ -125,6 +127,7 @@ def test_lookahead_and_native_mixture_unbiased_and_valid(opts):
 
 def test_lookahead_rejects_bad_options():
     den, cl, route = _setup()
-    for bad in (dict(lookahead=-1), dict(lookahead=1, lookahead_draws=0), dict(mix_native=1.0)):
+    for bad in (dict(lookahead=-1), dict(lookahead=1, lookahead_draws=0), dict(mix_native=1.0),
+                dict(lookahead=1, lookahead_mean="median"), dict(lookahead=1, lookahead_shrink=1.5)):
         with pytest.raises(ValueError):
             twisted_smc(den, cl, route, 8, 4, 2, 4, torch.Generator().manual_seed(0), **bad)

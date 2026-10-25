@@ -28,13 +28,24 @@ ARMS = {  # name: (K, smc options)
     "look2_plain": (4, dict(ess_min=0.5, lookahead=2)),
     "lookT_plain": (4, dict(ess_min=0.5, lookahead=1000)),
     "lookT_def25": (4, dict(ess_min=0.5, lookahead=1000, defensive=0.25)),
+    "look1_geom4_plain": (4, dict(ess_min=0.5, lookahead=1, lookahead_draws=4, lookahead_mean="geom")),
+    "look1_shrink50_plain": (4, dict(ess_min=0.5, lookahead=1, lookahead_shrink=0.5)),
+    "lookT_geom4_plain": (4, dict(ess_min=0.5, lookahead=1000, lookahead_draws=4, lookahead_mean="geom")),
+    "lookT_geom4_shrink50_plain": (4, dict(ess_min=0.5, lookahead=1000, lookahead_draws=4, lookahead_mean="geom",
+                                           lookahead_shrink=0.5)),
+    "look1_geom4_def25": (4, dict(ess_min=0.5, lookahead=1, lookahead_draws=4, lookahead_mean="geom", defensive=0.25)),
+    "lookT_geom4_def25": (4, dict(ess_min=0.5, lookahead=1000, lookahead_draws=4, lookahead_mean="geom",
+                                  defensive=0.25)),
     "mix20_plain": (4, dict(ess_min=0.5, mix_native=0.2)),
     "mix20_def25": (4, dict(ess_min=0.5, mix_native=0.2, defensive=0.25)),
 }
-TRACE_ARMS = {"frozen": dict(), "look1": dict(lookahead=1), "lookT": dict(lookahead=1000), "mix20": dict(mix_native=0.2)}
+TRACE_ARMS = {"frozen": dict(), "look1": dict(lookahead=1), "lookT": dict(lookahead=1000), "mix20": dict(mix_native=0.2),
+              "look1_geom4": dict(lookahead=1, lookahead_draws=4, lookahead_mean="geom"),
+              "lookT_geom4": dict(lookahead=1000, lookahead_draws=4, lookahead_mean="geom"),
+              "look1_shrink50": dict(lookahead=1, lookahead_shrink=0.5)}
 
 
-def denoiser_calls(T, K, lookahead=0, lookahead_draws=1, **_):
+def denoiser_calls(T, K, lookahead=0, lookahead_draws=1, **_):  # noqa: D401
     """Denoiser rows evaluated per run: K per step for the real path (T - 1 successor calls plus the initial
     call), plus K * m * min(j, steps remaining) per step for look-ahead rollouts."""
     calls = K * T

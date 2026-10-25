@@ -39,6 +39,11 @@ def family_specs(cells_path, N):
     return specs
 
 
+def accepts_chunked(route, cls, dev, chunk=8192):
+    """Membership of every row of cls (CPU tensor), in chunks so chart routes fit in GPU memory."""
+    return torch.cat([route.accepts(cls[i:i + chunk].to(dev)).cpu() for i in range(0, len(cls), chunk)])
+
+
 def language_key(spec):
     """Families with the same class map and language share native top-up samples (Dyck-1 unamb / amb)."""
     return json.dumps(spec["map"]) + spec.get("grammar", spec["kind"]).replace("_amb", "").replace("_unamb", "")
@@ -79,7 +84,7 @@ def main(argv=None):
         route, cl = build_route(spec, dev), base.merge(spec["map"])
         # ---- rejection reference: pool, plus native top-up when it has fewer than min_ref accepted samples
         cls_pool = cl.token_class.cpu()[pool_tok]
-        acc = route.accepts(cls_pool.to(dev)).cpu()
+        acc = accepts_chunked(route, cls_pool, dev)
         ref, n_nat, hits = [cls_pool[acc]], len(acc), int(acc.sum())
         if hits < a.min_ref:
             key = language_key(spec)
@@ -92,7 +97,7 @@ def main(argv=None):
                 topup[key] = torch.cat(extra)
                 meta["timing"][f"topup_{fam}"] = time.time() - t0
             cls_ext = cl.token_class.cpu()[topup[key]]
-            acc_e = route.accepts(cls_ext.to(dev)).cpu()
+            acc_e = accepts_chunked(route, cls_ext, dev)
             ref.append(cls_ext[acc_e]); n_nat += len(acc_e); hits += int(acc_e.sum())
         h0 = hits / n_nat
         arrays[f"ref_{fam}"] = torch.cat(ref).numpy().astype(np.uint8)
