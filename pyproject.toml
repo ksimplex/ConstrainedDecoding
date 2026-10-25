@@ -7,6 +7,7 @@ name = "twistroute"
 version = "0.1.0"
 description = "Exact constrained sampling for masked diffusion language models: route-generic twisted SMC"
 requires-python = ">=3.10"
+license = {text = "MIT"}
 dependencies = ["numpy", "scipy", "torch>=2.1"]
 
 [project.optional-dependencies]

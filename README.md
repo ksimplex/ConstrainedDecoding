@@ -170,3 +170,7 @@ Three random partitions are averaged (two of the three drew the same class *a* =
 - Gumbel (1954); Maddison, Tarlow & Minka, NeurIPS (2014). Gumbel-max sampling.
 
 No license file is included yet; choose one before making the repository public.
+
+## License
+
+MIT; see `LICENSE`.
