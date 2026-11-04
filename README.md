@@ -77,6 +77,7 @@ All options keep E[Ẑ] = h₀ (tests/test_smc.py, tests/test_resampling.py). Th
 twistroute/
   compile/        CPU reference routes (clear, brute-force verified): automata, grammars, factor graphs, trees,
                   and products of routes of different kinds
+  compile/alphabets.py   lift_dfa (inverse homomorphism), minimize_dfa, symbol_classes, Masked (per-position sets)
   torch_routes/   batched GPU routes: TorchChain, TorchChart, TorchFactorGraph, TorchCopy, det_logZ;
                   build_route(spec), torch_route(cpu_route)
   decode/         twisted_smc (smc.py), native sampling + two-sided weights (native.py), exact toy laws (exact.py)
@@ -90,6 +91,12 @@ experiments/      E1, E2, E3, E4, resampling arms, TWISTER Fig. 1 reproduction, 
 tests/            pytest suite (~6 min on CPU)
 docs/             working notes (LaTeX + PDF): theory, algorithms, proofs
 ```
+
+### Domain layer
+
+`twistroute_bio/` builds ordinary routes for nucleotide and mRNA constraints (codon alphabet, genetic code,
+codon lifting of nucleotide automata, synonymous-codon masks). It depends on `twistroute`, never the reverse;
+model adapters will live in `twistroute_bio/models/`. Design: `docs/mrna_specs.md`.
 
 ## Install and test
 

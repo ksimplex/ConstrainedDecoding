@@ -1,4 +1,4 @@
-# Twist design: look-ahead twists and native mixing (rounds 1–3)
+# Twist design: look-ahead twists, native mixing, calibration (rounds 1–3, stress test A)
 
 **Testbed.** Synthetic denoiser with strong context dependence (scale 8), TWISTER Fig. 1(a) constraint "a.*",
 N = 32, T = 8, 20,000 runs per arm, h₀ = 0.0706 from 200k native samples (`experiments/twist_lab.py`). This
@@ -124,6 +124,38 @@ All 15 arms have Ẑ/h₀ within 0.979–1.008 (|z| ≤ 1.8); the 12 calibrated 
 5. **Caveats.** One testbed (synthetic denoiser, a regular constraint, short horizon). τ was chosen by sweep, and
    0.2 and 0.35 cannot be separated. The product family cannot represent correlated future tokens, so copy-type
    constraints still need testing.
+
+## Stress test A: calibrated twist on OWT-130M (N = 32, T = 16, K = 16)
+
+Job `329673ef`; τ = 0.5. Uncalibrated arms are E1 parts A–C. All arms are scored against shared rejection
+references: the union of the native references of the contributing jobs, which share the 200k E2 pool. TV
+excess is the pairwise TV to the reference minus the matched sampling floor; bootstrap s.e. 0.003–0.008.
+
+| family | no resampling | + calibrated | defensive | + calibrated |
+|---|---|---|---|---|
+| copy (correlated) | 0.136 | 0.068 | 0.148 | 0.040 |
+| regular (forbidden motifs) | 0.026 | 0.046 | 0.061 | 0.057 |
+| Dyck-1, ambiguous grammar | 0.086 | 0.091 | 0.143 | 0.158 |
+| RNA pairing, ambiguous grammar | 0.005 | 0.006 | 0.172 | 0.140 |
+| counting | ≈ 0 | ≈ 0 | ≈ 0 | ≈ 0 |
+
+Relative s.e. of Ẑ without resampling, uncalibrated → calibrated: copy 0.013 → 0.010, regular 0.034 → 0.020,
+Dyck-1 0.041 → 0.038, RNA pairing 0.031 → 0.020. The PSIS tail shape on copy drops from 1.07 (step-exact) and
+0.37 (no resampling) to 0.08. Every calibrated arm's Ẑ/h₀ interval contains 1.
+
+**Reading.**
+
+1. **The calibrated product-form twist is enough for the correlated copy family at this scale.** TV excess halves
+   without resampling and falls 3.7x with defensive resampling. Mixtures of product laws are not needed yet.
+2. **Calibration is not uniformly better on TV.** On the regular family without resampling it is worse (0.026 →
+   0.046) while Ẑ is tighter. It stays an option, not a default.
+3. **Resampling on ambiguous grammars hurts whatever the twist** (RNA pairing: 0.005 without resampling, 0.14–0.21
+   with). The grammar twist is derivation-weighted, so resampling favours prefixes with many parses; the final
+   weights correct the target but not the allocation at K = 16. A twist that counts each string once is #P-hard
+   in general, so there is no exact fix; tractable options are an unambiguous grammar where one exists, or a
+   different tractable twist for resampling (any positive twist is valid). **Rule for now: no resampling on
+   ambiguous routes.** Fixed target structures compile to factor graphs, which count strings once, so the mRNA
+   structure constraints are unaffected.
 
 ## Next
 
