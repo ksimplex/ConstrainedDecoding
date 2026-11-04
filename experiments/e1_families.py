@@ -13,7 +13,9 @@ run's final weighted particles. Saves class sequences per decoder and per-run lo
 is offline (experiments/analysis/e1_analysis.py).
 
 Rejection reference: the E2 native pool (native_N32.npz, 200k samples, T = 16, semantic classes) plus, for
-families whose pool has fewer than --min-ref accepted samples, extra native samples drawn here.
+families whose pool has fewer than --min-ref accepted samples, extra native samples drawn here. The extra samples
+are one token pool shared by all families (native draws do not depend on the family) and grow only as needed,
+up to --max-topup. --pool none (or a pool of a different length or horizon) starts from the top-up alone.
 
 usage: python experiments/e1_families.py --pool native_N32.npz --families regular,counting,copy
 """
@@ -27,7 +29,14 @@ METHODS = {"step_exact": dict(K=1, ess_min=0.0, defensive=0.0),
            "K4_def": dict(K=4, ess_min=0.5, defensive=0.25),
            "K16_def": dict(K=16, ess_min=0.5, defensive=0.25),
            "K16_plain": dict(K=16, ess_min=0.5, defensive=0.0),
-           "K16_off": dict(K=16, ess_min=0.0, defensive=0.0)}
+           "K16_off": dict(K=16, ess_min=0.0, defensive=0.0),
+           # stress test of the calibrated twist (twist_temp = tau; docs/twist_design_findings.md, round 3)
+           "K16_off_cal50": dict(K=16, ess_min=0.0, defensive=0.0, twist_temp=0.5),
+           "K16_def_cal50": dict(K=16, ess_min=0.5, defensive=0.25, twist_temp=0.5),
+           "K8_off": dict(K=8, ess_min=0.0, defensive=0.0),
+           "K8_def": dict(K=8, ess_min=0.5, defensive=0.25),
+           "K8_off_cal50": dict(K=8, ess_min=0.0, defensive=0.0, twist_temp=0.5),
+           "K8_def_cal50": dict(K=8, ess_min=0.5, defensive=0.25, twist_temp=0.5)}
 
 
 def family_specs(cells_path, N):
@@ -75,30 +84,40 @@ def main(argv=None):
     else:
         from twistroute.models import semantic_classes
         base = semantic_classes(M.tok, M.V, M.mask_id).to(dev)
-        pool_tok = torch.from_numpy(np.load(a.pool)["tokens"].astype(np.int64))
+        pool_tok = torch.zeros(0, a.N, dtype=torch.long)
+        if a.pool != "none":
+            pool_tok = torch.from_numpy(np.load(a.pool)["tokens"].astype(np.int64))
+            if pool_tok.shape[1] != a.N or a.T != 16:                       # the E2 pool is N = 32, T = 16
+                print("pool", a.pool, "does not match N, T; using native top-up only", flush=True)
+                pool_tok = torch.zeros(0, a.N, dtype=torch.long)
     specs = family_specs(a.cells, a.N)
 
-    arrays, meta, topup = {}, dict(args=vars(a), methods=METHODS, runs=runs, timing={}, ref={}), {}
+    arrays, meta = {}, dict(args=vars(a), methods=METHODS, runs=runs, timing={}, ref={})
+    extra_tok = torch.zeros(0, a.N, dtype=torch.long)                      # shared native top-up pool
     for fam in a.families.split(","):
         spec = specs[fam]
         route, cl = build_route(spec, dev), base.merge(spec["map"])
-        # ---- rejection reference: pool, plus native top-up when it has fewer than min_ref accepted samples
+        # ---- rejection reference: pool plus the shared top-up, grown while this family has < min_ref hits
         cls_pool = cl.token_class.cpu()[pool_tok]
-        acc = accepts_chunked(route, cls_pool, dev)
-        ref, n_nat, hits = [cls_pool[acc]], len(acc), int(acc.sum())
-        if hits < a.min_ref:
-            key = language_key(spec)
-            if key not in topup:
-                t0, extra = time.time(), []
-                need = int(min(a.max_topup, (a.min_ref - hits) / max(hits / n_nat, 1e-6) * 1.1))
-                for i in range(0, need, a.chunk):
-                    extra.append(native_sample(M, base, a.N, a.T, min(a.chunk, need - i), gen,
-                                               return_tokens=True)[1].cpu())
-                topup[key] = torch.cat(extra)
-                meta["timing"][f"topup_{fam}"] = time.time() - t0
-            cls_ext = cl.token_class.cpu()[topup[key]]
-            acc_e = accepts_chunked(route, cls_ext, dev)
-            ref.append(cls_ext[acc_e]); n_nat += len(acc_e); hits += int(acc_e.sum())
+        acc = accepts_chunked(route, cls_pool, dev) if len(cls_pool) else torch.zeros(0, dtype=torch.bool)
+        hits_pool = int(acc.sum())
+        def extra_hits():
+            c = cl.token_class.cpu()[extra_tok]
+            return c, (accepts_chunked(route, c, dev) if len(c) else torch.zeros(0, dtype=torch.bool))
+        cls_ext, acc_e = extra_hits()
+        hits = hits_pool + int(acc_e.sum())
+        if hits < a.min_ref and len(extra_tok) < a.max_topup:
+            n_have = len(acc) + len(acc_e)
+            rate = hits / n_have if hits else 1e-6
+            need = int(min(a.max_topup - len(extra_tok), (a.min_ref - hits) / rate * 1.1))
+            t0, new = time.time(), []
+            for i in range(0, need, a.chunk):
+                new.append(native_sample(M, base, a.N, a.T, min(a.chunk, need - i), gen, return_tokens=True)[1].cpu())
+            extra_tok = torch.cat([extra_tok] + new)
+            meta["timing"][f"topup_{fam}"] = time.time() - t0
+            cls_ext, acc_e = extra_hits()
+            hits = hits_pool + int(acc_e.sum())
+        ref, n_nat = [cls_pool[acc], cls_ext[acc_e]], len(acc) + len(acc_e)
         h0 = hits / n_nat
         arrays[f"ref_{fam}"] = torch.cat(ref).numpy().astype(np.uint8)
         arrays[f"h0_{fam}"] = np.array([h0, n_nat])

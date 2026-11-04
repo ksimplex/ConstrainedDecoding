@@ -108,7 +108,7 @@ is free). Efficiency is var(Ẑ) of frozen/no-resampling divided by var(Ẑ) of 
 | 0.35 | 1.01 (0.97–1.06) | 1.04 (0.94–1.16) | 1.15 (1.09–1.21) | 0.16% | 1.40 |
 | 0.2 | 1.03 (0.98–1.07) | 1.09 (1.04–1.14) | 1.04 (0.99–1.09) | 0.15% | 1.17 |
 
-All 15 arms have Ẑ/h₀ within 0.983–1.008 (|z| ≤ 1.8).
+All 15 arms have Ẑ/h₀ within 0.979–1.008 (|z| ≤ 1.8); the 12 calibrated arms lie within 0.983–1.008.
 
 **Reading.**
 
