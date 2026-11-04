@@ -104,3 +104,18 @@ def test_defaults_unchanged():
     b = twisted_smc(den, cl, route, N, T, 500, 4, torch.Generator().manual_seed(3), ess_min=0.9,
                     defensive=0.0, twist_power=1.0)
     assert np.array_equal(a["logZ"], b["logZ"])
+
+@pytest.mark.parametrize("name", ["forbidden", "copy", "dyck1_amb", "rna_pair"])
+@pytest.mark.parametrize("tau", [0.5, 0.25])
+@pytest.mark.parametrize("ess_min", [0.0, 0.9])
+def test_zhat_unbiased_calibrated_twist(name, tau, ess_min):
+    """The calibrated twist (route sum under q ∝ p^tau) with its locally optimal proposal keeps E[Z_hat] = h0,
+    with and without resampling, and never weights an invalid output."""
+    den, cl, route = setup(name)
+    h0, h0se = h0_native(den, cl, route)
+    out = twisted_smc(den, cl, route, N, T, 6000, 4, torch.Generator().manual_seed(9), ess_min=ess_min,
+                      twist_temp=tau)
+    z = np.exp(out["logZ"])
+    zscore = (z.mean() - h0) / math.sqrt(z.var() / len(z) + h0se ** 2)
+    assert abs(zscore) < 4, f"{name} tau={tau}: mean {z.mean():.4f} vs h0 {h0:.4f} (z={zscore:.2f})"
+    assert not out["any_finite_invalid"]

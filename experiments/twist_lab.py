@@ -39,10 +39,16 @@ ARMS = {  # name: (K, smc options)
     "mix20_plain": (4, dict(ess_min=0.5, mix_native=0.2)),
     "mix20_def25": (4, dict(ess_min=0.5, mix_native=0.2, defensive=0.25)),
 }
+for _tau in (0.7, 0.5, 0.35, 0.2):  # calibrated twist: route sum under q ∝ p^tau (twist_temp)
+    _n = f"cal{round(100 * _tau)}"
+    ARMS[_n + "_off"] = (4, dict(ess_min=0.0, twist_temp=_tau))
+    ARMS[_n + "_plain"] = (4, dict(ess_min=0.5, twist_temp=_tau))
+    ARMS[_n + "_def25"] = (4, dict(ess_min=0.5, twist_temp=_tau, defensive=0.25))
 TRACE_ARMS = {"frozen": dict(), "look1": dict(lookahead=1), "lookT": dict(lookahead=1000), "mix20": dict(mix_native=0.2),
               "look1_geom4": dict(lookahead=1, lookahead_draws=4, lookahead_mean="geom"),
               "lookT_geom4": dict(lookahead=1000, lookahead_draws=4, lookahead_mean="geom"),
-              "look1_shrink50": dict(lookahead=1, lookahead_shrink=0.5)}
+              "look1_shrink50": dict(lookahead=1, lookahead_shrink=0.5),
+              **{f"cal{round(100 * t)}": dict(twist_temp=t) for t in (0.7, 0.5, 0.35, 0.2)}}
 
 
 def denoiser_calls(T, K, lookahead=0, lookahead_draws=1, **_):  # noqa: D401

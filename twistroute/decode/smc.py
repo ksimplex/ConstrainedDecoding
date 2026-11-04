@@ -85,6 +85,13 @@ def offspring_logweights(wn, pi, idx, defensive):
     return torch.zeros_like(wn, dtype=torch.float32)
 
 
+def tempered_class_logw(lw, tau):
+    """Class log-weights of the future-token law q_i(c) ∝ p_i(c)^tau used inside the twist (tau = 1: p itself).
+    Any positive product law keeps the route sum exact and the twist valid; tau < 1 flattens over-confident
+    marginals so the twist cannot assign a near-zero value to completions the denoiser may later revise toward."""
+    return lw if tau == 1.0 else torch.log_softmax(tau * lw, -1)
+
+
 # ----------------------------------------------------------------------------------------------- SMC steps
 class _Particles:
     """Per-particle state, one row per particle (nrun * K rows, run-major)."""
@@ -99,15 +106,26 @@ class _Particles:
             self.psi = self.psi[flat]
 
 
-def _propose(den, classes, route, s, nt, gen, mix_native=0.0):
+def _propose(den, classes, route, s, nt, gen, mix_native=0.0, tau=1.0):
     """One proposal step from state s: the step-exact proposal, or with probability mix_native per particle the
     native kernel (same reveal set, tokens from the unrestricted predictions). Returns (x2, y2, z_old, log_ratio)
     with z_old = Z(x2; x) and log_ratio = log(M(x2|x) / kappa(x2|x)), which is z_old - Z(x; x) for the
-    step-exact proposal and log((1 - a) exp(z_old - Z(x; x)) + a) for the mixture (None when mix_native = 0)."""
+    step-exact proposal and log((1 - a) exp(z_old - Z(x; x)) + a) for the mixture (None when mix_native = 0).
+
+    tau != 1 (calibrated twist): the twist sums the route under q ∝ p^tau at masked positions. The proposal is the
+    locally optimal one for that twist, M(x'|x) ∝ kappa(x'|x) Z_q(x'; x): y is drawn with the true class law p at
+    the reveal set r and q elsewhere, so log(M / kappa) = Z_q(x'; x) - Z_mix(x; x) and z_old = Z_q(x'; x)."""
     P = s.x.shape[0]
-    lwc = clamp_revealed(s.lw, s.x, s.ycls, den.mask_id)
-    y = route.sample(lwc, gen)                                              # y ~ q(. | C; den(x))
-    r = reveal_sets(s.x == den.mask_id, nt, gen)                            # native scheduler
+    if tau != 1.0:
+        r = reveal_sets(s.x == den.mask_id, nt, gen)
+        lwq = tempered_class_logw(s.lw, tau)
+        inr = torch.zeros(s.x.shape, dtype=torch.bool, device=s.x.device).scatter_(1, r, True)
+        lwc = clamp_revealed(torch.where(inr[..., None], s.lw, lwq), s.x, s.ycls, den.mask_id)
+        y = route.sample(lwc, gen)
+    else:
+        lwc = clamp_revealed(s.lw, s.x, s.ycls, den.mask_id)
+        y = route.sample(lwc, gen)                                          # y ~ q(. | C; den(x))
+        r = reveal_sets(s.x == den.mask_id, nt, gen)                        # native scheduler
     cr = torch.gather(y, 1, r)                                              # classes revealed this step
     rows_all = torch.gather(s.lp, 1, r[..., None].expand(-1, -1, s.lp.shape[-1]))
     rows = torch.where(classes.onehot.T[cr] > 0, rows_all, torch.full_like(rows_all, NEG_INF))
@@ -121,6 +139,9 @@ def _propose(den, classes, route, s, nt, gen, mix_native=0.0):
         cr = torch.where(use[:, None], classes.token_class[tok_nat], cr)
     x2 = s.x.clone(); x2.scatter_(1, r, tok)
     y2 = s.ycls.clone(); y2.scatter_(1, r, cr)
+    if tau != 1.0:
+        z_old = route.logZ(clamp_revealed(lwq, x2, y2, den.mask_id))        # Z_q(x'; x)
+        return x2, y2, z_old, z_old - route.logZ(lwc)
     z_old = route.logZ(clamp_revealed(s.lw, x2, y2, den.mask_id))           # Z(x'; x)
     if mix_native <= 0:
         return x2, y2, z_old, None
@@ -129,7 +150,7 @@ def _propose(den, classes, route, s, nt, gen, mix_native=0.0):
     return x2, y2, z_old, log_ratio
 
 
-def _successor_twist(den, classes, route, x2, y2, z_old, last, beta):
+def _successor_twist(den, classes, route, x2, y2, z_old, last, beta, tau=1.0):
     """New predictions at x2 and the twist there. Returns (lp, lw, eta2, psi2); lp, lw are None at the last step,
     where the twist is the exact indicator (0 or -inf in log space)."""
     if last:
@@ -138,7 +159,7 @@ def _successor_twist(den, classes, route, x2, y2, z_old, last, beta):
         return None, None, eta2, eta2
     lp = den.logits(x2)
     lw = classes.class_logw(lp)
-    eta2 = route.logZ(clamp_revealed(lw, x2, y2, den.mask_id))              # Z(x'; x')
+    eta2 = route.logZ(clamp_revealed(tempered_class_logw(lw, tau), x2, y2, den.mask_id))  # Z(x'; x')
     return lp, lw, eta2, beta * eta2
 
 
@@ -181,7 +202,8 @@ def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, h
 @torch.no_grad()
 def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, return_particles=False,
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
-                lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0):
+                lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0,
+                twist_temp=1.0):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -199,6 +221,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     lookahead_shrink  lambda in [0, 1]: log psi = beta * (log eta + lambda * log gain)
     mix_native   a in [0, 1): propose each step from (1 - a) M + a kappa, mixing in the native kernel; the
                  potential then uses the mixture density and is bounded by psi' / (a psi).
+    twist_temp   tau in (0, 1]: calibrated twist, the route sum under future-token law q ∝ p^tau (1 = TWISTER);
+                 the proposal is locally optimal for it and the weights correct exactly (see _propose)
     Returns a dict with per-run 'logZ' (log Z_hat), 'ess_min', 'n_res', validity checks, 'eta0'; with
     return_trace the per-step log-weights before resampling, shape (T, nrun, K); with return_particles the
     final class sequences (nrun, K, N) and log-weights (nrun, K). K = 1 without the weights is step-exact
@@ -210,6 +234,11 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         raise ValueError("twist_power must lie in (0, 1]")
     if not 0.0 <= mix_native < 1.0:
         raise ValueError("mix_native must lie in [0, 1)")
+    tau = float(twist_temp)
+    if not 0.0 < tau <= 1.0:
+        raise ValueError("twist_temp must lie in (0, 1]")
+    if tau != 1.0 and (lookahead > 0 or mix_native > 0):
+        raise ValueError("twist_temp != 1 is not combined with lookahead or mix_native")
     if lookahead < 0 or lookahead_draws < 1:
         raise ValueError("lookahead must be >= 0 and lookahead_draws >= 1")
     if lookahead_mean not in ("arith", "geom") or not 0.0 <= lookahead_shrink <= 1.0:
@@ -218,7 +247,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         g = _lookahead_log_gain(den, classes, route, xx, yy, lpp, lww, ee, tt, T, nt, lookahead, lookahead_draws,
                                 gen, lookahead_mean)
         return torch.where(torch.isneginf(g), g, lookahead_shrink * g)
-    general = lookahead > 0 or mix_native > 0           # otherwise the TWISTER / tempered update below
+    general = lookahead > 0 or mix_native > 0 or tau != 1.0           # otherwise the TWISTER / tempered update below
     dev = classes.onehot.device
     P, nt, beta = nrun * K, N // T, float(twist_power)
     run_offset = K * torch.arange(nrun, device=dev)[:, None]
@@ -227,7 +256,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     ycls = torch.zeros(P, N, dtype=torch.long, device=dev)                  # classes at revealed positions
     lp = den.logits(x)
     lw = classes.class_logw(lp)
-    eta0 = route.logZ(clamp_revealed(lw, x, ycls, den.mask_id))
+    eta0 = route.logZ(clamp_revealed(tempered_class_logw(lw, tau), x, ycls, den.mask_id))
     logw = beta * eta0                                                      # log psi_0(x_0)
     psi0 = None
     if general:
@@ -243,8 +272,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
 
     for t in range(T):
         last = t == T - 1
-        x2, y2, z_old, log_ratio = _propose(den, classes, route, s, nt, gen, mix_native)
-        lp2, lw2, eta2, psi2 = _successor_twist(den, classes, route, x2, y2, z_old, last, beta)
+        x2, y2, z_old, log_ratio = _propose(den, classes, route, s, nt, gen, mix_native, tau)
+        lp2, lw2, eta2, psi2 = _successor_twist(den, classes, route, x2, y2, z_old, last, beta, tau)
         if not general:
             logw = logw + _log_potential(s.eta, psi2, z_old, beta)
         else:

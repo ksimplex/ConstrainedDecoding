@@ -1,4 +1,4 @@
-# Twist design: look-ahead twists and native mixing (rounds 1–2)
+# Twist design: look-ahead twists and native mixing (rounds 1–3)
 
 **Testbed.** Synthetic denoiser with strong context dependence (scale 8), TWISTER Fig. 1(a) constraint "a.*",
 N = 32, T = 8, 20,000 runs per arm, h₀ = 0.0706 from 200k native samples (`experiments/twist_lab.py`). This
@@ -86,12 +86,50 @@ Hidden mass (resampling-off traces):
    that exceeds the bias it removes. Further gains have to come from the proposal, or from deciding when to
    resample.
 
+## Round 3: calibrated twist (route sum under q ∝ p^τ)
+
+**Idea.** The frozen twist is the route sum of valid completions under the product of the denoiser's current
+marginals p. Any positive product law q in its place keeps the sum exact for every route (automaton, chart,
+factor graph) at the same cost, so it is a valid twist. `twist_temp = τ` uses q_i(c) ∝ p_i(c)^τ over classes.
+The proposal is the locally optimal one for that twist (p at the reveal set, q at still-masked positions) and the
+weights correct exactly. τ < 1 flattens over-confident marginals; following the importance-sampling rule that a
+proposal's tails should dominate the target's, a twist that overestimates h costs a little efficiency, whereas one
+that underestimates h creates hidden mass. Tests: E[Ẑ] = h₀ for forbidden, copy, ambiguous Dyck-1 and RNA pairing at
+τ = 0.5, 0.25, with and without resampling (16 cases).
+
+Same testbed as rounds 1–2, 20,000 runs per arm, K = 4, cost 32 denoiser rows per run for every arm (the twist change
+is free). Efficiency is var(Ẑ) of frozen/no-resampling divided by var(Ẑ) of the arm, with 95% bootstrap intervals.
+
+| τ | no resampling | plain | defensive ε = 0.25 | hidden mass < 10⁻² | resamplings/run (plain) |
+|---|---|---|---|---|---|
+| 1 (TWISTER) | 1.00 (0.96–1.05) | 0.14 (0.08–0.30) | 0.47 (0.28–0.77) | 7.8% | 1.78 |
+| 0.7 | 0.99 (0.94–1.04) | 0.32 (0.20–0.54) | 0.78 (0.66–0.89) | 3.2% | 1.69 |
+| 0.5 | 1.02 (0.98–1.07) | 0.63 (0.33–1.12) | 1.09 (0.93–1.23) | 0.9% | 1.56 |
+| 0.35 | 1.01 (0.97–1.06) | 1.04 (0.94–1.16) | 1.15 (1.09–1.21) | 0.16% | 1.40 |
+| 0.2 | 1.03 (0.98–1.07) | 1.09 (1.04–1.14) | 1.04 (0.99–1.09) | 0.15% | 1.17 |
+
+All 15 arms have Ẑ/h₀ within 0.983–1.008 (|z| ≤ 1.8).
+
+**Reading.**
+
+1. **Calibration removes the resampling penalty.** At τ ≤ 0.35 plain resampling is no worse than resampling off
+   (0.14 → 1.04–1.09), and defensive resampling is modestly better (1.15, interval 1.09–1.21). This is the first
+   configuration in which resampling pays on this testbed.
+2. **The mechanism is the hidden mass.** It falls monotonically with τ, from 7.8% to 0.15% of h₀ below weight 10⁻²,
+   and nothing remains below 10⁻⁴ at τ ≤ 0.5. Fewer resampling events fire because the weights stay more even.
+3. **Resampling-off is unaffected**, as expected: without selection the twist only changes the proposal, and here that
+   is neutral.
+4. **The gain from resampling itself is small at T = 8**, about 5–15%. The case for calibration is that it makes
+   resampling safe, which is what long horizons will need, not that it helps much at short horizons.
+5. **Caveats.** One testbed (synthetic denoiser, a regular constraint, short horizon). τ was chosen by sweep, and
+   0.2 and 0.35 cannot be separated. The product family cannot represent correlated future tokens, so copy-type
+   constraints still need testing.
+
 ## Next
 
-- **Better proposals before better twists.** With resampling off, efficiency is set by the single-particle
-  weight variance, i.e. by how much the denoiser revises itself between steps. The copy family on OWT
-  (k̂ = 1.07) is the case to target.
-- **When does resampling pay?** Every resampling-on arm so far is less efficient than resampling-off. Characterise
-  the regime (sibling dispersion of log ψ/h small relative to dispersion of the prefix ratio) where resampling
-  wins, and set `ess_min` adaptively. A natural test is a constraint whose satisfying set is reached only through
-  a narrow early prefix, where resampling-off wastes most particles.
+- **Fit τ automatically** (controlled-SMC style): a short pilot run, then choose τ (or a per-step τ_t) to minimise the
+  variance of log Ẑ; allow τ > 1 for under-confident denoisers.
+- **Test where the product family is weakest**: copy constraints on OWT (k̂ = 1.07), long horizons (N = 256,
+  T ≥ 64), and the E1 families. If correlation dominates, extend the family to mixtures of product laws.
+- **Resampling allocation**: weighted-ensemble style bins on an estimate of the twist error, with defensive
+  resampling as the special case of no information.
