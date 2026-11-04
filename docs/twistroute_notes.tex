@@ -128,7 +128,8 @@ every number of particles. When the denoiser's predictions at some intermediate 
 the constraint is to be met in the end, adaptive resampling discards particles that would later have recovered.
 A non-trivial fraction of the estimate's expectation can then sit in events too rare to observe. We characterise
 this hidden mass exactly and give two remedies that keep the estimate unbiased and have guarantees that do not
-depend on the quality of the predictions.
+depend on the quality of the predictions. A third, the calibrated twist, attacks the cause: it evaluates the route
+under a flattened law, which keeps the computation exact and bounds the twist's over-confidence.
 
 \subsection{What is known and what is new}
 Much of the step-level theory is known in the probabilistic-circuits literature, often in more general algebraic
@@ -463,7 +464,8 @@ is $p^2(a\mid a)/p^2(a\mid\varnothing)$.
 \subsection{The algorithm}
 \Cref{alg:smc} is TWISTER with the automaton replaced by a route. It has two optional parameters, introduced in
 \cref{sec:resampling}: defensive mixing $\epsilon$ and twist power $\beta$. With $\epsilon=0$ and $\beta=1$ it is
-TWISTER's algorithm. With $K=1$ and the weights ignored, it is step-exact decoding \cite{de26}.
+TWISTER's algorithm. A third option, the calibrated twist of \cref{sec:calibrated}, changes the law used inside the
+route sums and is stated separately in \cref{prop:calibrated}. With $K=1$ and the weights ignored, it is step-exact decoding \cite{de26}.
 
 \begin{algorithm}[h]
 \caption{Route-generic twisted SMC (one run with $K$ particles)}\label{alg:smc}
@@ -603,7 +605,7 @@ of resampling.
 
 \Cref{thm:traj}(iii) says $\E[\Zh]=h_0$. If the distribution of $\Zh$ has most of its expectation in rare
 events, the average over any feasible number of runs can still fall well short of $h_0$. This section shows how
-adaptive resampling with the frozen twist can create such rare events, and gives two remedies. The statements
+adaptive resampling with the frozen twist can create such rare events, and gives three remedies: defensive resampling, tempered twists and calibrated twists. The statements
 are exact and make no assumption about the denoiser.
 
 \subsection{Continuation values and hidden mass}
@@ -718,7 +720,7 @@ formula for $\wt_k$ is \eqref{eq:mismatch} with $\psi_s=\eta_s^\beta$.
 \end{proof}
 An over-confidence factor $h_s/\eta_s=\delta^{-1}$ thus enters resampling as $\delta^{-\beta}$. The price is that
 resampling uses only part of the information in the frozen twist. At $\beta\to0$, particles are resampled on the
-path ratio $\rho$ alone; $\beta=1$ is TWISTER. The two remedies can be combined.
+path ratio $\rho$ alone; $\beta=1$ is TWISTER. The remedies of this section can be combined.
 
 \begin{remark}[When tempering is enough]
 Tempering removes hidden mass only if the tempered mismatch is large enough to be sampled. By
@@ -728,6 +730,102 @@ $\beta\lesssim\log(RK)/\log(1/\delta)$. When the frozen twist is over-confident 
 forces $\beta$ close to $0$ and discards most of the look-ahead. Defensive resampling has no such condition,
 because its retention probability $1-e^{-\epsilon}$ does not depend on $\delta$. It is therefore the safer default;
 tempering is a complement for moderate twist errors.
+\end{remark}
+
+
+\subsection{Calibrated twists}\label{sec:calibrated}
+Tempering changes how much of the frozen twist resampling uses. A different option is to change the law under
+which the twist is computed. The frozen twist fills the masked positions independently from the current class
+weights $w_i(\cdot\mid x)$. Any other product law over the masked positions gives a twist the route can still
+evaluate exactly, at the same cost.
+
+For each partial sequence $x$, let $u_i(\cdot\mid x)$, $i\in\M(x)$, be distributions over $\Sigma$ with
+$u_i(\sigma\mid x)>0$ whenever $w_i(\sigma\mid x)>0$. The leading example is
+\[
+  u_i(\sigma\mid x)=\frac{w_i(\sigma\mid x)^\tau}{\sum_\rho w_i(\rho\mid x)^\tau},\qquad\tau>0,
+\]
+where $\tau<1$ flattens the class weights and $\tau=1$ gives $u=w$. Write $Z^u_d(x';x)$ for the clamped sum
+\eqref{eq:clamped}, with $d$ in place of $\one_C$ and $u_i$ in place of $w_i$ at the masked positions of $x'$, and
+$\eta^u_t(x)=Z^u_d(x;x)$. For a reveal set $r\subseteq\M(x)$, let $Z^{u,r}_d(x;x)$ be the same sum with $w_i$ at
+the positions in $r$ and $u_i$ at the positions in $\M(x)\setminus r$.
+
+\begin{proposition}[Calibrated twist \status{ours}]\label{prop:calibrated}
+Let $\psi_t=\eta^u_t$ for $t<T$ and $\psi_T=\one_C$, and let
+\[
+  M^u_{t+1}(x'\mid x)=s_{t+1}(r\mid x)\prod_{i\in r}p^i_\theta(x'_i\mid x)\,\frac{Z^u_d(x';x)}{Z^{u,r}_d(x;x)}.
+\]
+\begin{enumerate}[label=(\roman*),nosep]
+  \item $M^u_{t+1}$ is a probability kernel. It is sampled by drawing $r$ from the native scheduler, then a class
+    sequence $y\sim\op{Sample}$ under the weights $w$ on $r$ and $u$ on $\M(x)\setminus r$, then tokens within
+    classes on $r$.
+  \item Among kernels of the form $\kappa_{t+1}(x'\mid x)f(x')$, it is the one with $f\propto Z^u_d(\cdot\,;x)$, the
+    twist evaluated under the predictions made at $x$: the step-exact proposal for $\psi=\eta^u$.
+  \item The potential is
+    \[
+      G_{t+1}(x,x')=\frac{Z^u_d(x';x')}{Z^u_d(x;x)}\cdot\frac{Z^{u,r}_d(x;x)}{Z^u_d(x';x)}\qquad(t<T-1),
+    \]
+    with $Z^u_d(x';x')$ replaced by $\op{Accepts}(x')$ at the last step.
+  \item (ii) and (iii) of \cref{thm:traj} hold. At $u=w$, $Z^{u,r}_d(x;x)=Z_d(x;x)$, and the proposal and potential are
+    those of \cref{lem:prop} and \eqref{eq:potential}.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(i) Fix $r$. $Z^u_d(x';x)$ depends on the tokens revealed on $r$ only through their classes, so summing
+$\prod_{i\in r}p^i_\theta(x'_i\mid x)\,Z^u_d(x';x)$ over the tokens on $r$ gives
+$\sum_{c}\prod_{i\in r}w_i(c_i\mid x)\,Z^u_d(x'_c;x)=Z^{u,r}_d(x;x)$, where $x'_c$ is $x$ with classes $c$ on $r$.
+The marginal on $r$ of the measure that $\op{Sample}$ draws from is $\prod_{i\in r}w_i(c_i\mid x)\,Z^u_d(x'_c;x)
+/Z^{u,r}_d(x;x)$, and the tokens within classes contribute $p^i_\theta(x'_i\mid x)/w_i(c_i\mid x)$. (ii) is the
+form of $M^u$. (iii) is \eqref{eq:G} with $\kappa/M^u=Z^{u,r}_d(x;x)/Z^u_d(x';x)$. (iv) $u_i>0$ wherever $w_i>0$,
+so $\eta^u_t>0$ wherever $\eta_t>0$, which includes every state with $h_t>0$, and $M^u>0$ wherever
+$\kappa h>0$; \cref{prop:free} applies.
+\end{proof}
+
+\begin{lemma}[Calibration floor \status{ours}]\label{lem:floor}
+For $u_i\propto w_i^\tau$ with $\tau\in(0,1]$ and $m=|\M(x)|$,
+\[
+  |\Sigma|^{-m(1-\tau)}\,\eta_t(x)^\tau\;\le\;\eta^u_t(x)\;\le\;\sum_yd(y)\prod_{i\in\M(x)}w_i(y_i\mid x)^\tau.
+\]
+Hence, if the frozen twist is over-confident by a factor $\delta$ ($\eta_t=\delta h_t$), the calibrated twist
+satisfies $h_t/\eta^u_t\le|\Sigma|^{m(1-\tau)}\delta^{-\tau}$.
+\end{lemma}
+\begin{proof}
+Since $\sum_\rho w_i(\rho)=1$ and $0<\tau\le1$, $1\le\sum_\rho w_i(\rho)^\tau\le|\Sigma|^{1-\tau}$ (Hölder), so
+$|\Sigma|^{-(1-\tau)}w_i^\tau\le u_i\le w_i^\tau$ at every masked position. Multiply over positions and sum against
+$d$. For the lower bound use $(\sum_jb_j)^\tau\le\sum_jb_j^\tau$, counting each derivation of $y$ as one term. The
+last claim uses $h_t\le1$.
+\end{proof}
+
+\begin{remark}[What calibration changes]
+\Cref{lem:floor} bounds the over-confidence of the calibrated twist by a power $\tau$ of the frozen twist's, up to a
+factor that depends only on $|\Sigma|$ and the number of masked positions. Tempering (\cref{prop:tempered}) gives a
+similar power, $\delta^{-\beta}$, but the two act differently. Tempering compresses the total $\eta_t$ and leaves the
+proposal unchanged. Calibration compresses each completion's weight inside the route sum, and the proposal of
+\cref{prop:calibrated} also looks ahead with $u$, so revealed classes are steered towards completions that are
+plausible under the flattened law. The errors are not symmetric. By \eqref{eq:mismatch}, a twist that overstates
+$h_s$ only costs allocation efficiency, whereas one that understates it by orders of magnitude creates hidden mass
+(\cref{prop:hidden}). This is the importance-sampling rule that the proposal should have heavier tails than the
+target, applied to the intermediate targets. Nothing in \cref{prop:calibrated} requires $\tau\le1$: for a denoiser
+whose predictions are too flat, $\tau>1$ is the corresponding correction.
+\end{remark}
+
+\begin{remark}[Look-ahead estimates of $h$]
+\Cref{prop:free} also covers random twists, for example $\psi_t=\eta_t\hat G_t$, where $\hat G_t$ is the product of
+potentials along a speculative step-exact rollout. Rolled out to step $T$, $\eta_t\hat G_t$ is an unbiased estimate of
+$h_t$. Unbiasedness is not what resampling needs, however. By \eqref{eq:mismatch} resampling misallocates in
+proportion to $h_s/\psi_s$, so the spread of $\log(h_s/\psi_s)$ among the particles of one run is what matters. The
+estimation noise in $\log\hat G_t$ adds to that spread, and since $\E\log\hat G_t<\log\E\hat G_t$, a single rollout
+is typically well below its mean when the product of potentials is heavy-tailed. Understating $h_t$ is the
+harmful direction. A biased twist that varies smoothly across particles,
+such as $\eta^u_t$, can therefore hide less mass than an unbiased but noisy one.
+\end{remark}
+
+\begin{remark}[Choosing the calibration]
+$\tau$, a per-step $\tau_t$, or a richer product law computed from the denoiser's outputs can be chosen from a short
+pilot run, by minimising the empirical variance of $\log\Zh$. This is the approach of controlled SMC, which fits
+twists by regression on the logarithmic scale within a parametric family \cite{heng2020}. Here the family is
+restricted to product laws so that every route stays exact. A product law cannot represent correlations between
+future positions, such as those a copy constraint creates. Mixtures of product laws, at the cost of one route sum per
+component, are the next family that keeps exactness.
 \end{remark}
 
 %======================================================================
@@ -815,10 +913,11 @@ exponentially with $L$. Refusing such constraints is the correct behaviour for t
     \begin{enumerate}[nosep,label=(\alph*)]
       \item tempering and defensive resampling (\cref{prop:defensive,prop:tempered}), which are cheap and come with
         guarantees that do not depend on the twist;
+      \item calibrated twists (\cref{prop:calibrated}), with the calibration fitted from a pilot run and, for
+        correlated constraints, mixtures of product laws;
       \item look-ahead twists, which evaluate $Z$ under the predictions made after one or more speculative
-        reveals, at the cost of extra denoiser calls;
-      \item mixture twists $\psi_t=(1-\lambda)\eta_t+\lambda\hat h_t$, where $\hat h_t$ is an unbiased estimate of
-        $h_t$ from native rollouts and the $\eta_t$ term keeps the twist positive;
+        reveals; by the remark on look-ahead estimates in \cref{sec:calibrated}, these need low noise across
+        particles, not only unbiasedness;
       \item learned twists $\psi_\vartheta\approx h_t$ fitted to native rollouts, as in twisted SMC for
         autoregressive models \cite{zhao2024}, with $\eta_t$ as a feature or baseline;
       \item approximate-count twists for bounded ambiguity \cite{marzouk2022}.
@@ -860,6 +959,7 @@ Two-sided identity (\cref{lem:twosided}) & ours & diagnostic\\
 Continuation value and hidden mass (\cref{lem:cont,prop:hidden}) & ours & \\
 Defensive resampling (\cref{prop:defensive}) & ours & compare \cite{hesterberg1995}\\
 Tempered intermediate twists (\cref{prop:tempered}) & ours & \\
+Calibrated twists and their floor (\cref{prop:calibrated,lem:floor}) & ours & compare \cite{heng2020}\\
 Single-step cost of ambiguity (\cref{prop:amb}) & ours & \\
 Regular superset with Boolean pruning & ours & \cref{sec:beyond}\\
 Better twists; trajectory ESS; online guard & proposed & \cref{sec:approach}\\
@@ -873,6 +973,7 @@ Better twists; trajectory ESS; online guard & proposed & \cref{sec:approach}\\
 \bibitem{dang2026icml} M.~Dang, J.~Song, H.~Zhang, H.~Zhao, G.~Van den Broeck and S.~Ermon. Mitigating bias in locally constrained decoding via tractable proposals. ICML 2026; arXiv:2606.01926.
 \bibitem{de26} M.~Dang and S.~Ermon. Constrained decoding for diffusion language models via efficient inference over finite automata. arXiv:2607.07026, 2026.
 \bibitem{delmoral2004} P.~Del Moral. \emph{Feynman--Kac Formulae: Genealogical and Interacting Particle Systems with Applications}. Springer, 2004. doi:10.1007/978-1-4684-9393-1.
+\bibitem{heng2020} J.~Heng, A.~N.~Bishop, G.~Deligiannidis and A.~Doucet. Controlled sequential Monte Carlo. \emph{Ann.\ Statist.} 48(5):2904--2929, 2020. doi:10.1214/19-AOS1914.
 \bibitem{hesterberg1995} T.~Hesterberg. Weighted average importance sampling and defensive mixture distributions. \emph{Technometrics} 37(2), 1995. doi:10.1080/00401706.1995.10484303.
 \bibitem{jerrumsnir1982} M.~Jerrum and M.~Snir. Some exact complexity results for straight-line computations over semirings. \emph{J.\ ACM} 29(3), 1982. doi:10.1145/322326.322341.
 \bibitem{jvv86} M.~R.~Jerrum, L.~G.~Valiant and V.~V.~Vazirani. Random generation of combinatorial structures from a uniform distribution. \emph{Theor.\ Comput.\ Sci.} 43:169--188, 1986. doi:10.1016/0304-3975(86)90174-X.
