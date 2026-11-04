@@ -33,8 +33,30 @@ class TokenClasses:
         return self
 
     def class_logw(self, logp):
-        """(B, N, V) token log-probs -> (B, N, A) class log-probs."""
-        return torch.log((torch.exp(logp) @ self.onehot).clamp_min(1e-38))
+        """(B, N, V) token log-probs -> (B, N, A) class log-probs.
+
+        The plain sum exp(logp) @ onehot underflows for classes whose total mass is below ~1e-38. Those
+        entries are recomputed by an exact per-class log-sum-exp, so a class gets -inf only if all of its
+        tokens have probability exactly zero. (A floor would inflate such a class: the proposal would then
+        reveal it with a density the weights do not account for, which biases the estimator.) Entries away
+        from underflow are bit-identical to the plain sum."""
+        w = torch.exp(logp) @ self.onehot
+        out = torch.log(w.clamp_min(1e-38))
+        low = w < 1e-30
+        if low.any():
+            out = torch.where(low, self.class_logsumexp(logp), out)
+        return out
+
+    def class_logsumexp(self, logp):
+        """Exact (B, N, A) class log-masses by log-sum-exp within each class (no underflow, no floor)."""
+        member = self.onehot.sum(-1) > 0                                    # excluded tokens belong to no class
+        lp = torch.where(member, logp, torch.full_like(logp, float("-inf")))
+        idx = self.token_class.clamp_min(0).expand_as(lp)
+        cmax = torch.full(lp.shape[:-1] + (self.A,), float("-inf"), device=lp.device, dtype=lp.dtype)
+        cmax = cmax.scatter_reduce(-1, idx, lp, reduce="amax", include_self=True)
+        safe = torch.where(torch.isfinite(cmax), cmax, torch.zeros_like(cmax))
+        s = torch.exp(lp - torch.gather(safe, -1, idx)) @ self.onehot.to(lp.dtype)
+        return torch.log(s) + safe
 
     def merge(self, mapping):
         """Coarsen: new class of token v is mapping[old class of v]."""

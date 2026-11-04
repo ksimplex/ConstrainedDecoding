@@ -7,6 +7,10 @@ from twistroute import compile as C
 from twistroute.torch_routes import TorchChain, TorchChart, TorchCopy, det_logZ
 from conftest import enumerate_law, tv_vs_law, tv_floor
 
+# every pair (i, j) of the RNA pairing grammar is produced through some Q_xy covering (i+1 .. j), so bounding
+# all Q_xy by W bounds every pair span by W + 1
+PAIR_SPAN_3 = {n: 3 for n in {b for _, _, b in C.rna_pair_grammar()[1] if b.startswith("Q")}}
+
 
 class PairCopy:   # CPU reference for a partial copy (pairs (i, j), other positions free)
     def __init__(self, pairs, L): self.pairs, self.L = pairs, L
@@ -21,12 +25,19 @@ CASES = {
     "chart: Dyck-1 ambiguous": (lambda: C.Inside(*C.DYCK1_AMBIGUOUS), TorchChart, 10, 2),
     "chart: Dyck-2": (lambda: C.Inside(*C.DYCK2), TorchChart, 6, 4),
     "chart: RNA pairing": (lambda: C.Inside(*C.rna_pair_grammar()), TorchChart, 6, 4),
+    "chart: automaton AND grammar (Bar-Hillel)": (lambda: C.intersect_dfa_cfg(C.dfa_forbidden([(0, 0, 0)], 2),
+                                                                         C.Inside(*C.DYCK1_AMBIGUOUS)),
+                                                   TorchChart, 10, 2),
+    "chart: span-bounded Dyck-1 ambiguous": (lambda: C.Inside(*C.DYCK1_AMBIGUOUS, span_limits={"C": 3}),
+                                             TorchChart, 10, 2),
+    "chart: span-bounded RNA pairing": (lambda: C.Inside(*C.rna_pair_grammar(), span_limits=PAIR_SPAN_3),
+                                        TorchChart, 8, 4),
 }
 
 
 def _weight(cpu):
     if isinstance(cpu, C.Inside):
-        return lambda y: C.count_parses(cpu.start, cpu.binary, cpu.lexical, y)
+        return lambda y: C.count_parses(cpu.start, cpu.binary, cpu.lexical, y, cpu.span_limits)
     return lambda y: float(cpu.accepts(tuple(y)))
 
 
@@ -70,3 +81,34 @@ def test_det_logZ_matches_cpu(rng):
     lw = rng.normal(0, 1, (3, 5, 6))
     got = det_logZ(torch.tensor(lw)).numpy()
     assert np.allclose(got, [tree.logZ(w) for w in lw], atol=1e-8)
+
+
+def test_span_limits_skip_work_and_match_unbounded_when_loose(rng):
+    """A limit at least L changes nothing; a tight limit evaluates fewer split points than the full chart."""
+    g = C.rna_pair_grammar()
+    lw = torch.tensor(rng.normal(0, 1, (4, 9, 4)), dtype=torch.float32)
+    a = TorchChart(C.Inside(*g)).logZ(lw)
+    b = TorchChart(C.Inside(*g, span_limits={k: 9 for k in PAIR_SPAN_3})).logZ(lw)
+    assert torch.allclose(a, b)
+    tight = TorchChart(C.Inside(*g, span_limits={k: 2 for k in PAIR_SPAN_3}))
+    ids, _, lo, hi = tight.g.plan(8)
+    assert ids is not None and hi - lo + 1 < 7          # fewer than the span - 1 = 7 unrestricted splits
+    names = tight.g.names
+    assert tight.g.limit[names.index("P")] == 3 and tight.g.limit[names.index("S")] == float("inf")
+
+
+def test_build_route_conjunctions():
+    """Spec-level conjunctions compile to one route of the right kind and accept exactly the intersection."""
+    from twistroute.torch_routes import build_route
+    import itertools
+    fb = dict(kind="forbidden", A=2, N=8, patterns=[[0, 0, 0]])
+    ek = dict(kind="exactly_k", A=2, N=8, cls=0, count=4)
+    cfg = dict(kind="cfg", A=2, N=8, grammar="dyck1_amb", span_limits={"C": 5})
+    r1 = build_route(dict(kind="and", A=2, N=8, parts=[fb, ek]))
+    r2 = build_route(dict(kind="and", A=2, N=8, parts=[fb, cfg]))
+    assert isinstance(r1, TorchChain) and isinstance(r2, TorchChart)
+    parts = [build_route(fb), build_route(cfg)]
+    Y = torch.tensor(list(itertools.product(range(2), repeat=8)))
+    assert (r2.accepts(Y) == (parts[0].accepts(Y) & parts[1].accepts(Y))).all()
+    with pytest.raises(C.CompilerRefuse):
+        build_route(dict(kind="and", A=2, N=8, parts=[cfg, cfg]))

@@ -119,3 +119,51 @@ def test_zhat_unbiased_calibrated_twist(name, tau, ess_min):
     zscore = (z.mean() - h0) / math.sqrt(z.var() / len(z) + h0se ** 2)
     assert abs(zscore) < 4, f"{name} tau={tau}: mean {z.mean():.4f} vs h0 {h0:.4f} (z={zscore:.2f})"
     assert not out["any_finite_invalid"]
+
+
+def test_support_guard_clean_on_valid_runs():
+    """Every invariant holds on ordinary runs, for each resampling mode and route kind."""
+    for name in ("forbidden", "copy", "dyck1_amb", "rna_pair"):
+        den, cl, route = setup(name)
+        out = twisted_smc(den, cl, route, N, T, 300, 4, torch.Generator().manual_seed(2), ess_min=0.9,
+                          defensive=0.25, guard="raise")
+        assert all(v == 0 for v in out["guard"].values()), (name, out["guard"])
+
+
+def test_support_guard_detects_twist_collapse():
+    """A route whose mass pass loses support after the first step is reported (and raises when asked)."""
+    den, cl, route = setup("forbidden")
+
+    class Leaky:
+        def __init__(self, r): self.r, self.calls = r, 0
+        def sample(self, lw, gen=None): return self.r.sample(lw, gen)
+        def accepts(self, y): return self.r.accepts(y)
+        def logZ(self, lw):
+            z = self.r.logZ(lw)
+            self.calls += 1
+            if self.calls == 5:                     # the successor-twist pass of step 1 returns zero mass
+                z = torch.full_like(z, float("-inf"))
+            return z
+
+    out = twisted_smc(den, cl, Leaky(route), N, T, 50, 2, torch.Generator().manual_seed(3), ess_min=0.0,
+                      guard="off")
+    assert out["guard"] == {k: 0 for k in out["guard"]}          # off: nothing counted
+    with pytest.warns(RuntimeWarning, match="twist_collapse"):
+        out = twisted_smc(den, cl, Leaky(route), N, T, 50, 2, torch.Generator().manual_seed(3), ess_min=0.0)
+    assert out["guard"]["twist_collapse"] > 0
+    with pytest.raises(FloatingPointError):
+        twisted_smc(den, cl, Leaky(route), N, T, 50, 2, torch.Generator().manual_seed(3), ess_min=0.0,
+                    guard="raise")
+
+
+def test_class_weights_exact_below_float_floor():
+    """Class masses far below 1e-38 are exact (log-sum-exp), not floored; ordinary entries are unchanged."""
+    from twistroute.models import TokenClasses
+    cls = TokenClasses(torch.tensor([0, 0, 1, 1, 2]), 3, excluded=(4,))
+    lp = torch.log_softmax(torch.tensor([[[0.0, 0.0, -150.0, -151.0, 0.0]]]), -1)
+    got = cls.class_logw(lp)[0, 0]
+    ref1 = torch.logsumexp(lp[0, 0, 2:4], 0)
+    assert torch.isclose(got[1], ref1, atol=1e-4) and float(got[1]) < -140     # floor would give ~-87.5
+    assert torch.isneginf(got[2])                                              # class 2 has only the excluded token
+    plain = torch.log((torch.exp(lp) @ cls.onehot).clamp_min(1e-38))[0, 0]
+    assert got[0] == plain[0]

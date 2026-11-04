@@ -41,6 +41,17 @@ only costs variance.
 | factor graph | copy, low-width relations | variable elimination | backward sampling |
 | determinant | arborescences | matrix-tree theorem | Wilson's algorithm |
 
+**Span limits.** A grammar can bound the yield of chosen nonterminals (`Inside(..., span_limits={"X": W})`, or
+`"span_limits"` in a cfg spec). Bounds implied by the rules are inferred, and the batched chart skips split
+points no derivation can use, so a grammar whose only unbounded nonterminal is a right-branching spine costs
+O(L² W |R|) instead of O(L³ |R|).
+
+**Conjunctions.** A spec `{"kind": "and", "parts": [...]}` compiles to a single route: automata by the product
+construction, an automaton and a grammar by the Bar-Hillel product (a grammar, so it runs on the batched
+chart). On the CPU, `compile.DFAFactorProduct` combines an automaton with a factor graph through augmented
+variables (symbol, automaton state). Two grammars are refused, since their intersection is not context-free in
+general.
+
 ### Options of `twisted_smc`
 
 | option | effect |
@@ -51,6 +62,8 @@ only costs variance.
 | `twist_power=β` | tempered intermediate twists η^β (1 = TWISTER) |
 | `lookahead=j`, `lookahead_draws=m` | look-ahead twist: η times the mean potential product of m speculative step-exact rollouts of j steps; an unbiased estimate of the j-step-ahead frozen twist, and of the Doob function when j reaches T (experimental) |
 | `mix_native=a` | propose from (1 − a)·step-exact + a·native kernel; bounds each potential by ψ′/(aψ) (experimental) |
+| `twist_temp=τ` | calibrated twist: the route sum under the class law ∝ p^τ, with its locally optimal proposal (1 = TWISTER); τ = 0.5 removed the resampling penalty on the synthetic testbed |
+| `guard` | `"warn"` (default), `"raise"`, `"off"`: support invariants checked every step (a live particle must keep a finite clamped sum and twist); counts returned under `out["guard"]` |
 
 All options keep E[Ẑ] = h₀ (tests/test_smc.py, tests/test_resampling.py). The maths is in `docs/twistroute_notes.pdf`.
 

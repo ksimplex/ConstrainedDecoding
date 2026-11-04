@@ -23,11 +23,23 @@ defensive resampling (notes Prop. 7.6: conditional relative variance at most 1 /
 mean weight at every resampling and at the end (Del Moral, Feynman-Kac Formulae, 2004).
 """
 import math
+import warnings
 import torch
 from ..torch_routes.routes import onehot_log
 
 NEG_INF = float("-inf")
 RESAMPLERS = ("multinomial", "cpu", "systematic")
+
+# Support invariants. With a denoiser that gives every token positive probability, the set of completable
+# states does not depend on the predictions, so a live particle must keep a finite clamped sum and twist.
+# A violation means numerical support loss (underflow in a route pass, or exact zeros from the model), and
+# the weights are then no longer those of the theorem.
+SUPPORT_CHECKS = {
+    "proposal_off_support": "live particle whose proposed state has Z(x'; x) = 0: the route sampler and its "
+                            "mass pass disagree",
+    "twist_collapse": "live particle with Z(x'; x) > 0 but twist(x') = 0 under the new predictions",
+    "nan_weight": "NaN log-weight",
+}
 
 
 # ----------------------------------------------------------------------------------------------- primitives
@@ -203,7 +215,7 @@ def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, h
 def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, return_particles=False,
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
                 lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0,
-                twist_temp=1.0):
+                twist_temp=1.0, guard="warn"):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -223,6 +235,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                  potential then uses the mixture density and is bounded by psi' / (a psi).
     twist_temp   tau in (0, 1]: calibrated twist, the route sum under future-token law q ∝ p^tau (1 = TWISTER);
                  the proposal is locally optimal for it and the weights correct exactly (see _propose)
+    guard        "warn" (default), "raise" or "off": support invariants checked at every step (see
+                 SUPPORT_CHECKS); counts are returned under 'guard'. They consume no randomness.
     Returns a dict with per-run 'logZ' (log Z_hat), 'ess_min', 'n_res', validity checks, 'eta0'; with
     return_trace the per-step log-weights before resampling, shape (T, nrun, K); with return_particles the
     final class sequences (nrun, K, N) and log-weights (nrun, K). K = 1 without the weights is step-exact
@@ -269,11 +283,21 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     ess_track = torch.full((nrun,), float(K), device=dev, dtype=torch.float64)
     n_res = torch.zeros(nrun, device=dev)
     trace = []
+    if guard not in ("warn", "raise", "off"):
+        raise ValueError("guard must be 'warn', 'raise' or 'off'")
+    checks = {k: 0 for k in SUPPORT_CHECKS}
 
     for t in range(T):
         last = t == T - 1
         x2, y2, z_old, log_ratio = _propose(den, classes, route, s, nt, gen, mix_native, tau)
         lp2, lw2, eta2, psi2 = _successor_twist(den, classes, route, x2, y2, z_old, last, beta, tau)
+        if guard != "off":
+            live = torch.isfinite(logw) & torch.isfinite(s.eta)
+            on = torch.isfinite(z_old)
+            if mix_native <= 0:                     # native-mixture proposals may leave the support by design
+                checks["proposal_off_support"] += int((live & ~on).sum())
+            if not last:
+                checks["twist_collapse"] += int((live & on & ~torch.isfinite(psi2)).sum())
         if not general:
             logw = logw + _log_potential(s.eta, psi2, z_old, beta)
         else:
@@ -289,6 +313,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         s.x, s.ycls, s.eta = x2, y2, eta2
         if not last:
             s.lp, s.lw = lp2, lw2
+        if guard != "off":
+            checks["nan_weight"] += int(torch.isnan(logw).sum())
         if return_trace:
             trace.append(logw.float().cpu())
 
@@ -318,6 +344,13 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     out = dict(logZ=logZ.cpu().numpy(), ess_min=ess_track.cpu().numpy(), n_res=n_res.cpu().numpy(),
                frac_valid_finite=float((valid & wfin).sum() / wfin.sum().clamp_min(1)),
                any_finite_invalid=bool((wfin & ~valid).any()), eta0=float(eta0[0]))
+    out["guard"] = checks
+    bad = {k: v for k, v in checks.items() if v}
+    if bad and guard != "off":
+        msg = "support invariants violated: " + "; ".join(f"{k} x{v} ({SUPPORT_CHECKS[k]})" for k, v in bad.items())
+        if guard == "raise":
+            raise FloatingPointError(msg)
+        warnings.warn(msg, RuntimeWarning, stacklevel=2)
     if return_trace:
         out["trace"] = torch.stack(trace).view(T, nrun, K).numpy()
     if return_particles:

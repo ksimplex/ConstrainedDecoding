@@ -93,7 +93,7 @@ class TorchChart:
     covers each span at most once, so one nonterminal per (row, span) suffices."""
 
     def __init__(self, ins, device="cpu"):
-        self.g = CNF(ins.start, ins.binary, ins.lexical, ins.A).to(device)
+        self.g = CNF(ins.start, ins.binary, ins.lexical, ins.A, getattr(ins, "span_limits", None)).to(device)
         self.A, self.device, self.name = ins.A, device, getattr(ins, "name", "cfg")
         self.lexlog = torch.log(self.g.lex.float()).to(device)              # (T, N)
 
@@ -111,26 +111,32 @@ class TorchChart:
         nt[:, 0, L] = g.start
         bidx = torch.arange(B, device=dev)
         for span in range(L, 1, -1):
+            pl = g.plan(span)
+            if pl is None:
+                continue
+            ids, _, lo, hi = pl
+            rA, rB, rC = (g.rA, g.rB, g.rC) if ids is None else (g.rA[ids], g.rB[ids], g.rC[ids])
+            R = rA.numel()
             n = L - span + 1
             i = torch.arange(n, device=dev)[:, None]
-            m = torch.arange(1, span, device=dev)[None, :]
-            left = chart[:, i, i + m, :]                                     # (B, n, span-1, N)
-            right = chart[:, i + m, i + span, :]
-            vals = left[..., g.rB] + right[..., g.rC]                        # (B, n, span-1, R)
+            m = torch.arange(lo, hi + 1, device=dev)[None, :]
             a = nt[:, torch.arange(n, device=dev), torch.arange(n, device=dev) + span]   # (B, n)
-            ok = (g.rA[None, None, :] == a[..., None])                       # (B, n, R)
-            vals = torch.where(ok[:, :, None, :], vals, torch.full_like(vals, NEG))
-            flat = vals.reshape(B, n, -1)
             act = a >= 0
             if not act.any():
                 continue
+            left = chart[:, i, i + m, :]                                     # (B, n, splits, N)
+            right = chart[:, i + m, i + span, :]
+            vals = left[..., rB] + right[..., rC]                            # (B, n, splits, R)
+            ok = (rA[None, None, :] == a[..., None])                         # (B, n, R)
+            vals = torch.where(ok[:, :, None, :], vals, torch.full_like(vals, NEG))
+            flat = vals.reshape(B, n, -1)
             pick = _gumbel_argmax(torch.where(act[..., None], flat, torch.zeros_like(flat)), gen)  # (B, n)
-            mm = pick // g.rA.numel() + 1
-            rr = pick % g.rA.numel()
+            mm = pick // R + lo
+            rr = pick % R
             bb, ii = torch.nonzero(act, as_tuple=True)
             mi, ri = mm[bb, ii], rr[bb, ii]
-            nt[bb, ii, ii + mi] = g.rB[ri]
-            nt[bb, ii + mi, ii + span] = g.rC[ri]
+            nt[bb, ii, ii + mi] = rB[ri]
+            nt[bb, ii + mi, ii + span] = rC[ri]
         leaf = nt[:, torch.arange(L, device=dev), torch.arange(L, device=dev) + 1]     # (B, L)
         sc = lw + self.lexlog.T[leaf]                                         # (B, L, T)
         return _gumbel_argmax(sc, gen)

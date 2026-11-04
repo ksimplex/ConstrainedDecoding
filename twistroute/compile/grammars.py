@@ -10,6 +10,11 @@ For an ambiguous grammar the sum counts each string y with multiplicity d(y) = n
 route's law is the d-weighted one. Theorem 3 (theory notes) shows twisted SMC is still exact for the
 native conditional p(x | x in C) provided the terminal twist is the indicator 1_C (TWISTER Def. 4.1).
 
+Span limits (optional, per nonterminal): span_limits = {name: W} keeps only derivations in which every
+subtree rooted at that nonterminal has a yield of at most W positions. Chart entries (i, j, a) with
+j - i > W are -inf, so logZ, sample and accepts all use the restricted derivation set, and d(y) counts the
+span-bounded derivations of y. Nonterminals not listed are unbounded.
+
 count_parses is an independent recursive parse counter used only by tests.
 """
 import numpy as np
@@ -17,12 +22,21 @@ from ._util import NEG, categorical
 
 
 class Inside:
-    def __init__(self, start, binary, lexical, A, name="cfg"):
+    def __init__(self, start, binary, lexical, A, name="cfg", span_limits=None):
         self.start, self.binary, self.lexical, self.A, self.name = start, binary, lexical, A, name
         nts = sorted({a for a, _, _ in binary} | {b for _, b, _ in binary} | {c for _, _, c in binary}
                      | {a for a, _ in lexical} | {start})
         self.idx = {a: i for i, a in enumerate(nts)}
         self.N = len(nts)
+        self.span_limits = dict(span_limits or {})
+        unknown = set(self.span_limits) - set(nts)
+        if unknown:
+            raise ValueError(f"span_limits for unknown nonterminals {sorted(unknown)}")
+        if any(int(w) < 1 for w in self.span_limits.values()):
+            raise ValueError("span limits must be >= 1")
+    def _fits(self, a, span):
+        w = self.span_limits.get(a)
+        return w is None or span <= w
     def accepts(self, seq):
         n = len(seq)
         if n == 0: return False
@@ -37,7 +51,7 @@ class Inside:
                 j = i + span
                 for k in range(i + 1, j):
                     for a, b, cc in self.binary:
-                        if b in ch[i][k] and cc in ch[k][j]:
+                        if b in ch[i][k] and cc in ch[k][j] and self._fits(a, span):
                             ch[i][j].add(a)
         return self.start in ch[0][n]
     def _chart(self, logW, semiring):
@@ -52,6 +66,8 @@ class Inside:
             for i in range(L - span + 1):
                 j = i + span
                 for a, b, cc in self.binary:
+                    if not self._fits(a, span):
+                        continue
                     ai, bi, ci = self.idx[a], self.idx[b], self.idx[cc]
                     for k in range(i + 1, j):
                         v = ch[i, k, bi] + ch[k, j, ci]
@@ -97,8 +113,10 @@ class Inside:
         return tuple(out)
 
 
-def count_parses(start, binary, lexical, seq):
-    """Independent recursive parse counter (cross-checks the numpy chart's sum semiring)."""
+def count_parses(start, binary, lexical, seq, span_limits=None):
+    """Independent recursive parse counter (cross-checks the numpy chart's sum semiring). span_limits as in
+    Inside: a subtree rooted at a listed nonterminal may cover at most that many positions."""
+    lim = dict(span_limits or {})
     from functools import lru_cache
     lex = {}
     for a, t in lexical:
@@ -108,6 +126,8 @@ def count_parses(start, binary, lexical, seq):
         bylhs.setdefault(a, []).append((b, c))
     @lru_cache(None)
     def cnt(sym, i, j):
+        if sym in lim and j - i > lim[sym]:
+            return 0
         if j - i == 1:
             return 1 if sym in lex.get(seq[i], set()) else 0
         tot = 0
