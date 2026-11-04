@@ -14,12 +14,19 @@ from twistroute.models import SyntheticMDLM
 from twistroute.torch_routes import build_route
 
 N, T = 8, 4
+# non-crossing pairs (0,7), (1,6), (3,4) with a compatibility table that is not the identity
+_COMPAT = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]]
+PAIR_FACTORS = [dict(scope=[i, j], table=_COMPAT) for i, j in [(0, 7), (1, 6), (3, 4)]]
 SPECS = {
     "forbidden": dict(kind="forbidden", A=4, map=[0, 1, 2, 3], patterns=[[3, 3], [1, 1]], N=N),
     "exactly_k": dict(kind="exactly_k", A=2, map=[0, 1, 0, 1], cls=0, count=2, N=N),
     "copy": dict(kind="copy", A=2, map=[0, 0, 1, 1], pairs=4, N=N),
     "dyck1_amb": dict(kind="cfg", grammar="dyck1_amb", A=2, map=[0, 1, 0, 1], N=N),
     "rna_pair": dict(kind="cfg", grammar="rna_pair", A=4, map=[0, 1, 2, 3], N=N),
+    "pairs_fg": dict(kind="factor_graph", A=4, map=[0, 1, 2, 3], N=N, factors=PAIR_FACTORS),
+    "motif_and_pairs": dict(kind="and", A=4, map=[0, 1, 2, 3], N=N, parts=[
+        dict(kind="forbidden", A=4, N=N, patterns=[[0, 0]]),
+        dict(kind="factor_graph", A=4, N=N, factors=PAIR_FACTORS)]),
 }
 
 
@@ -105,7 +112,7 @@ def test_defaults_unchanged():
                     defensive=0.0, twist_power=1.0)
     assert np.array_equal(a["logZ"], b["logZ"])
 
-@pytest.mark.parametrize("name", ["forbidden", "copy", "dyck1_amb", "rna_pair"])
+@pytest.mark.parametrize("name", ["forbidden", "copy", "dyck1_amb", "rna_pair", "motif_and_pairs"])
 @pytest.mark.parametrize("tau", [0.5, 0.25])
 @pytest.mark.parametrize("ess_min", [0.0, 0.9])
 def test_zhat_unbiased_calibrated_twist(name, tau, ess_min):

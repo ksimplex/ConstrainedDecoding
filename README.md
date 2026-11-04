@@ -38,7 +38,7 @@ only costs variance.
 |---|---|---|---|
 | automaton | regular, forbidden/required motifs, counting | forward algorithm | forward-filter backward-sample |
 | grammar chart | Dyck, CFGs, RNA pairing | inside algorithm | top-down from the chart |
-| factor graph | copy, low-width relations | variable elimination | backward sampling |
+| factor graph | copy, pairwise relations, low-width constraints | variable elimination | backward sampling |
 | determinant | arborescences | matrix-tree theorem | Wilson's algorithm |
 
 **Span limits.** A grammar can bound the yield of chosen nonterminals (`Inside(..., span_limits={"X": W})`, or
@@ -48,9 +48,13 @@ O(L² W |R|) instead of O(L³ |R|).
 
 **Conjunctions.** A spec `{"kind": "and", "parts": [...]}` compiles to a single route: automata by the product
 construction, an automaton and a grammar by the Bar-Hillel product (a grammar, so it runs on the batched
-chart). On the CPU, `compile.DFAFactorProduct` combines an automaton with a factor graph through augmented
-variables (symbol, automaton state). Two grammars are refused, since their intersection is not context-free in
-general.
+chart). An automaton and a factor graph combine through augmented variables (symbol, automaton state), which gives
+another factor graph. Two grammars are refused, since their intersection is not context-free in general.
+
+**Factor graphs on the GPU.** `TorchFactorGraph` runs variable elimination for a fixed order (default greedy
+min-degree) as one broadcast sum and logsumexp per bucket, and samples backwards through the stored bucket
+tables. Spec: `{"kind": "factor_graph", "factors": [{"scope": [i, j], "table": [[...]]}, ...]}`. Cost is
+exponential only in the induced width; nested pairs plus chain factors at L = 200 have width 3.
 
 ### Options of `twisted_smc`
 
@@ -71,8 +75,10 @@ All options keep E[Ẑ] = h₀ (tests/test_smc.py, tests/test_resampling.py). Th
 
 ```
 twistroute/
-  compile/        CPU reference routes (clear, brute-force verified): automata, grammars, factor graphs, trees
-  torch_routes/   batched GPU routes: TorchChain, TorchChart, TorchCopy, det_logZ; build_route(spec)
+  compile/        CPU reference routes (clear, brute-force verified): automata, grammars, factor graphs, trees,
+                  and products of routes of different kinds
+  torch_routes/   batched GPU routes: TorchChain, TorchChart, TorchFactorGraph, TorchCopy, det_logZ;
+                  build_route(spec), torch_route(cpu_route)
   decode/         twisted_smc (smc.py), native sampling + two-sided weights (native.py), exact toy laws (exact.py)
   models/         OWT-130M wrapper, synthetic denoiser, token-class projections (semantic, TWISTER-ranked)
   diagnostics.py  PSIS tail shape, bootstrap CIs, subsample curves, pairwise TV with a matched floor,

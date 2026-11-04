@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import torch
 from twistroute import compile as C
-from twistroute.torch_routes import TorchChain, TorchChart, TorchCopy, det_logZ
-from conftest import enumerate_law, tv_vs_law, tv_floor
+from twistroute.torch_routes import TorchChain, TorchChart, TorchCopy, det_logZ, TorchFactorGraph, torch_route
+from conftest import enumerate_law, tv_vs_law, tv_floor, tv_threshold
 
 # every pair (i, j) of the RNA pairing grammar is produced through some Q_xy covering (i+1 .. j), so bounding
 # all Q_xy by W bounds every pair span by W + 1
@@ -25,6 +25,11 @@ CASES = {
     "chart: Dyck-1 ambiguous": (lambda: C.Inside(*C.DYCK1_AMBIGUOUS), TorchChart, 10, 2),
     "chart: Dyck-2": (lambda: C.Inside(*C.DYCK2), TorchChart, 6, 4),
     "chart: RNA pairing": (lambda: C.Inside(*C.rna_pair_grammar()), TorchChart, 6, 4),
+    "factor graph: ring 3-colouring": (lambda: C.FactorGraph(6, 3, [((i, (i + 1) % 6), 1 - np.eye(3)) for i in range(6)]),
+                                      TorchFactorGraph, 6, 3),
+    "factor graph: non-crossing pairs + a triple factor": (lambda: _nested_fg(), TorchFactorGraph, 7, 3),
+    "factor graph: automaton AND factor graph": (lambda: C.DFAFactorProduct(C.dfa_forbidden([(0, 0)], 3),
+                                                                            _nested_fg()), torch_route, 7, 3),
     "chart: automaton AND grammar (Bar-Hillel)": (lambda: C.intersect_dfa_cfg(C.dfa_forbidden([(0, 0, 0)], 2),
                                                                          C.Inside(*C.DYCK1_AMBIGUOUS)),
                                                    TorchChart, 10, 2),
@@ -33,6 +38,14 @@ CASES = {
     "chart: span-bounded RNA pairing": (lambda: C.Inside(*C.rna_pair_grammar(), span_limits=PAIR_SPAN_3),
                                         TorchChart, 8, 4),
 }
+
+
+def _nested_fg():
+    """Non-crossing pairs (0,6), (1,3), (4,5) with 'differ by one mod 3', plus a 3-variable 'not all equal'."""
+    nxt = np.array([[float((b - a) % 3 == 1) for b in range(3)] for a in range(3)])
+    nae = np.ones((3, 3, 3)); nae[0, 0, 0] = nae[1, 1, 1] = nae[2, 2, 2] = 0.0
+    fs = [((0, 6), nxt), ((1, 3), nxt), ((4, 5), nxt), ((2, 4, 6), nae)]
+    return C.FactorGraph(7, 3, fs, order=C.min_degree_order(7, [s for s, _ in fs]))
 
 
 def _weight(cpu):
@@ -58,7 +71,7 @@ def _check(gpu, cpu_accepts, law_fn, L, A, rng, n=20000):
     assert abs(float(gpu.logZ(t)[0]) - np.log(Z)) < 1e-4
     ys = gpu.sample(t.expand(n, L, A).contiguous(), torch.Generator().manual_seed(1))
     tv, invalid = tv_vs_law(list(map(tuple, ys.tolist())), law)
-    assert invalid == 0 and tv < 2.0 * tv_floor(law, n, rng)
+    assert invalid == 0 and tv < tv_threshold(law, n, rng)
     Y = torch.tensor(rng.integers(0, A, (1500, L)))
     assert (gpu.accepts(Y).numpy() == np.array([bool(cpu_accepts(tuple(y))) for y in Y.tolist()])).all()
 

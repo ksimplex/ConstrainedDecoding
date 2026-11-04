@@ -98,6 +98,24 @@ def induced_width(L, scopes, order):
     return width
 
 
+def min_degree_order(L, scopes):
+    """Greedy elimination order: repeatedly eliminate the variable with the fewest neighbours in the
+    interaction graph (ties by index), connecting its neighbours. Exact for chains and trees; a heuristic in
+    general (finding the minimum induced width is NP-hard)."""
+    nb = {i: set() for i in range(L)}
+    for s in scopes:
+        for a in s:
+            nb[a] |= set(s) - {a}
+    order, left = [], set(range(L))
+    while left:
+        v = min(left, key=lambda i: (len(nb[i] & left), i))
+        n = nb[v] & left
+        for a in n:
+            nb[a] |= n - {a}
+        order.append(v); left.remove(v)
+    return order
+
+
 class DFAFactorProduct:
     """Route for L(dfa) ∩ C(fg) over the alphabet of both, through an augmented factor graph."""
 
@@ -119,7 +137,7 @@ class DFAFactorProduct:
         for scope, logt in fg.factors:
             t = np.exp(logt)
             factors.append((tuple(scope), t[np.ix_(*[ys] * len(scope))]))
-        order = list(order) if order is not None else list(fg.order)
+        order = list(order) if order is not None else min_degree_order(L, [s for s, _ in factors])
         w = induced_width(L, [(i,) for i in range(L)] + [s for s, _ in factors], order)
         if float(D) ** w > max_cells:
             raise CompilerRefuse(f"{self.name}: elimination tables of {D}^{w} cells exceed {max_cells}")

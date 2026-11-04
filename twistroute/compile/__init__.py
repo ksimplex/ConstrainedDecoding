@@ -19,4 +19,4 @@ from .grammars import (Inside, count_parses, random_cnf, DYCK2, DYCK1_AMBIGUOUS,
                        RNA_PAIRS, rna_pair_grammar)
 from .factor_graphs import CopyFG, FactorGraph, ve_logZ
 from .trees import Arborescence
-from .products import intersect_dfa_cfg, DFAFactorProduct, induced_width
+from .products import intersect_dfa_cfg, DFAFactorProduct, induced_width, min_degree_order

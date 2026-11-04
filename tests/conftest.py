@@ -34,6 +34,15 @@ def tv_floor(law, n, rng, reps=20):
     return float(np.mean([0.5 * np.abs(rng.multinomial(n, pr) / n - pr).sum() for _ in range(reps)]))
 
 
+def tv_threshold(law, n, rng, level=1e-3, reps=4000):
+    """Level-`level` acceptance threshold for the TV of n exact draws: the (1 - level) quantile of the TV of
+    n multinomial draws from the law itself, and never below 2x its mean. Laws with few atoms have a widely
+    spread TV, so a fixed multiple of the mean is not a fixed significance level."""
+    pr = np.array(list(law.values()))
+    tvs = 0.5 * np.abs(rng.multinomial(n, pr, size=reps) / n - pr).sum(-1)
+    return float(max(np.quantile(tvs, 1 - level), 2.0 * tvs.mean()))
+
+
 @pytest.fixture
 def rng():
     return np.random.default_rng(12345)
