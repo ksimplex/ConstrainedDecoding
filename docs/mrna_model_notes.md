@@ -14,7 +14,7 @@ Sources read from `atombio/mrnautilus` (HF): `src/mrna/tasks/lm/mdlm.py`, `noise
 - revealed positions are forced one-hot on their current token (carry-over unmasking).
 
 This is exactly our denoiser contract: `logits(x) -> (B, N, V)` log-probs with the mask excluded and revealed
-positions clamped. `time_conditioning = False` (hard-set in the model and in the checkpoint hparams), so the
+positions clamped. `time_conditioning = False` (a default in the model code; it is not among the checkpoint hparams I inspected), so the
 network ignores the noise level and is a pure function of the partially-masked sequence `zt` — no timestep
 input to thread through. Token draws use Gumbel-argmax at temperature 1 with no truncation
 (`sample_categorical`), which is the native kernel our proofs assume.
