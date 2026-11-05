@@ -117,43 +117,82 @@ def min_degree_order(L, scopes):
 
 
 class DFAFactorProduct:
-    """Route for L(dfa) ∩ C(fg) over the alphabet of both, through an augmented factor graph."""
+    """Route for L(dfa) ∩ C(fg) ∩ (y_i in allowed[i]) over the alphabet of both, through an augmented factor graph.
 
-    def __init__(self, dfa, fg, order=None, max_cells=2 * 10 ** 7, name=None):
+    Variable i takes values z_i = (y_i, s_i), with s_i the automaton state after reading y_0..y_i. Only pairs that
+    can occur are enumerated: y_i allowed at i, s_i reachable from q0 under the allowed symbols, and s_i able to
+    reach acceptance through positions i+1..L-1. Each variable gets local indices 0..D_i-1, padded to D = max D_i
+    (padding carries weight zero), so a per-position restriction (for example a fixed protein) shrinks D from
+    A * Q to at most max_i |allowed[i]| * Q. The start and accept conditions are built into the domains, so the
+    automaton contributes only the pairwise transition factors (z_{i-1}, z_i).
+    """
+
+    def __init__(self, dfa, fg, order=None, max_cells=2 * 10 ** 7, name=None, allowed=None):
         if dfa.A != fg.A:
             raise ValueError("automaton and factor graph use different alphabets")
         L, A, Q = fg.L, fg.A, dfa.n
         self.L, self.A, self.Q, self.dfa, self.fg = L, A, Q, dfa, fg
         self.name = name or f"{dfa.name}&{fg.name}"
-        D = A * Q
-        ys, ss = np.arange(D) // Q, np.arange(D) % Q
-        nxt = np.full((Q, A), -1)                                 # transition table, -1 = dead
+        allowed = np.ones((L, A), bool) if allowed is None else np.asarray(allowed, bool)
+        if allowed.shape != (L, A):
+            raise ValueError("allowed must have shape (L, A)")
+        nxt = np.full((Q, A), -1)
         for p, y, q in dfa.edges:
             nxt[p, y] = q
-        start = (nxt[dfa.q0, ys] == ss).astype(float)
-        accept = np.isin(ss, sorted(dfa.F)).astype(float)
-        trans = (nxt[ss[:, None], ys[None, :]] == ss[None, :]).astype(float)   # (z_{i-1}, z_i)
-        factors = [((0,), start), ((L - 1,), accept)] + [((i - 1, i), trans) for i in range(1, L)]
+        fwd = []                                                  # states reachable after position i
+        cur = {dfa.q0}
+        for i in range(L):
+            cur = {int(nxt[s_, y]) for s_ in cur for y in np.flatnonzero(allowed[i]) if nxt[s_, y] >= 0}
+            fwd.append(cur)
+        live = [None] * L                                         # ... that can still reach acceptance
+        live[L - 1] = fwd[L - 1] & set(dfa.F)
+        for i in range(L - 2, -1, -1):
+            live[i] = {s_ for s_ in fwd[i] if any(nxt[s_, y] in live[i + 1] for y in np.flatnonzero(allowed[i + 1])
+                                                    if nxt[s_, y] >= 0)}
+        vals = []
+        for i in range(L):
+            prev = {dfa.q0} if i == 0 else live[i - 1]
+            vals.append(sorted({(int(y), int(nxt[s_, y])) for s_ in prev for y in np.flatnonzero(allowed[i])
+                                if nxt[s_, y] >= 0 and nxt[s_, y] in live[i]}))
+        if any(not v for v in vals):
+            raise CompilerRefuse(f"{self.name}: empty intersection")
+        D = max(len(v) for v in vals)
+        self.base_of = np.zeros((L, D), int)
+        self.valid = np.zeros((L, D), bool)
+        state_of = np.full((L, D), -1)
+        for i, v in enumerate(vals):
+            for k, (y, st) in enumerate(v):
+                self.base_of[i, k], state_of[i, k], self.valid[i, k] = y, st, True
+        factors = []
+        for i in range(1, L):                                     # transition consistency
+            t = (nxt[np.clip(state_of[i - 1], 0, None)[:, None], self.base_of[i][None, :]] == state_of[i][None, :])
+            t &= self.valid[i - 1][:, None] & self.valid[i][None, :]
+            factors.append(((i - 1, i), t.astype(float)))
         for scope, logt in fg.factors:
-            t = np.exp(logt)
-            factors.append((tuple(scope), t[np.ix_(*[ys] * len(scope))]))
-        order = list(order) if order is not None else min_degree_order(L, [s for s, _ in factors])
-        w = induced_width(L, [(i,) for i in range(L)] + [s for s, _ in factors], order)
+            t = np.exp(logt)[np.ix_(*[self.base_of[x] for x in scope])]
+            for ax, x in enumerate(scope):
+                sh = [1] * len(scope); sh[ax] = D
+                t = t * self.valid[x].reshape(sh)
+            factors.append((tuple(scope), t))
+        order = list(order) if order is not None else min_degree_order(L, [sc for sc, _ in factors])
+        w = induced_width(L, [(i,) for i in range(L)] + [sc for sc, _ in factors], order)
         if float(D) ** w > max_cells:
             raise CompilerRefuse(f"{self.name}: elimination tables of {D}^{w} cells exceed {max_cells}")
-        self.width = w
+        self.width, self.domain, self.allowed = w, D, allowed
         self._aug = FactorGraph(L, D, factors, order=order, name=self.name)
-        self._ys = ys
 
     def _lift(self, logW):
-        return np.asarray(logW, float)[:, self._ys]
+        lw = np.asarray(logW, float)
+        out = np.take_along_axis(lw, self.base_of, axis=1)
+        return np.where(self.valid, out, -np.inf)
 
     def logZ(self, logW):
         return self._aug.logZ(self._lift(logW))
 
     def sample(self, logW, rng):
         z = self._aug.sample(self._lift(logW), rng)
-        return tuple(int(self._ys[v]) for v in z)
+        return tuple(int(self.base_of[i, v]) for i, v in enumerate(z))
 
     def accepts(self, seq):
-        return len(seq) == self.L and self.dfa.accepts(seq) and self.fg.accepts(seq)
+        return (len(seq) == self.L and all(self.allowed[i, y] for i, y in enumerate(seq))
+                and self.dfa.accepts(seq) and self.fg.accepts(seq))

@@ -77,5 +77,5 @@ def torch_route(r, device="cpu"):
     if isinstance(r, C.FactorGraph):
         return TorchFactorGraph(r, device)
     if isinstance(r, C.DFAFactorProduct):
-        return TorchLifted(TorchFactorGraph(r._aug, device), r._ys, r.A, device, r.name)
+        return TorchLifted(TorchFactorGraph(r._aug, device), r.base_of, r.A, device, r.name, valid=r.valid)
     return TorchChain(r, device)

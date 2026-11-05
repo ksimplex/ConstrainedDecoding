@@ -78,19 +78,31 @@ class TorchFactorGraph:
 
 
 class TorchLifted:
-    """Route over an augmented alphabet seen through the base alphabet: augmented symbol a has base symbol
-    base_of[a], its weight is the base weight, and samples are mapped back."""
+    """Route over an augmented alphabet seen through the base alphabet. base_of is (D,) (the same map at every
+    position) or (L, D) (per-position local domains, as built by compile.DFAFactorProduct), with valid (L, D)
+    marking real entries; padding gets weight -inf. Samples are mapped back to base symbols."""
 
-    def __init__(self, inner, base_of, A, device="cpu", name=None):
+    def __init__(self, inner, base_of, A, device="cpu", name=None, valid=None):
         self.inner, self.A = inner, A
         self.base_of = torch.as_tensor(base_of, dtype=torch.long, device=device)
+        self.valid = None if valid is None else torch.as_tensor(valid, dtype=torch.bool, device=device)
         self.name = name or getattr(inner, "name", "lifted")
 
+    def _lift(self, lw):
+        if self.base_of.dim() == 1:
+            return lw[..., self.base_of]
+        B = lw.shape[0]
+        out = torch.gather(lw, 2, self.base_of[None].expand(B, -1, -1))
+        return out if self.valid is None else torch.where(self.valid, out, torch.full_like(out, float("-inf")))
+
     def logZ(self, lw):
-        return self.inner.logZ(lw[..., self.base_of])
+        return self.inner.logZ(self._lift(lw))
 
     def sample(self, lw, gen=None):
-        return self.base_of[self.inner.sample(lw[..., self.base_of], gen)]
+        z = self.inner.sample(self._lift(lw), gen)
+        if self.base_of.dim() == 1:
+            return self.base_of[z]
+        return torch.gather(self.base_of[None].expand(z.shape[0], -1, -1), 2, z[..., None])[..., 0]
 
     def accepts(self, y):
         return torch.isfinite(self.logZ(onehot_log(y, self.A)))

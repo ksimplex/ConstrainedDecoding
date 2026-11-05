@@ -69,6 +69,20 @@ def test_product_routes_match_enumeration(name, rng):
     assert invalid == 0 and tv < 2.0 * tv_floor(law, 6000, rng)
 
 
+def test_product_with_per_position_restriction(rng):
+    """Per-position allowed sets shrink the augmented domain and give the exact restricted law."""
+    d, fg = C.dfa_fraction_band(0, 1, 3, 3), ring_fg(5, 3)
+    allowed = np.ones((5, 3), bool); allowed[1, 0] = allowed[3, 2] = False
+    full, res = C.DFAFactorProduct(d, fg), C.DFAFactorProduct(d, fg, allowed=allowed)
+    assert res.domain <= full.domain
+    w = lambda y: float(d.accepts(y) and fg.accepts(y) and all(allowed[i, v] for i, v in enumerate(y)))
+    logW = rng.normal(0, 1, (5, 3))
+    law, Z = enumerate_law(logW, w)
+    assert law and abs(res.logZ(logW) - np.log(Z)) < 1e-9
+    for y in itertools.product(range(3), repeat=5):
+        assert res.accepts(y) == (w(y) > 0)
+
+
 def test_product_keeps_span_limits_and_refuses_large_tables():
     d = C.dfa_forbidden([(1, 1, 1, 1)], 2)          # does not exclude the test strings itself
     prod = C.intersect_dfa_cfg(d, C.Inside(*C.DYCK1_AMBIGUOUS, span_limits={"C": 3}))
