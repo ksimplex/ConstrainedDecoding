@@ -51,24 +51,28 @@ class TorchChain:
         self.device, self.name = device, wdfa.name
 
     def _forward(self, lw):
+        """Scaled forward pass in float64. Per-step normalisation keeps the total at 1, but a state whose mass
+        is far below the dominant ones (an accepting count the predictions make very unlikely) would underflow
+        in float32 below ~1e-38 and turn a feasible constraint into Z = 0; float64 extends that to ~1e-308."""
         B, L, A = lw.shape
-        mx = lw.max(-1, keepdim=True).values.clamp_min(-1e30)
+        lw = lw.double()
+        mx = lw.max(-1, keepdim=True).values.clamp_min(-1e300)
         W = torch.exp(lw - mx)
-        logscale = mx.squeeze(-1).double().sum(-1)
-        a = torch.zeros(B, self.Q, device=lw.device); a[:, self.q0] = 1.0
+        logscale = mx.squeeze(-1).sum(-1)
+        a = torch.zeros(B, self.Q, device=lw.device, dtype=torch.float64); a[:, self.q0] = 1.0
         alphas = [a]
         for t in range(L):
             v = a[:, self.src] * W[:, t, self.sym]
-            na = torch.zeros(B, self.Q, device=lw.device).index_add_(1, self.dst, v)
+            na = torch.zeros(B, self.Q, device=lw.device, dtype=torch.float64).index_add_(1, self.dst, v)
             s = na.sum(-1, keepdim=True)
-            a = na / s.clamp_min(1e-38)
-            logscale = logscale + torch.log(s.squeeze(-1).double())
+            a = na / s.clamp_min(1e-300)
+            logscale = logscale + torch.log(s.squeeze(-1))
             alphas.append(a)
         return torch.stack(alphas, 1), logscale
 
     def logZ(self, lw):
         al, ls = self._forward(lw)
-        return ls + torch.log((al[:, -1] * self.Fmask).sum(-1).double())
+        return ls + torch.log((al[:, -1] * self.Fmask).sum(-1))
 
     def sample(self, lw, gen=None):
         B, L, A = lw.shape
@@ -77,7 +81,7 @@ class TorchChain:
         q = _gumbel_argmax(torch.where(self.Fmask, la[:, L], torch.full_like(la[:, L], NEG)), gen)
         y = torch.empty(B, L, dtype=torch.long, device=lw.device)
         for t in range(L - 1, -1, -1):
-            sc = la[:, t, self.src] + lw[:, t, self.sym]                   # (B, E)
+            sc = (la[:, t, self.src] + lw[:, t, self.sym].double()).float()  # (B, E); logs fit float32
             sc = torch.where(self.dst[None] == q[:, None], sc, torch.full_like(sc, NEG))
             e = _gumbel_argmax(sc, gen)
             y[:, t] = self.sym[e]; q = self.src[e]

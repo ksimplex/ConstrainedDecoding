@@ -149,8 +149,8 @@ Dyck-1 0.041 → 0.038, RNA pairing 0.031 → 0.020. The PSIS tail shape on copy
    without resampling and falls 3.7x with defensive resampling. Mixtures of product laws are not needed yet.
 2. **Calibration is not uniformly better on TV.** On the regular family without resampling it is worse (0.026 →
    0.046) while Ẑ is tighter. It stays an option, not a default.
-3. **Resampling on ambiguous grammars hurts whatever the twist** (RNA pairing: 0.005 without resampling, 0.14–0.21
-   with). The grammar twist is derivation-weighted, so resampling favours prefixes with many parses; the final
+3. **Resampling on ambiguous grammars hurts whatever the twist** (RNA pairing: 0.005 without resampling,
+   0.140–0.172 with defensive resampling, 0.212 with plain resampling, which is not in the table). The grammar twist is derivation-weighted, so resampling favours prefixes with many parses; the final
    weights correct the target but not the allocation at K = 16. A twist that counts each string once is #P-hard
    in general, so there is no exact fix; tractable options are an unambiguous grammar where one exists, or a
    different tractable twist for resampling (any positive twist is valid). **Rule for now: no resampling on

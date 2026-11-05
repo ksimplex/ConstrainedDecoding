@@ -125,3 +125,13 @@ def test_build_route_conjunctions():
     assert (r2.accepts(Y) == (parts[0].accepts(Y) & parts[1].accepts(Y))).all()
     with pytest.raises(C.CompilerRefuse):
         build_route(dict(kind="and", A=2, N=8, parts=[cfg, cfg]))
+
+
+def test_chain_forward_does_not_underflow_on_rare_accepting_counts():
+    """An accepting count about e^-113 below the dominant states: float32 scaling would return Z = 0."""
+    d = C.dfa_exactly_k(1, 16, 2)
+    lw = torch.log(torch.tensor([[1 - 1e-4, 1e-4]] * 64))[None].float()
+    ref = d.logZ(lw[0].double().numpy())
+    assert ref < -100 and abs(float(TorchChain(d).logZ(lw)[0]) - ref) < 1e-6
+    y = TorchChain(d).sample(lw.expand(50, 64, 2).contiguous(), torch.Generator().manual_seed(0))
+    assert (y.sum(-1) == 16).all()

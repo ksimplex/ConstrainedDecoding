@@ -361,9 +361,16 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
 
 def select_particles(out, rng):
     """One output per run, drawn in proportion to the run's final weights (TWISTER returns the weighted particle
-    set; one draw per run samples from the SMC's terminal estimate)."""
+    set; one draw per run samples from the SMC's terminal estimate). A run whose particles all have weight zero
+    has no output: its row is drawn uniformly and reported in out["dead_runs"] (a count), so callers can drop it.
+    With an exact route this does not happen; the support guard reports the cause when it does."""
     import numpy as np
     lw = out["logw"]
-    w = np.exp(lw - lw.max(1, keepdims=True)); w = np.nan_to_num(w); w /= w.sum(1, keepdims=True)
+    dead = ~np.isfinite(lw).any(1)
+    mx = np.where(dead[:, None], 0.0, lw.max(1, keepdims=True))
+    w = np.where(np.isfinite(lw), np.exp(lw - mx), 0.0)
+    w[dead] = 1.0
+    w /= w.sum(1, keepdims=True)
+    out["dead_runs"] = int(dead.sum())
     idx = np.array([rng.choice(w.shape[1], p=wi) for wi in w])
     return out["classes"][np.arange(len(idx)), idx]
