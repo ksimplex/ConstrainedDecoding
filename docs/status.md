@@ -96,6 +96,21 @@ to 0.30 (RNA pairing) over L = 8-32. `e3_sweep_summary.csv` (eac54feb-17f6-4844-
   (per-position allowed sets imposed as a constraint, not by renormalising predictions).
 - Automaton forward pass in float64: float32 returned Z = 0 for a feasible count at log-mass -113.5.
 
+## 6b. Layer 2 scorers and baselines (2026-11-05, done)
+
+`twistroute_bio.score`: ViennaRNA scorers (MFE, structure distance, ensemble defect, fraction paired) for E6b
+ranking, used only to score samples, never in a route; frequency-based and local-repair construction baselines
+(the FactorDLM triviality guard). ViennaRNA 2.7.2, optional dependency `bio`. 7 tests [verified].
+
+## 6c. Layer 3 native-process analysis (2026-11-05)
+
+`docs/mrna_model_notes.md`. The mRNAutilus denoiser matches our `logits(x)` interface (SUBS-parameterised,
+carry-over unmasking, no time conditioning); the net is RiNALMo (30-layer, 150M), loadable from the checkpoint,
+self-contained but flash-attn dependent (GPU). Two decisions pending before building the adapter: (1) match the
+model's independent-unmasking schedule vs our fixed-N/T (faithfulness; needs a layer-1 scheduler generalisation);
+(2) run layer-3 on GPU with flash-attn. mRNAutilus's own conditional sampler imposes protein identity by masking,
+the bias our method corrects; its MCTS sampler is the E6b mode-seeking comparator.
+
 ## 7. In progress
 
 - **Step 2.2: CDS constraint builders, done (2026-11-05)** (`twistroute_bio/constraints`): motifs with IUPAC codes, GC band,
@@ -107,15 +122,17 @@ to 0.30 (RNA pairing) over L = 8-32. `e3_sweep_summary.csv` (eac54feb-17f6-4844-
 
 ## 8. Next steps
 
-1. 2.3: ViennaRNA scoring and rule-based construction baselines.
-2. Layer 3: mRNAutilus adapter. Check the native process (its sampler is MCTS; the noise schedule is state-dependent),
-   positional structure and numerics on `best_public.ckpt` (d4c53d94-b38a-488a-a043-48b2e0e40694); then a smoke test.
+1. Layer 3 adapter, once the two decisions in `mrna_model_notes.md` section 8 are settled: vendor the RiNALMo
+   net, load the checkpoint, wrap with SUBS and codon classes, smoke test.
+2. If matching the model's schedule: generalise the reveal scheduler in layer 1 (independent per-position
+   unmasking), tested the same way as the existing arms.
 3. E6b best-of-K on mRNA, once layer 3 works.
 
 ## 9. Open questions for the user
 
-- Success thresholds in the experiment plan (being reviewed by the user, 2026-11-05).
-- Licence: mRNAutilus is CC BY-NC 4.0 (non-commercial); fine for research.
+- **Schedule faithfulness and GPU run for layer 3** (mrna_model_notes.md section 8). Blocks the adapter.
+- Success thresholds: set per experiment just before running, with a variance argument (user, 2026-11-05).
+- Licence: mRNAutilus CC BY-NC 4.0 (non-commercial); confirmed fine for research (user, 2026-11-05).
 
 ## 10. Key artifacts
 
