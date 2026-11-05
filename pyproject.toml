@@ -13,6 +13,7 @@ dependencies = ["numpy", "scipy", "torch>=2.1"]
 [project.optional-dependencies]
 models = ["transformers>=4.40"]      # OWT-130M also needs flash-attn (see README)
 test = ["pytest"]
+bio = ["ViennaRNA>=2.6"]      # twistroute_bio.score.vienna
 
 [tool.setuptools.packages.find]
 include = ["twistroute*"]
