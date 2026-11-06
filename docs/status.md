@@ -200,12 +200,22 @@ were never claimed on. **Caveats from the survey's own deviation list:** ten ver
 full; three quantitative claims are read off figures rather than reported numbers; GEMORNA's gains come from
 the publisher abstract only; the 2024-2026 sweep was by search rather than exhaustive.
 
-mRNAutilus's intended use, from its preprint (arXiv:2605.31296): simultaneous codon optimisation of the CDS
-**and de novo design of both UTRs** in one generative process, targeting half-life, translation efficiency and
-protein abundance. Its MCTS sampler maintains a Pareto front over three XGBoost regressors on frozen
-mRNAutilus embeddings. It does evaluate 5'UTR design, but only distributionally (MFE and GC against 1,000
-natural vertebrate 5'UTRs) plus end-to-end expression; there is no 5'UTR functional benchmark, no
-mean-ribosome-load comparison, and no ablation separating the UTR contribution from the CDS contribution.
+mRNAutilus's intended use, from its preprint. Provenance of each claim is marked, because this entry
+previously stated the whole paragraph as established fact when parts of it came from a sub-agent's reading.
+
+- **arXiv:2605.31296 [verified]** resolves via the arXiv API to "mRNAutilus: Multi-Objective-Guided Discrete
+  Generation of mRNA with Optimized Therapeutic Properties", Patel, Tang, Kim, Zhang, Srijay, Lin, Shubham, Pi,
+  Wu, Yao, Chatterjee, 29 May 2026.
+- **Objectives and Pareto search [verified]** against the abstract, which names Monte Carlo search, a Pareto
+  front, half-life, translation efficiency, protein abundance, UTRs and diffusion.
+- **Three XGBoost regressors [verified]** against the model repository rather than the abstract (which does not
+  mention XGBoost): `classifiers/reg_xg.py` imports `xgboost`, and `classifiers/scoring_functions.py` registers
+  exactly three scorers, `HalfLife`, `TranslationRate` and `RiboSeq`. `pareto_mcts.py` is the sampler.
+- **5'UTR evaluation [from the sub-agent's reading of the full text, not independently checked]**: evaluated
+  only distributionally (MFE and GC against 1,000 natural vertebrate 5'UTRs) plus end-to-end expression, with
+  no 5'UTR functional benchmark, no mean-ribosome-load comparison, and no ablation separating the UTR
+  contribution from the CDS contribution. Confirm against the paper before relying on this to justify a UTR
+  experiment.
 
 ## 8. Framing (revised 2026-11-06)
 
