@@ -51,16 +51,17 @@
 \contentsline {paragraph}{The individual routes.}{19}{section*.14}%
 \contentsline {paragraph}{The remedies.}{19}{section*.15}%
 \contentsline {paragraph}{The model.}{19}{section*.16}%
+\contentsline {paragraph}{Who else composes constraints of this kind.}{19}{section*.17}%
 \contentsline {section}{\numberline {12}Summary}{19}{section.12}%
 \contentsline {section}{\numberline {A}Proofs}{20}{appendix.A}%
 \contentsline {section}{\numberline {B}Route implementations}{21}{appendix.B}%
-\contentsline {paragraph}{Automata.}{21}{section*.17}%
-\contentsline {paragraph}{Grammar charts.}{21}{section*.18}%
-\contentsline {paragraph}{Factor graphs.}{22}{section*.19}%
-\contentsline {paragraph}{Determinants.}{22}{section*.20}%
-\contentsline {paragraph}{From classes to tokens.}{22}{section*.21}%
-\contentsline {paragraph}{Conjunctions.}{22}{section*.22}%
+\contentsline {paragraph}{Automata.}{21}{section*.18}%
+\contentsline {paragraph}{Grammar charts.}{21}{section*.19}%
+\contentsline {paragraph}{Factor graphs.}{22}{section*.20}%
+\contentsline {paragraph}{Determinants.}{22}{section*.21}%
+\contentsline {paragraph}{From classes to tokens.}{22}{section*.22}%
+\contentsline {paragraph}{Conjunctions.}{22}{section*.23}%
 \contentsline {section}{\numberline {C}Experimental protocol}{22}{appendix.C}%
-\contentsline {paragraph}{Estimators and diagnostics.}{22}{section*.23}%
-\contentsline {paragraph}{Correctness checks.}{23}{section*.24}%
-\contentsline {paragraph}{Reproduction.}{23}{section*.25}%
+\contentsline {paragraph}{Estimators and diagnostics.}{22}{section*.24}%
+\contentsline {paragraph}{Correctness checks.}{23}{section*.25}%
+\contentsline {paragraph}{Reproduction.}{23}{section*.26}%

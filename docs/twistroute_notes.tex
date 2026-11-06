@@ -952,6 +952,27 @@ twists by regression within a parametric family; restricting to product laws is 
 Masked diffusion language models follow Sahoo et al.\ \cite{sahoo2024}, whose reverse step defines the
 independent schedule of \cref{sec:setup}.
 
+\paragraph{Who else composes constraints of this kind.}
+Two axes separate the prior work: which constraint classes a method can express, and which semiring it
+evaluates them in. On expressiveness, no decoder matches the set in \cref{tab:routes}: TWISTER
+\cite{twister} is trajectory-exact but automaton-only; Su and Zhang \cite{sz26} argue for graphs over
+chains and give the factor-graph case; grammar-constrained decoding \cite{geng2023} handles context-free
+constraints for autoregressive models by per-step masking, which is biased in the same way
+\cref{ex:bias} describes, and grammar-aligned decoding \cite{park2024} removes that bias by iteratively
+reweighting across samples rather than within a trajectory.
+
+The closest prior construction is not in the decoding literature at all. LinearDesign \cite{zhang2023}
+encodes the synonymous-codon design space of a protein as a weighted DFA and runs \emph{lattice parsing}
+against an RNA folding grammar --- the automaton-times-grammar conjunction of \cref{app:routes}, built for
+exactly our application. The difference is the semiring. LinearDesign evaluates the intersection in
+max-times and returns the single optimum of a hand-written objective (free energy traded against codon
+adaptation); we evaluate it in sum-product and return samples from a learned model's conditional. By
+\cref{prop:semiring} that difference is not cosmetic: the max semiring is correct whatever the grammar's
+ambiguity, while the sum semiring counts each string once per derivation. LinearDesign can intersect with
+an ambiguous folding grammar and ignore the issue; we cannot, which is what \cref{sec:ambiguity} is about.
+So the honest statement of novelty is narrow and worth stating precisely: the conjunction is not new, and
+performing it in the sum semiring over a learned distribution is.
+
 %======================================================================
 \section{Summary}\label{sec:summary}
 %======================================================================
@@ -1158,6 +1179,7 @@ CPU and batched samplers, SMC, resampling, diagnostics, exact laws, alphabets, a
 \bibitem{dang2026icml} M.~Dang, J.~Song, H.~Zhang, H.~Zhao, G.~Van den Broeck and S.~Ermon. Mitigating bias in locally constrained decoding via tractable proposals. ICML 2026; arXiv:2606.01926.
 \bibitem{de26} M.~Dang and S.~Ermon. Constrained decoding for diffusion language models via efficient inference over finite automata. arXiv:2607.07026, 2026.
 \bibitem{delmoral2004} P.~Del Moral. \emph{Feynman--Kac Formulae: Genealogical and Interacting Particle Systems with Applications}. Springer, 2004. doi:10.1007/978-1-4684-9393-1.
+\bibitem{geng2023} S.~Geng, M.~Josifoski, M.~Peyrard and R.~West. Grammar-constrained decoding for structured NLP tasks without finetuning. arXiv:2305.13971, 2023.
 \bibitem{heng2020} J.~Heng, A.~N.~Bishop, G.~Deligiannidis and A.~Doucet. Controlled sequential Monte Carlo. \emph{Ann.\ Statist.} 48(5):2904--2929, 2020. doi:10.1214/19-AOS1914.
 \bibitem{hesterberg1995} T.~Hesterberg. Weighted average importance sampling and defensive mixture distributions. \emph{Technometrics} 37(2), 1995. doi:10.1080/00401706.1995.10484303.
 \bibitem{jerrumsnir1982} M.~Jerrum and M.~Snir. Some exact complexity results for straight-line computations over semirings. \emph{J.\ ACM} 29(3), 1982. doi:10.1145/322326.322341.
@@ -1168,7 +1190,9 @@ CPU and batched samplers, SMC, resampling, diagnostics, exact laws, alphabets, a
 \bibitem{nussinov1980} R.~Nussinov and A.~B.~Jacobson. Fast algorithm for predicting the secondary structure of single-stranded RNA. \emph{PNAS} 77(11), 1980. doi:10.1073/pnas.77.11.6309.
 \bibitem{sharp1987} P.~M.~Sharp and W.-H.~Li. The codon adaptation index --- a measure of directional synonymous codon usage bias, and its potential applications. \emph{Nucleic Acids Res.} 15(3):1281--1295, 1987. doi:10.1093/nar/15.3.1281.
 \bibitem{clarke2008} T.~F.~Clarke IV and P.~L.~Clark. Rare codons cluster. \emph{PLoS ONE} 3(10):e3412, 2008. doi:10.1371/journal.pone.0003412.
+\bibitem{park2024} K.~Park, J.~Wang, T.~Berg-Kirkpatrick, N.~Polikarpova and L.~D'Antoni. Grammar-aligned decoding. arXiv:2405.21047, 2024.
 \bibitem{sahoo2024} S.~S.~Sahoo, M.~Arriola, Y.~Schiff, A.~Gokaslan, E.~Marroquin, J.~T.~Chiu et al. Simple and effective masked diffusion language models. arXiv:2406.07524, 2024.
+\bibitem{zhang2023} H.~Zhang, L.~Zhang, A.~Lin, C.~Xu et al. Algorithm for optimized mRNA design improves stability and immunogenicity. \emph{Nature} 621:396--403, 2023. doi:10.1038/s41586-023-06127-z.
 \bibitem{sz26} J.~Su and W.~Zhang. Constraints are graphs, not chains: exact decoding for diffusion language models. arXiv:2609.32900, 2026.
 \bibitem{twister} A.~Thimmaiah, L.~Marinov, J.~Srinivasa, H.~Vikalo, J.~J.~Li and M.~Gligoric. Twist, don't tilt: trajectory-exact constrained decoding for masked diffusion models. arXiv:2609.35609, 2026.
 \bibitem{wang2024atlas} B.~Wang, D.~D.~Mau\'a, G.~Van den Broeck and Y.~Choi. A compositional atlas for algebraic circuits. arXiv:2412.05481, 2024.
