@@ -32,6 +32,7 @@ import math
 import torch
 
 from ..torch_routes.routes import onehot_log
+from .resampling import log_mean_exp
 from .schedule import NEG_INF, clamp_revealed, reveal_indices
 
 # Support invariants. With a denoiser that gives every token positive probability, the set of
@@ -162,4 +163,4 @@ def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, sched
     acc = acc.view(P, m)
     if mean == "geom":
         return torch.where(torch.isneginf(acc).any(-1), torch.full_like(acc[:, 0], NEG_INF), acc.mean(-1))
-    return _lmexp(acc, -1)
+    return log_mean_exp(acc, -1)

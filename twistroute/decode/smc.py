@@ -27,7 +27,8 @@ import warnings
 import torch
 
 from ..torch_routes.routes import onehot_log
-from .resampling import RESAMPLERS, _lmexp, defensive_mixture, offspring_logweights, resample_indices
+from .resampling import (RESAMPLERS, defensive_mixture, log_mean_exp, offspring_logweights,
+                         resample_indices)
 from .schedule import NEG_INF, SCHEDULES, clamp_revealed, reveal_indices, reveal_sets
 from .twist import (SUPPORT_CHECKS, _Particles, _lookahead_log_gain, _log_potential, _propose,
                     _successor_twist, tempered_class_logw)
@@ -159,7 +160,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         fire = ess < ess_min * K
         if not fire.any():
             continue
-        logZ = logZ + torch.where(fire, _lmexp(lwr, -1), torch.zeros_like(logZ))
+        logZ = logZ + torch.where(fire, log_mean_exp(lwr, -1), torch.zeros_like(logZ))
         pi = defensive_mixture(wn, defensive)
         probs = torch.where(fire[:, None], pi, torch.full_like(wn, 1.0 / K)).float()
         idx = resample_indices(probs, K, resampler, gen, res_gen)
@@ -169,7 +170,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         n_res = n_res + fire.float()
 
     lwr = logw.view(nrun, K)
-    logZ = logZ + _lmexp(lwr, -1)
+    logZ = logZ + log_mean_exp(lwr, -1)
     final = classes.token_class[s.x]
     valid = route.accepts(final).view(nrun, K)
     wfin = torch.isfinite(lwr)

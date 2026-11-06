@@ -84,3 +84,46 @@ def test_batched_routes_match_cpu(rng):
     assert abs(float(g.logZ(t)[0]) - r.route.logZ(logW)) < 1e-4
     ys = g.sample(t.expand(500, r.n_codons, 64).contiguous(), torch.Generator().manual_seed(0))
     assert all(r.check(tuple(y)) for y in ys.tolist())
+
+
+def test_motif_straddling_a_codon_boundary_is_caught():
+    """The lift to codons is an inverse homomorphism, so a forbidden motif spanning two codons needs no
+    special case. This is the property that a per-codon rule-based filter cannot have."""
+    from twistroute_bio.alphabet import CODONS, translate
+    from twistroute_bio.constraints import Motifs, compile_cds
+    # GGATCC (BamHI) placed across the boundary of two codons: GG|ATCC is never inside one codon
+    cds = compile_cds("GS", [Motifs(forbidden=("GGATCC",))])
+    bad = [CODONS.index(c) for c in ["GGA", "TCC", "TGA"]]
+    assert translate(bad) == "GS*"                              # the protein is right
+    assert "GGATCC" in "".join(CODONS[c] for c in bad)          # and the site straddles codons 0 and 1
+    assert not cds.check(bad)
+    assert not cds.route.accepts(bad)
+
+
+def test_compile_cds_rejects_sequences_with_the_wrong_protein():
+    from twistroute_bio.alphabet import CODONS
+    from twistroute_bio.constraints import compile_cds
+    cds = compile_cds("MK")
+    good = [CODONS.index(c) for c in ["ATG", "AAA", "TAA"]]
+    wrong_aa = [CODONS.index(c) for c in ["ATG", "GAA", "TAA"]]      # K -> E
+    no_stop = [CODONS.index(c) for c in ["ATG", "AAA", "AAA"]]
+    assert cds.check(good) and cds.route.accepts(good)
+    for bad in (wrong_aa, no_stop):
+        assert not cds.check(bad) and not cds.route.accepts(bad)
+
+
+def test_gc_band_counts_over_the_whole_sequence():
+    from twistroute_bio.alphabet import CODONS
+    from twistroute_bio.constraints import GCBand, compile_cds
+    cds = compile_cds("G", [GCBand(lo=2, hi=3)])
+    gc = lambda s: sum("".join(CODONS[c] for c in s).count(b) for b in "GC")
+    for codon in ["GGG", "GGA"]:
+        s = [CODONS.index(codon), CODONS.index("TAA")]
+        assert cds.check(s) == (2 <= gc(s) <= 3) == cds.route.accepts(s), codon
+
+
+def test_wobble_pairing_is_optional():
+    from twistroute_bio.constraints import TargetStructure
+    gu, wc = TargetStructure(((0, 5),), wobble=True), TargetStructure(((0, 5),), wobble=False)
+    assert gu.check("GAAAAT") and not wc.check("GAAAAT")     # G-U (written T) pairs only under wobble
+    assert gu.check("GAAAAC") and wc.check("GAAAAC")         # G-C pairs under both

@@ -1,9 +1,15 @@
 """
-ViennaRNA scorers. These are deterministic functions of a sequence, used to RANK valid samples (E6b), never
-inside a route. An external, algorithmic score cannot be gamed by an optimiser exploiting predictor error,
-which is why the headline comparison uses it rather than a learned expression predictor.
+ViennaRNA scorers (Lorenz et al., "ViennaRNA Package 2.0", Algorithms Mol. Biol. 6:26, 2011,
+doi:10.1186/1748-7188-6-26).
 
-Each scorer takes a coding sequence as a nucleotide string (T or U both accepted). mfe is in kcal/mol.
+These are deterministic functions of a sequence, used to RANK valid samples, never inside a route. An
+external, algorithmic score cannot be gamed by an optimiser exploiting predictor error, which is why the
+headline comparison uses one rather than a learned expression predictor.
+
+Each scorer takes a coding sequence as a nucleotide string (T or U both accepted); mfe is in kcal/mol. The
+ensemble defect is the expected number of incorrectly paired nucleotides relative to a target structure under
+the equilibrium ensemble, so lower means the target dominates the ensemble rather than merely being the
+single lowest-energy fold.
 """
 import RNA
 

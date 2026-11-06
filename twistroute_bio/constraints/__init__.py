@@ -2,15 +2,24 @@
 Coding-sequence constraint builders. Each builder states a constraint at nucleotide level; compile_cds turns a
 set of them into one route over codon tokens (indices into twistroute_bio.CODONS), with the protein fixed.
 
-    motifs           forbidden / required nucleotide motifs (IUPAC codes allowed), anywhere in the sequence and in
-                     any reading frame, including across codon boundaries
-    gc_band          total G+C count within [lo, hi]
-    target_structure base pairs (dot-bracket or a pair list) whose nucleotides must be complementary
-                     (Watson-Crick, optionally G-U wobble)
+    Motifs           forbidden / required nucleotide motifs, anywhere in the sequence and in any reading frame,
+                     including across codon boundaries. Degenerate positions use the IUPAC nucleotide codes
+                     (Cornish-Bowden, Nucleic Acids Res. 13(9):3021-3030, 1985, doi:10.1093/nar/13.9.3021).
+    GCBand           total G+C count within [lo, hi]
+    TargetStructure  base pairs (dot-bracket or a pair list) whose nucleotides must be complementary:
+                     Watson-Crick, optionally plus the G-U wobble pair (Crick, J. Mol. Biol. 19(2):548-555,
+                     1966, doi:10.1016/s0022-2836(66)80022-0), which is a real RNA pairing and so is on by
+                     default.
 
-Automaton constraints are combined by the product construction and lifted to codons; a target structure is a
-pairwise factor graph over the codons that contain the paired nucleotides. Protein identity is always imposed
-through the route (synonymous-codon masks), never by masking the model's predictions.
+Automaton constraints are combined by the product construction and lifted to codons by inverse homomorphism;
+this is why a motif straddling a codon boundary needs no special case. A target structure becomes a pairwise
+factor graph over the codons that contain the paired nucleotides, with a unary factor when both ends of a pair
+fall in the same codon.
+
+Protein identity is always imposed through the route, as per-position synonymous-codon masks, never by masking
+the model's predictions. Masking predictions step by step is the step-local projection that biases the
+trajectory law (notes, Sec. 1); a mask applied inside the route is a constraint like any other and the twisted
+SMC weights account for it exactly.
 """
 from dataclasses import dataclass, field
 import itertools

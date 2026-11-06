@@ -1,53 +1,66 @@
-\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
-\contentsline {subsection}{\numberline {1.1}Masked diffusion sampling}{2}{subsection.1.1}%
-\contentsline {subsection}{\numberline {1.2}What conditional sampling asks for}{3}{subsection.1.2}%
-\contentsline {subsection}{\numberline {1.3}The approach in these notes}{3}{subsection.1.3}%
-\contentsline {subsection}{\numberline {1.4}What is known and what is new}{4}{subsection.1.4}%
-\contentsline {subsection}{\numberline {1.5}Outline}{4}{subsection.1.5}%
-\contentsline {section}{\numberline {2}Background: twisted sequential Monte Carlo}{4}{section.2}%
-\contentsline {paragraph}{Importance sampling on paths.}{4}{section*.2}%
-\contentsline {paragraph}{Sequential form and twists.}{4}{section*.3}%
-\contentsline {paragraph}{Resampling and the normalising-constant estimate.}{5}{section*.4}%
-\contentsline {section}{\numberline {3}Setup and notation}{5}{section.3}%
-\contentsline {paragraph}{Tokens and classes.}{5}{section*.5}%
-\contentsline {paragraph}{Native kernel.}{5}{section*.6}%
-\contentsline {paragraph}{Reveal schedules.}{5}{section*.7}%
-\contentsline {paragraph}{Target.}{5}{section*.8}%
-\contentsline {paragraph}{Frozen weights and the clamped sum.}{6}{section*.9}%
-\contentsline {section}{\numberline {4}Step-level theory}{6}{section.4}%
-\contentsline {subsection}{\numberline {4.1}The constraint polynomial}{6}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Semirings and ambiguity}{6}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3}When is the step-level problem tractable?}{7}{subsection.4.3}%
-\contentsline {section}{\numberline {5}Routes and their exact samplers}{8}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Automata}{8}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Grammar charts}{8}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}Factor graphs}{9}{subsection.5.3}%
-\contentsline {subsection}{\numberline {5.4}Determinants}{9}{subsection.5.4}%
-\contentsline {subsection}{\numberline {5.5}From classes to tokens}{9}{subsection.5.5}%
-\contentsline {subsection}{\numberline {5.6}Route compiler}{9}{subsection.5.6}%
-\contentsline {section}{\numberline {6}Trajectory-exact decoding with any route}{10}{section.6}%
-\contentsline {subsection}{\numberline {6.1}The step-exact proposal}{10}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}When the correction is unnecessary}{10}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}The algorithm}{11}{subsection.6.3}%
-\contentsline {subsection}{\numberline {6.4}Correctness}{11}{subsection.6.4}%
-\contentsline {subsection}{\numberline {6.5}Choosing the twist separately from the proposal}{13}{subsection.6.5}%
-\contentsline {subsection}{\numberline {6.6}A two-sided identity}{13}{subsection.6.6}%
-\contentsline {section}{\numberline {7}Resampling with an over-confident twist}{13}{section.7}%
-\contentsline {subsection}{\numberline {7.1}Continuation values and hidden mass}{13}{subsection.7.1}%
-\contentsline {subsection}{\numberline {7.2}Defensive resampling}{15}{subsection.7.2}%
-\contentsline {subsection}{\numberline {7.3}Tempered intermediate twists}{15}{subsection.7.3}%
-\contentsline {subsection}{\numberline {7.4}Calibrated twists}{16}{subsection.7.4}%
-\contentsline {section}{\numberline {8}Ambiguity}{17}{section.8}%
-\contentsline {section}{\numberline {9}Beyond exact routes}{18}{section.9}%
-\contentsline {subsection}{\numberline {9.1}A regular superset with Boolean pruning \textsf {\small [ours]}}{18}{subsection.9.1}%
-\contentsline {paragraph}{Redrawing \textsf {\small [proposed]}.}{18}{section*.10}%
-\contentsline {subsection}{\numberline {9.2}Conjunctions}{18}{subsection.9.2}%
-\contentsline {subsection}{\numberline {9.3}The intractable boundary}{19}{subsection.9.3}%
-\contentsline {section}{\numberline {10}Open directions}{19}{section.10}%
-\contentsline {section}{\numberline {11}Experiments}{19}{section.11}%
-\contentsline {subsection}{\numberline {11.1}Six constraint families on a real model}{20}{subsection.11.1}%
-\contentsline {subsection}{\numberline {11.2}Long horizons}{20}{subsection.11.2}%
-\contentsline {subsection}{\numberline {11.3}The calibrated twist}{20}{subsection.11.3}%
-\contentsline {subsection}{\numberline {11.4}Ambiguity}{21}{subsection.11.4}%
-\contentsline {subsection}{\numberline {11.5}Is there anything to correct on an mRNA model?}{21}{subsection.11.5}%
-\contentsline {section}{\numberline {12}Summary of results}{22}{section.12}%
+\contentsline {section}{\numberline {1}What this is, and why}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}The problem}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}The claim}{3}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}What these notes add}{3}{subsection.1.3}%
+\contentsline {section}{\numberline {2}Setup}{4}{section.2}%
+\contentsline {paragraph}{Tokens and classes.}{4}{section*.2}%
+\contentsline {paragraph}{Native kernel.}{4}{section*.3}%
+\contentsline {paragraph}{Reveal schedules.}{4}{section*.4}%
+\contentsline {paragraph}{Target.}{4}{section*.5}%
+\contentsline {paragraph}{Frozen weights and the clamped sum.}{4}{section*.6}%
+\contentsline {paragraph}{Twisted SMC in one paragraph.}{5}{section*.7}%
+\contentsline {section}{\numberline {3}Routes}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}The four families}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Ambiguity is a feature of the route, not the constraint}{5}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}The tractability boundary}{6}{subsection.3.3}%
+\contentsline {section}{\numberline {4}The algorithm, and why it is exact}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1}The twist is free}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}A diagnostic identity}{8}{subsection.4.2}%
+\contentsline {section}{\numberline {5}When the correction is unnecessary}{9}{section.5}%
+\contentsline {section}{\numberline {6}What goes wrong in practice}{10}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Hidden mass}{10}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Three remedies}{11}{subsection.6.2}%
+\contentsline {paragraph}{Defensive resampling.}{11}{section*.8}%
+\contentsline {paragraph}{Tempered twists.}{11}{section*.9}%
+\contentsline {paragraph}{Calibrated twists.}{12}{section*.10}%
+\contentsline {section}{\numberline {7}Ambiguity}{12}{section.7}%
+\contentsline {section}{\numberline {8}Experiments}{13}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Six constraint families on a real model}{13}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Long horizons}{14}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}The calibrated twist, and the look-ahead twists we dropped}{14}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}Ambiguity}{15}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}Is there anything to correct on an mRNA model?}{15}{subsection.8.5}%
+\contentsline {section}{\numberline {9}Application: mRNA sequence design}{15}{section.9}%
+\contentsline {subsection}{\numberline {9.1}The design problem}{15}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}How the system is layered}{16}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}What to measure, and what not to}{16}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Why a diverse library, specifically}{16}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}State of the implementation}{17}{subsection.9.5}%
+\contentsline {section}{\numberline {10}Open directions}{17}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Can the twist be made less over-confident without adding noise?}{17}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Why does calibration help with resampling off?}{17}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Can hidden mass be bounded online?}{17}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}Does bounded per-step ambiguity control trajectory ESS?}{17}{subsection.10.4}%
+\contentsline {subsection}{\numberline {10.5}How far can superset routes be pushed?}{18}{subsection.10.5}%
+\contentsline {subsection}{\numberline {10.6}Where does exact sampling overtake mode-seeking in best-of-$K$?}{18}{subsection.10.6}%
+\contentsline {subsection}{\numberline {10.7}Beyond a fixed protein}{18}{subsection.10.7}%
+\contentsline {section}{\numberline {11}Related work, by component}{18}{section.11}%
+\contentsline {paragraph}{The trajectory correction.}{18}{section*.11}%
+\contentsline {paragraph}{Step-local constrained decoding.}{18}{section*.12}%
+\contentsline {paragraph}{What is tractable in one step.}{18}{section*.13}%
+\contentsline {paragraph}{The individual routes.}{19}{section*.14}%
+\contentsline {paragraph}{The remedies.}{19}{section*.15}%
+\contentsline {paragraph}{The model.}{19}{section*.16}%
+\contentsline {section}{\numberline {12}Summary}{19}{section.12}%
+\contentsline {section}{\numberline {A}Proofs}{20}{appendix.A}%
+\contentsline {section}{\numberline {B}Route implementations}{21}{appendix.B}%
+\contentsline {paragraph}{Automata.}{21}{section*.17}%
+\contentsline {paragraph}{Grammar charts.}{21}{section*.18}%
+\contentsline {paragraph}{Factor graphs.}{22}{section*.19}%
+\contentsline {paragraph}{Determinants.}{22}{section*.20}%
+\contentsline {paragraph}{From classes to tokens.}{22}{section*.21}%
+\contentsline {paragraph}{Conjunctions.}{22}{section*.22}%
+\contentsline {section}{\numberline {C}Experimental protocol}{22}{appendix.C}%
+\contentsline {paragraph}{Estimators and diagnostics.}{22}{section*.23}%
+\contentsline {paragraph}{Correctness checks.}{23}{section*.24}%
+\contentsline {paragraph}{Reproduction.}{23}{section*.25}%

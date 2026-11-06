@@ -66,7 +66,8 @@ exponential only in the induced width; nested pairs plus chain factors at L = 20
 | `twist_power=β` | tempered intermediate twists η^β (1 = TWISTER) |
 | `lookahead=j`, `lookahead_draws=m` | look-ahead twist: η times the mean potential product of m speculative step-exact rollouts of j steps; an unbiased estimate of the j-step-ahead frozen twist, and of the Doob function when j reaches T (experimental) |
 | `mix_native=a` | propose from (1 − a)·step-exact + a·native kernel; bounds each potential by ψ′/(aψ) (experimental) |
-| `twist_temp=τ` | calibrated twist: the route sum under the class law ∝ p^τ, with its locally optimal proposal (1 = TWISTER); τ = 0.5 removed the resampling penalty on the synthetic testbed |
+| `twist_temp=τ` | calibrated twist: the route sum under the class law ∝ p^τ, with its locally optimal proposal (1 = TWISTER); τ ≤ 0.35 removes the resampling penalty on the synthetic testbed (efficiency 0.14 → 1.04) |
+| `schedule` | `"fixed"` (N/T positions per step, the default and TWISTER's) or `"independent"` (each masked position reveals with probability 1/(T−t), the MDLM reverse step). These target **different** processes: h₀ differs by 4–10 standard errors between them |
 | `guard` | `"warn"` (default), `"raise"`, `"off"`: support invariants checked every step (a live particle must keep a finite clamped sum and twist); counts returned under `out["guard"]` |
 
 All options keep E[Ẑ] = h₀ (tests/test_smc.py, tests/test_resampling.py). The maths is in `docs/twistroute_notes.pdf`.
@@ -80,7 +81,9 @@ twistroute/
   compile/alphabets.py   lift_dfa (inverse homomorphism), minimize_dfa, symbol_classes, Masked (per-position sets)
   torch_routes/   batched GPU routes: TorchChain, TorchChart, TorchFactorGraph, TorchCopy, det_logZ;
                   build_route(spec), torch_route(cpu_route)
-  decode/         twisted_smc (smc.py), native sampling + two-sided weights (native.py), exact toy laws (exact.py)
+  decode/         smc.py (twisted_smc driver), schedule.py (reveal schedules), resampling.py (resamplers and
+                  the defensive mixture), twist.py (proposal, twist variants, potential), native.py (native
+                  sampling + two-sided weights), exact.py (exact toy laws)
   models/         OWT-130M wrapper, synthetic denoiser, token-class projections (semantic, TWISTER-ranked)
   diagnostics.py  PSIS tail shape, bootstrap CIs, subsample curves, pairwise TV with a matched floor,
                   hidden-mass decomposition of weight traces
@@ -95,14 +98,29 @@ docs/             working notes (LaTeX + PDF): theory, algorithms, proofs
 ### Domain layer
 
 `twistroute_bio/` builds ordinary routes for nucleotide and mRNA constraints (codon alphabet, genetic code,
-codon lifting of nucleotide automata, synonymous-codon masks). It depends on `twistroute`, never the reverse;
-model adapters will live in `twistroute_bio/models/`. Design: `docs/mrna_specs.md`.
+codon lifting of nucleotide automata, synonymous-codon masks, CDS constraint builders) plus ViennaRNA scorers
+and rule-based construction baselines. It depends on `twistroute`, never the reverse. Design:
+`docs/mrna_specs.md`.
+
+`twistroute_bio/models/` holds the model adapter: a self-contained RiNALMo encoder (`_rinalmo/net.py`, no
+flash-attn dependency, block verified bit-identical to upstream) and the mRNAutilus denoiser
+(`mrnautilus.py`): `MRNAutilus` for a whole transcript, `CDSWindow` for a denoiser view over just the coding
+positions with the UTRs clamped, and `codon_classes()` mapping the model's 86-token vocabulary onto the 64
+codons. Validation: `docs/mrna_model_validation.md`.
+
+```bash
+python scripts/smoke_mrnautilus.py <checkpoint.ckpt>   # samples a short constrained CDS on CPU
+```
+
+Protein identity enters **through the route**, as per-position allowed-codon masks, never by renormalising the
+model's predictions: masking predictions step by step is the step-local projection that biases the trajectory
+law, which is exactly what this method corrects.
 
 ## Install and test
 
 ```bash
 pip install -e ".[test]"          # numpy, scipy, torch, pytest
-pytest                            # 128 tests, ~6 min on CPU, no GPU or model weights needed
+pytest                            # ~230 tests, ~14 min on CPU, no GPU or model weights needed
 ```
 
 For OWT-130M: `pip install -e ".[models]"` plus `flash-attn` (its remote code imports it). On torch 2.5.1 + cu124
@@ -157,7 +175,10 @@ samples = select_particles(out, __import__("numpy").random.default_rng(0))   # (
 | resampling arms, 100k runs each | `experiments/resampling_arms.py` (+ `--synthetic`) | done on the Fig. 1(a) config (seed 1, T = 8, K = 4). Plain resampling 0.930 (CI 0.910–0.949); off 0.998; K = 1 0.987; CPU / systematic resamplers 0.931 / 0.921; defensive ε = 0.25 0.998 (0.977–1.019); tempering alone 0.932 (β = 0.5), 0.953 (β = 0.25) |
 | hidden-mass decomposition | `resampling_arms.py --arms K4_off_trace`, `diagnostics.hidden_mass` | done: 13% of particles have normalised weight < 10⁻⁶ at the first trigger step yet carry 4.7% of h₀ |
 | E3 ambiguity, CPU | `experiments/e3_ambiguity.py` | done: exact TV ≤ 4×10⁻¹⁶ at L = 4, 6; K = 16 ESS fraction 0.93–0.97 (unambiguous Dyck-1) vs 0.92 → 0.34 (ambiguous) and 0.89 → 0.30 (RNA) over L = 8–32 |
-| E1 trajectory bias across families | `experiments/e1_families.py`, `experiments/analysis/e1_analysis.py` | running: six families at N = 32, T = 16; step-exact, K = 4/16 defensive, K = 16 plain and no-resampling |
+| E1 trajectory bias across families | `experiments/e1_families.py`, `experiments/analysis/e1_analysis.py` | done: six families at N = 32, T = 16. TV excess at K = 16 — copy 0.136 (0.040 with defensive + τ = 0.5), regular 0.026, counting ≈0, Dyck-1 0.086, RNA 0.005; step-exact 0.03–0.165 |
+| stress test, long horizon | `experiments/e1_families.py` at N = 64, T = 64, K = 8 | done: copy TV excess 0.038 (defensive + τ = 0.5) but Ẑ/h₀ 0.902; counting exact; RNA pairing Ẑ/h₀ 0.576 (k̂ = 1.00) under defensive resampling — the clearest remaining failure |
+| twist design, rounds 2–3 | `experiments/twist_lab.py` | done: look-ahead twists dropped; calibrated twist swept over τ, all 15 arms Ẑ/h₀ within 0.979–1.008 |
+| mRNAutilus encoder validation | `docs/mrna_model_validation.md` | done: block bit-identical to upstream; re-conditioning strength TV 0.337 end to end, so there is bias to correct |
 | twist design, round 1 | `experiments/twist_lab.py` (CPU, synthetic, scale 8) | done: Monte Carlo look-ahead twists increase hidden mass (full rollout: 6.9% of h₀ below 10⁻⁶ vs 0.04% frozen) and lose to the frozen twist; resampling-off is the most efficient arm, defensive resampling recovers about half of its efficiency |
 | CPU controls | `experiments/controls/synthetic_control.py` | done: resampling, routes and float32 sampling all unbiased on synthetic denoisers |
 
@@ -195,6 +216,11 @@ Three random partitions are averaged (two of the three drew the same class *a* =
   Technometrics 51 (2009). Tail diagnostic.
 - Meng & Wong. Statistica Sinica 6 (1996). Bridge sampling.
 - Gumbel (1954); Maddison, Tarlow & Minka, NeurIPS (2014). Gumbel-max sampling.
+
+**Ambiguous routes are run without resampling.** The chart's twist is derivation-weighted, so resampling
+concentrates particles on prefixes with many parse trees rather than high probability. A string-counting twist
+would fix it and is #P-hard in general, so no exact fix exists. Fixed target structures compile to factor
+graphs, which count each string once, and are unaffected.
 
 No license file is included yet; choose one before making the repository public.
 

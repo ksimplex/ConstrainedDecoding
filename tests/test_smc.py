@@ -234,3 +234,55 @@ def test_schedule_default_is_unchanged():
     a = twisted_smc(den, cl, route, N, T, 400, 4, torch.Generator().manual_seed(3), ess_min=0.9)
     b = twisted_smc(den, cl, route, N, T, 400, 4, torch.Generator().manual_seed(3), ess_min=0.9, schedule="fixed")
     assert np.array_equal(a["logZ"], b["logZ"])
+
+
+def test_mean_field_denoiser_makes_the_correction_unnecessary():
+    """Proposition 'mean-field collapse' in the notes: if the denoiser's predictions do not depend on the
+    revealed values, the frozen twist equals the Doob function, every potential is 1, and a single particle
+    is already an exact draw. This is the boundary case that delimits when the method is worth running."""
+    import math
+    import torch
+    from twistroute.decode.smc import twisted_smc
+    from twistroute.torch_routes.build import build_route
+    from twistroute.models.classes import TokenClasses
+
+    class MeanFieldDenoiser:
+        """Predictions depend on how many positions are masked, never on what was revealed."""
+        mask_id, V = 4, 5
+
+        def logits(self, x):
+            lp = torch.zeros(x.shape + (self.V,))
+            lp[..., self.mask_id] = float("-inf")
+            lp[..., 0] += 0.8                               # a fixed, context-free preference
+            return torch.log_softmax(lp, -1)
+
+    den = MeanFieldDenoiser()
+    cl = TokenClasses(torch.tensor([0, 1, 2, 3, 0]), 4, excluded=(den.mask_id,))
+    route = build_route(dict(kind="forbidden", A=4, N=6, patterns=[[0, 0]]), "cpu")
+    out = twisted_smc(den, cl, route, 6, 3, 200, 1, torch.Generator().manual_seed(0), ess_min=0.0)
+    # every run must return exactly eta_0 = h_0, with no spread at all
+    z = out["logZ"]
+    assert z.std() < 1e-6, z.std()
+    assert abs(float(z.mean()) - float(out["eta0"])) < 1e-6      # eta0 is already a log mass
+
+    # and eta_0 must itself be the true constraint probability under the (context-free) product law
+    lp = den.logits(torch.full((1, 6), den.mask_id))
+    w = cl.class_logw(lp)[0].exp()[0]                   # same at every position, by construction
+    import itertools
+    want = sum(float(w[y[0]] * w[y[1]] * w[y[2]] * w[y[3]] * w[y[4]] * w[y[5]])
+               for y in itertools.product(range(4), repeat=6)
+               if not any(y[i] == 0 and y[i + 1] == 0 for i in range(5)))
+    assert abs(float(out["eta0"]) - math.log(want)) < 1e-6, (float(out["eta0"]), math.log(want))
+
+
+def test_log_mean_exp_matches_the_naive_computation():
+    """Shared by the Zhat accumulation and the look-ahead gain average; must be stable far below the float
+    floor, where the naive exp-mean-log underflows to zero."""
+    import math
+    import torch
+    from twistroute.decode.resampling import log_mean_exp
+    x = torch.tensor([[-1.0, 0.0, 2.0], [-900.0, -901.0, -902.0]], dtype=torch.float64)
+    got = log_mean_exp(x, -1)
+    want0 = math.log(sum(math.exp(v) for v in [-1.0, 0.0, 2.0]) / 3)
+    assert abs(float(got[0]) - want0) < 1e-12
+    assert abs(float(got[1]) - (-900.0 + math.log((1 + math.exp(-1) + math.exp(-2)) / 3))) < 1e-9

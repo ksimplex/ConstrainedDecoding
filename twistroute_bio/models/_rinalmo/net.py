@@ -12,9 +12,21 @@ directly. Two attention implementations:
            GPU and flash-attn.
 
 The rotary convention matches flash-attn's RotaryEmbedding(interleaved=False): with cos/sin built from
-cat((freqs, freqs)), the half-rotation below is the same map. The two implementations should agree to
-floating-point tolerance; `scripts/check_flash_equivalence.py` tests that on a GPU, and until it has been run
-the "torch" path should be treated as unverified against the real kernel.
+cat((freqs, freqs)), the half-rotation below is the same map (Su et al., "RoFormer: enhanced transformer with
+rotary position embedding", Neurocomputing 568:127063, 2024, doi:10.1016/j.neucom.2023.127063).
+
+Verification status (docs/mrna_model_validation.md):
+  - The "torch" Block is bit-identical (max abs diff 0.0) to upstream's own non-flash TransformerBlock on
+    identical inputs with mapped weights.
+  - "torch" vs "flash" on real weights, GPU, bf16 autocast: max abs diff 0.21 on logits of scale 4.7, which is
+    bf16 rounding rather than a convention mismatch.
+
+Two bugs found during that verification, both of which silently degrade predictions rather than erroring:
+  - SwiGLU gate order. Upstream applies Swish to `linear` and multiplies by `linear_gate`, i.e. the opposite
+    of what the parameter names suggest.
+  - TokenDropout. Parameter-free and easy to omit, but active in the checkpoint's config: it zeroes masked
+    embeddings and rescales the rest by (1 - 0.12) / (1 - observed mask rate). Omitting it changes the
+    predicted distribution substantially at the mask rates decoding actually uses.
 """
 import math
 import torch

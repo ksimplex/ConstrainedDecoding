@@ -25,8 +25,14 @@ import torch
 
 RESAMPLERS = ("multinomial", "cpu", "systematic")
 
-def _lmexp(x, dim):
-    """log mean exp along dim."""
+__all__ = ["RESAMPLERS", "log_mean_exp", "resample_indices", "defensive_mixture", "offspring_logweights"]
+
+def log_mean_exp(x, dim):
+    """Log of the mean of exp(x) along `dim`, computed stably.
+
+    Used for the two places a mean of weights is taken in log space: the Zhat accumulation here, and the
+    arithmetic mean of look-ahead gains in twist.py.
+    """
     return torch.logsumexp(x, dim) - math.log(x.shape[dim])
 
 

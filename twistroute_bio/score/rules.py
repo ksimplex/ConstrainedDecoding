@@ -2,10 +2,18 @@
 Model-free construction baselines. For each constraint family, build a valid coding sequence without the model:
 frequency-based codon choice (the standard codon-optimisation baseline, which LSCO also compares against) plus
 local repair to satisfy hard constraints. A family where this baseline scores as well as the sampler is a
-family where the model's distribution does no work (the FactorDLM triviality warning); it is reported, not
-hidden. The baseline is a reference point, not a competitor for distributional fidelity or diversity.
+family where the model's distribution does no work; it is reported, not hidden. The baseline is a reference
+point rather than a competitor, since it cannot offer distributional fidelity or diversity at all.
 
-HUMAN_CODON_FREQ: relative synonymous-codon usage in the human genome (Kazusa, per amino acid, sums to 1).
+Scope note. A frequency table is a product of independent per-position distributions, so it reproduces a
+model's per-position mode while being structurally unable to reproduce a joint that couples positions. On
+mRNAutilus these two facts are both true at once (docs/mrna_model_validation.md): top-1 synonymous-codon
+agreement is within noise of this baseline, while a synonymous shuffle preserving the protein moves the
+model's predicted distribution by TV 0.261. Comparisons against this baseline should therefore use a
+positional or distributional metric, not per-position accuracy.
+
+HUMAN_CODON_FREQ: relative synonymous-codon usage in the human genome (Kazusa codon usage database), given
+per amino acid and renormalised so each synonymous set sums to 1.
 """
 import random
 from ..alphabet import CODONS, GENETIC_CODE, nuc_index
