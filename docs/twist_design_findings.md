@@ -117,8 +117,15 @@ All 15 arms have Ẑ/h₀ within 0.979–1.008 (|z| ≤ 1.8); the 12 calibrated 
    configuration in which resampling pays on this testbed.
 2. **The mechanism is the hidden mass.** It falls monotonically with τ, from 7.8% to 0.15% of h₀ below weight 10⁻²,
    and nothing remains below 10⁻⁴ at τ ≤ 0.5. Fewer resampling events fire because the weights stay more even.
-3. **Resampling-off is unaffected**, as expected: without selection the twist only changes the proposal, and here that
-   is neutral.
+3. **Resampling-off: the effect on Ẑ precision is family-dependent, not neutral.** On the prefix constraint
+   (Fig. 1a) calibration leaves the no-resampling Ẑ unchanged (rel. s.e. ratio τ=0.5 vs τ=1: 1.02). But a
+   cross-family check at K=16, resampling off, gives counting 0.30 (3.3× tighter), forbidden 0.66, prefix 1.02,
+   copy 1.17 (worse). So calibration helps the plain importance-sampling estimator on some constraints, is
+   neutral on others, and hurts on copy. It is NOT mediated by smoother per-step weight increments: a K=1 trace
+   decomposition on the prefix constraint showed the summed per-step log-weight variance dropping (11.1 → 6.0
+   from τ=1 to τ=0.5) while the total path-weight spread barely moved (sd 3.28 → 3.30) and the rel. s.e. of Ẑ
+   was flat (0.0128 → 0.0132). The increments smooth but their correlations offset, leaving the total unchanged
+   on that constraint. The mechanism on the families where it does help is not yet isolated.
 4. **The gain from resampling itself is small at T = 8**, about 5–15%. The case for calibration is that it makes
    resampling safe, which is what long horizons will need, not that it helps much at short horizons.
 5. **Caveats.** One testbed (synthetic denoiser, a regular constraint, short horizon). τ was chosen by sweep, and
