@@ -241,6 +241,26 @@ Consequences for the mRNA experiments:
    unbiased on this model, due diligence means checking the constrained families properly and then looking for
    another concrete application — not retreating to toy models (user, 2026-11-06).
 
+## 8b. Decisions and approvals, 2026-11-06 (second session)
+
+| item | status |
+|---|---|
+| Positional-profile comparison on real human CDSs (%MinMax-DTW, CAI, GC3, MFE) vs frequency table, max-CAI greedy and the natural sequence | **approved** |
+| 5'UTR design as a second application | **approved** (but see the provenance flag in Sec. 7: the claim that mRNAutilus's UTR evaluation is only distributional is relayed, not independently checked, and it is what motivates this) |
+| Go/no-go pre-tests before E6b | **deferred**: the collaborative design approach is endorsed, the tests themselves are to be discussed first |
+| Scope of the mRNA implementation | **one constraint family end to end, validated, before expanding to the others** (user) |
+
+**Notes editing pass (pending, user instruction 2026-11-06).** Further detail to follow before it runs. Settled
+so far: leave the biology and mRNA sections alone for now; when they are edited, findings need not be hedged,
+and the withdrawn-calibration-claim remark comes out. The target is concision. These notes are long-term
+reference, and things better said in a meeting do not belong in them.
+
+**Voice reference.** The user supplied two samples of their own writing (coordination-architectures notes; an
+expository paper on the sum-product algorithm). Both use em dashes freely, bold run-in paragraph headers,
+first-person plural with contractions, explicit section-by-section signposting, and state plainly what will and
+will not be proved. The earlier prose pass stripped every em dash from the notes under a generic rule; that was
+wrong for this author and should be reverted during the editing pass.
+
 ## 9. Next steps
 
 1. **Status doc current** (this file) — done 2026-11-06.
