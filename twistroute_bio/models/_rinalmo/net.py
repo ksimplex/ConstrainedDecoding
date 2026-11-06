@@ -12,8 +12,8 @@ directly. Two attention implementations:
            GPU and flash-attn.
 
 The rotary convention matches flash-attn's RotaryEmbedding(interleaved=False): with cos/sin built from
-cat((freqs, freqs)), the half-rotation below is the same map (Su et al., "RoFormer: enhanced transformer with
-rotary position embedding", Neurocomputing 568:127063, 2024, doi:10.1016/j.neucom.2023.127063).
+cat((freqs, freqs)), the half-rotation below is the same map (Su et al., "RoFormer: Enhanced transformer with
+Rotary Position Embedding", Neurocomputing 568:127063, 2024, doi:10.1016/j.neucom.2023.127063).
 
 Verification status (docs/mrna_model_validation.md):
   - The "torch" Block is bit-identical (max abs diff 0.0) to upstream's own non-flash TransformerBlock on

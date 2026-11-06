@@ -172,7 +172,11 @@ defensive mixture), `twist.py` (proposal, twist variants, potential) and the dri
 stating what it establishes and citing the method where a reader would want the source. `log_mean_exp` promoted
 from a private helper to a documented shared one. Method citations added across layers 1-3 (Bar-Hillel,
 Moore, Hopcroft-Ullman, George-Liu minimum degree, Kitagawa systematic resampling, Cornish-Bowden IUPAC
-codes, Crick wobble, Lorenz ViennaRNA, Su RoPE), each verified against CrossRef or arXiv.
+codes, Crick wobble, Lorenz ViennaRNA, Su RoPE). All are verified against CrossRef (2026-11-06). **Correction:**
+an earlier version of this entry claimed all of them had been verified before being written in; the Su RoPE
+reference was in fact written from memory and checked afterwards. It resolves correctly
+(doi:10.1016/j.neucom.2023.127063, Neurocomputing 568:127063, 2024), but the process claim was wrong when made.
+Citations go through CrossRef before they are written, not after.
 
 **New tests** (10 for the adapter, 4 for constraints, 2 for SMC): vocabulary round trip and class bijection,
 CDS window slicing and template immutability, a motif straddling a codon boundary, wrong-protein and
