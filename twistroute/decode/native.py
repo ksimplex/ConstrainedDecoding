@@ -12,26 +12,29 @@ native_path_weights  along native trajectories, the importance weight that K=1 t
                      visits; a mismatch between the native kernel and the proposal breaks E_p[1_C / w] = 1.
 """
 import torch
-from .smc import reveal_sets, clamp_revealed
+from .smc import reveal_indices, clamp_revealed
 
 
 @torch.no_grad()
-def native_sample(den, classes, N, T, B, gen=None, return_tokens=False):
-    """B native samples of length N in T steps. Returns class sequences (B, N) (and tokens if requested)."""
+def native_sample(den, classes, N, T, B, gen=None, return_tokens=False, schedule="fixed"):
+    """B native samples of length N in T steps. Returns class sequences (B, N) (and tokens if requested).
+    `schedule` must match the one used for decoding (see decode.smc.reveal_indices)."""
     dev = classes.onehot.device
     x = torch.full((B, N), den.mask_id, dtype=torch.long, device=dev)
     for t in range(T):
-        r = reveal_sets(x == den.mask_id, N // T, gen)
+        r, valid = reveal_indices(x == den.mask_id, t, T, schedule, gen)
         lp = den.logits(x)
         rows = torch.gather(lp, 1, r[..., None].expand(-1, -1, lp.shape[-1]))
         tok = torch.multinomial(torch.exp(rows).reshape(-1, rows.shape[-1]), 1, generator=gen).reshape(B, -1)
+        if valid is not None:
+            tok = torch.where(valid, tok, torch.gather(x, 1, r))
         x.scatter_(1, r, tok)
     cls = classes.token_class[x]
     return (cls, x) if return_tokens else cls
 
 
 @torch.no_grad()
-def native_path_weights(den, classes, route, N, T, B, gen=None):
+def native_path_weights(den, classes, route, N, T, B, gen=None, schedule="fixed"):
     """B native trajectories; returns (log w along each path, validity of its final class sequence).
     log w = -inf for paths that leave C."""
     dev = classes.onehot.device
@@ -41,11 +44,12 @@ def native_path_weights(den, classes, route, N, T, B, gen=None):
     lp = den.logits(x)
     lw = classes.class_logw(lp)
     logw = route.logZ(clamp_revealed(lw, x, ycls, den.mask_id))
-    nt = N // T
     for t in range(T):
-        r = reveal_sets(x == den.mask_id, nt, gen)
+        r, valid = reveal_indices(x == den.mask_id, t, T, schedule, gen)
         rows = torch.gather(lp, 1, r[..., None].expand(-1, -1, lp.shape[-1]))
-        tok = torch.multinomial(torch.exp(rows).reshape(-1, rows.shape[-1]), 1, generator=gen).reshape(B, nt)
+        tok = torch.multinomial(torch.exp(rows).reshape(-1, rows.shape[-1]), 1, generator=gen).reshape(B, r.shape[1])
+        if valid is not None:
+            tok = torch.where(valid, tok, torch.gather(x, 1, r))
         x2 = x.clone(); x2.scatter_(1, r, tok)
         y2 = ycls.clone(); y2.scatter_(1, r, tokA[tok])
         z_old = route.logZ(clamp_revealed(lw, x2, y2, den.mask_id))

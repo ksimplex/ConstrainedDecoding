@@ -174,3 +174,63 @@ def test_class_weights_exact_below_float_floor():
     assert torch.isneginf(got[2])                                              # class 2 has only the excluded token
     plain = torch.log((torch.exp(lp) @ cls.onehot).clamp_min(1e-38))[0, 0]
     assert got[0] == plain[0]
+
+
+def test_independent_schedule_reveals_everything_and_matches_mdlm_rates():
+    """Each masked position reveals with probability 1/(T - t); at the last step every row finishes."""
+    from twistroute.decode import reveal_indices
+    T, N, B = 8, 16, 4000
+    g = torch.Generator().manual_seed(4)
+    x = torch.full((B, N), 1, dtype=torch.long)                    # 1 = mask id here
+    masked = torch.ones(B, N, dtype=torch.bool)
+    counts = []
+    for t_ in range(T):
+        r, valid = reveal_indices(masked, t_, T, "independent", g)
+        hit = torch.zeros_like(masked).scatter_(1, r, valid)
+        counts.append(float((hit & masked).sum()) / float(masked.sum().clamp_min(1)))
+        masked = masked & ~hit
+    assert not masked.any(), "some positions never revealed"
+    for t_, frac in enumerate(counts):                             # empirical reveal rate vs 1/(T - t)
+        assert abs(frac - 1.0 / (T - t_)) < 0.03, (t_, frac)
+
+
+@pytest.mark.parametrize("name", ["forbidden", "exactly_k", "dyck1_amb", "pairs_fg"])
+@pytest.mark.parametrize("opts", [dict(ess_min=0.0), dict(ess_min=0.9, defensive=0.25),
+                                  dict(ess_min=0.0, twist_temp=0.5)])
+def test_zhat_unbiased_independent_schedule(name, opts):
+    """With the MDLM independent-unmasking schedule in both the proposal and the native kernel, E[Z_hat] = h0."""
+    den, cl, route = setup(name)
+    hits, g = 0, torch.Generator().manual_seed(21)
+    n = 200_000
+    for _ in range(n // 20000):
+        hits += int(route.accepts(native_sample(den, cl, N, T, 20000, g, schedule="independent")).sum())
+    h0, h0se = hits / n, math.sqrt(hits) / n
+    out = twisted_smc(den, cl, route, N, T, 6000, 4, torch.Generator().manual_seed(22), schedule="independent",
+                      res_gen=torch.Generator().manual_seed(23), **opts)
+    z = np.exp(out["logZ"])
+    zscore = (z.mean() - h0) / math.sqrt(z.var() / len(z) + h0se ** 2)
+    assert abs(zscore) < 4, f"{name} {opts}: mean {z.mean():.4f} vs h0 {h0:.4f} (z={zscore:.2f})"
+    assert not out["any_finite_invalid"] and all(v == 0 for v in out["guard"].values())
+
+
+def test_independent_schedule_targets_a_different_process():
+    """The two schedules give measurably different h0 on the same model and constraint, so they are different
+    native processes: "exact" has to name which one. (Observed separation: copy 10.5 se, forbidden 9.4 se,
+    exactly_k 3.9 se at n = 300k.)"""
+    den, cl, route = setup("copy")
+    g = torch.Generator().manual_seed(31)
+    n = 300_000
+    def h0(sched):
+        hits = 0
+        for _ in range(n // 20000):
+            hits += int(route.accepts(native_sample(den, cl, N, T, 20000, g, schedule=sched)).sum())
+        return hits / n
+    a, b = h0("fixed"), h0("independent")
+    assert abs(a - b) > 5 * math.sqrt(a * (1 - a) / n), (a, b)
+
+
+def test_schedule_default_is_unchanged():
+    den, cl, route = setup("dyck1_amb")
+    a = twisted_smc(den, cl, route, N, T, 400, 4, torch.Generator().manual_seed(3), ess_min=0.9)
+    b = twisted_smc(den, cl, route, N, T, 400, 4, torch.Generator().manual_seed(3), ess_min=0.9, schedule="fixed")
+    assert np.array_equal(a["logZ"], b["logZ"])

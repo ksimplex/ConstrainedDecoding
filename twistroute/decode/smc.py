@@ -50,6 +50,38 @@ def reveal_sets(masked, n_t, gen=None):
     return torch.topk(-u, n_t, dim=-1).indices
 
 
+SCHEDULES = ("fixed", "independent")
+
+
+def reveal_indices(masked, t, T, schedule, gen=None):
+    """Positions revealed at step t, as (indices (B, k), valid (B, k) or None).
+
+    "fixed"        exactly N / T positions per row, uniform among the masked ones (TWISTER / our E1-E3 runs).
+                   Returns valid = None: every column is a real reveal.
+    "independent"  each still-masked position reveals on its own with probability 1 / (T - t), the MDLM
+                   reverse step for the log-linear schedule (the step from time (T - t)/T to (T - t - 1)/T
+                   unmasks a masked position with probability dt / t). The count per row is random, and at
+                   t = T - 1 the probability is 1, so every row finishes fully revealed. Columns are padded to
+                   the largest count in the batch; `valid` marks the real ones.
+
+    The scheduler cancels in the potential (notes, Lemma "step-exact proposal"), so any scheduler gives an
+    exact method provided the proposal and the native kernel use the same one. The choice fixes WHICH native
+    process the result is exact for.
+    """
+    if schedule == "fixed":
+        return reveal_sets(masked, masked.shape[-1] // T, gen), None
+    if schedule != "independent":
+        raise ValueError(f"schedule must be one of {SCHEDULES}")
+    p = 1.0 / (T - t)
+    hit = masked & (torch.rand(masked.shape, device=masked.device, generator=gen) < p)
+    cnt = hit.sum(-1)
+    k = int(cnt.max().clamp_min(1))
+    order = torch.argsort(hit.to(torch.int8), dim=-1, descending=True, stable=True)
+    r = order[:, :k]
+    valid = torch.arange(k, device=masked.device)[None] < cnt[:, None]
+    return r, valid
+
+
 def clamp_revealed(lw, x, ycls, mask_id):
     """Replace class log-weights at revealed positions of x by the one-hot of their class."""
     return torch.where((x != mask_id)[..., None], onehot_log(ycls, lw.shape[-1]), lw)
@@ -118,7 +150,7 @@ class _Particles:
             self.psi = self.psi[flat]
 
 
-def _propose(den, classes, route, s, nt, gen, mix_native=0.0, tau=1.0):
+def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.0):
     """One proposal step from state s: the step-exact proposal, or with probability mix_native per particle the
     native kernel (same reveal set, tokens from the unrestricted predictions). Returns (x2, y2, z_old, log_ratio)
     with z_old = Z(x2; x) and log_ratio = log(M(x2|x) / kappa(x2|x)), which is z_old - Z(x; x) for the
@@ -129,15 +161,17 @@ def _propose(den, classes, route, s, nt, gen, mix_native=0.0, tau=1.0):
     the reveal set r and q elsewhere, so log(M / kappa) = Z_q(x'; x) - Z_mix(x; x) and z_old = Z_q(x'; x)."""
     P = s.x.shape[0]
     if tau != 1.0:
-        r = reveal_sets(s.x == den.mask_id, nt, gen)
+        r, rvalid = reveal_indices(s.x == den.mask_id, t, T, schedule, gen)
         lwq = tempered_class_logw(s.lw, tau)
-        inr = torch.zeros(s.x.shape, dtype=torch.bool, device=s.x.device).scatter_(1, r, True)
+        inr = torch.zeros(s.x.shape, dtype=torch.bool, device=s.x.device)
+        inr.scatter_(1, r, rvalid if rvalid is not None else torch.ones_like(r, dtype=torch.bool))
         lwc = clamp_revealed(torch.where(inr[..., None], s.lw, lwq), s.x, s.ycls, den.mask_id)
         y = route.sample(lwc, gen)
     else:
         lwc = clamp_revealed(s.lw, s.x, s.ycls, den.mask_id)
         y = route.sample(lwc, gen)                                          # y ~ q(. | C; den(x))
-        r = reveal_sets(s.x == den.mask_id, nt, gen)                        # native scheduler
+        r, rvalid = reveal_indices(s.x == den.mask_id, t, T, schedule, gen)  # native scheduler
+    nt = r.shape[1]
     cr = torch.gather(y, 1, r)                                              # classes revealed this step
     rows_all = torch.gather(s.lp, 1, r[..., None].expand(-1, -1, s.lp.shape[-1]))
     rows = torch.where(classes.onehot.T[cr] > 0, rows_all, torch.full_like(rows_all, NEG_INF))
@@ -149,6 +183,9 @@ def _propose(den, classes, route, s, nt, gen, mix_native=0.0, tau=1.0):
         use = torch.rand(P, generator=gen, device=s.x.device) < mix_native
         tok = torch.where(use[:, None], tok_nat, tok)
         cr = torch.where(use[:, None], classes.token_class[tok_nat], cr)
+    if rvalid is not None:                                                  # padded columns keep their value
+        tok = torch.where(rvalid, tok, torch.gather(s.x, 1, r))
+        cr = torch.where(rvalid, cr, torch.gather(s.ycls, 1, r))
     x2 = s.x.clone(); x2.scatter_(1, r, tok)
     y2 = s.ycls.clone(); y2.scatter_(1, r, cr)
     if tau != 1.0:
@@ -182,7 +219,7 @@ def _log_potential(eta_cur, psi2, z_old, beta):
     return (1.0 - beta) * eta_cur + psi2 - z_old
 
 
-def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, horizon, m, gen, mean="arith"):
+def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, schedule, horizon, m, gen, mean="arith"):
     """log of the mean over m speculative step-exact rollouts of j = horizon steps from x2 (which is x_{t+1}) of
     the TWISTER potential product prod G = prod eta(x'') / Z(x''; x'). With mean="arith", eta(x2) times this gain
     is an unbiased, positive estimate of E_kappa[eta_{t+1+j}(X) | x2] (of the Doob function h_{t+1}(x2) when
@@ -197,7 +234,7 @@ def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, h
         if tt > T - 1:
             break
         last = tt == T - 1
-        x3, y3, z3, _ = _propose(den, classes, route, sp, nt, gen)
+        x3, y3, z3, _ = _propose(den, classes, route, sp, tt, T, schedule, gen)
         lp3, lw3, eta3, _ = _successor_twist(den, classes, route, x3, y3, z3, last, 1.0)
         acc = acc + torch.nan_to_num(eta3 - z3, nan=NEG_INF, neginf=NEG_INF)
         sp.x, sp.ycls, sp.eta = x3, y3, eta3
@@ -215,7 +252,7 @@ def _lookahead_log_gain(den, classes, route, x2, y2, lp2, lw2, eta2, t, T, nt, h
 def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, return_particles=False,
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
                 lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0,
-                twist_temp=1.0, guard="warn"):
+                twist_temp=1.0, guard="warn", schedule="fixed"):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -235,6 +272,9 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                  potential then uses the mixture density and is bounded by psi' / (a psi).
     twist_temp   tau in (0, 1]: calibrated twist, the route sum under future-token law q ∝ p^tau (1 = TWISTER);
                  the proposal is locally optimal for it and the weights correct exactly (see _propose)
+    schedule     "fixed" (N / T positions per step, the default and TWISTER's) or "independent" (each masked
+                 position reveals with probability 1 / (T - t), the MDLM reverse step; see reveal_indices).
+                 The native kernel must use the same schedule for the result to target that process.
     guard        "warn" (default), "raise" or "off": support invariants checked at every step (see
                  SUPPORT_CHECKS); counts are returned under 'guard'. They consume no randomness.
     Returns a dict with per-run 'logZ' (log Z_hat), 'ess_min', 'n_res', validity checks, 'eta0'; with
@@ -258,12 +298,14 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     if lookahead_mean not in ("arith", "geom") or not 0.0 <= lookahead_shrink <= 1.0:
         raise ValueError("lookahead_mean must be 'arith' or 'geom' and lookahead_shrink in [0, 1]")
     def la(xx, yy, lpp, lww, ee, tt):
-        g = _lookahead_log_gain(den, classes, route, xx, yy, lpp, lww, ee, tt, T, nt, lookahead, lookahead_draws,
-                                gen, lookahead_mean)
+        g = _lookahead_log_gain(den, classes, route, xx, yy, lpp, lww, ee, tt, T, schedule, lookahead,
+                                lookahead_draws, gen, lookahead_mean)
         return torch.where(torch.isneginf(g), g, lookahead_shrink * g)
     general = lookahead > 0 or mix_native > 0 or tau != 1.0           # otherwise the TWISTER / tempered update below
     dev = classes.onehot.device
-    P, nt, beta = nrun * K, N // T, float(twist_power)
+    if schedule not in SCHEDULES:
+        raise ValueError(f"schedule must be one of {SCHEDULES}")
+    P, beta = nrun * K, float(twist_power)
     run_offset = K * torch.arange(nrun, device=dev)[:, None]
 
     x = torch.full((P, N), den.mask_id, dtype=torch.long, device=dev)
@@ -289,7 +331,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
 
     for t in range(T):
         last = t == T - 1
-        x2, y2, z_old, log_ratio = _propose(den, classes, route, s, nt, gen, mix_native, tau)
+        x2, y2, z_old, log_ratio = _propose(den, classes, route, s, t, T, schedule, gen, mix_native, tau)
         lp2, lw2, eta2, psi2 = _successor_twist(den, classes, route, x2, y2, z_old, last, beta, tau)
         if guard != "off":
             live = torch.isfinite(logw) & torch.isfinite(s.eta)
