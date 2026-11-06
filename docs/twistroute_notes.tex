@@ -200,6 +200,17 @@ $L/T$ positions chosen uniformly among the masked ones) and $p^i_\theta(\cdot\mi
 position $i$. The native path law is $p(x_{0:T})=\prod_t\kappa_{t+1}(x_{t+1}\mid x_t)$, with $x_0=\mask^L$ and
 $x_T$ fully revealed.
 
+\paragraph{Reveal schedules.}
+The scheduler $s_{t+1}$ is part of the process, not an implementation detail, and two choices are in common use.
+The \emph{fixed} schedule reveals exactly $L/T$ positions per step, chosen uniformly among the masked ones; this
+is TWISTER's and the one used throughout \cref{sec:experiments} unless stated otherwise. The \emph{independent}
+schedule reveals each masked position with probability $1/(T-t)$, which is the MDLM reverse step
+\cite{sahoo2024} under the log-linear noise schedule and leaves a random number of reveals per step. Everything below
+holds for either, because $s_{t+1}$ cancels in \eqref{eq:potential}; but it must be the \emph{same} $s_{t+1}$ in
+the proposal and in the native law whose conditional is the target. The two laws genuinely differ: measured on
+identical models and constraints, $h_0$ differs between them by $4$ to $10$ standard errors at $n=3\times10^5$
+samples. mRNAutilus uses the independent schedule, so our mRNA runs do too.
+
 \paragraph{Target.}
 The \emph{Doob path law} $p^\star(x_{0:T})\propto p(x_{0:T})\one_C(x_T)$ has terminal marginal $p(\cdot\mid C)$.
 It is a Markov chain with kernel $\kappa_{t+1}h_{t+1}/h_t$. The Doob function $h_t$ depends on the denoiser's
@@ -460,6 +471,50 @@ becomes
 TWISTER takes $\psi_t=\eta_t$ for $t<T$, which gives $G_{t+1}=Z_d(x';x')/Z_d(x';x)$: the mass of the new partial
 sequence under the new predictions, divided by its mass under the old predictions. In \cref{ex:bias} this ratio
 is $p^2(a\mid a)/p^2(a\mid\varnothing)$.
+
+\subsection{When the correction is unnecessary}\label{sec:meanfield}
+The form of $G$ just derived says that the entire trajectory-level correction is driven by one thing: how much the
+denoiser's predictions move as positions are revealed. It is worth making the degenerate case explicit, because it
+delimits exactly when this machinery earns its cost.
+
+\begin{definition}[Trajectory mean-field \status{ours}]\label{def:mf}
+A denoiser is \emph{trajectory mean-field} if $p^i_\theta(\cdot\mid x)=p^i_\theta(\cdot\mid \tilde x)$ for every
+$i$ and every pair of partial sequences $x,\tilde x$ with $\M(x)=\M(\tilde x)$: the prediction at a masked
+position depends on which positions are masked, but not on the values revealed at the others.
+\end{definition}
+
+\begin{proposition}[Mean-field collapse \status{ours}]\label{prop:mf}
+Let the denoiser be trajectory mean-field, let $\psi_t=\eta_t$ for $t<T$ and $\psi_T=\one_C$, and take an exact
+route ($d=\one_C$). Then for every $t$ and every reachable $x$,
+\[
+  \eta_t(x)=h_t(x),\qquad G_{t+1}(x,x')=1 \text{ almost surely},
+\]
+so with $K=1$ particle and no resampling, $\widehat Z=\eta_0=h_0$ deterministically and the single trajectory is
+an exact draw from $p(\cdot\mid C)$. Step-exact decoding is then already trajectory-exact.
+\end{proposition}
+\begin{proof}
+Write $w_i(\cdot)$ for the common prediction at masked position $i$, which by \cref{def:mf} does not depend on the
+revealed values. The remaining positions are therefore filled independently from $w$ whatever order the scheduler
+chooses, so $h_t(x)=\Pr(x_T\in C\mid x_t=x)=\sum_{y\in C}\prod_{i\in\M(x)}w_i(y_i)\prod_{i\notin\M(x)}[y_i=\phi(x_i)]$,
+which is \eqref{eq:clamped} evaluated at $x'=x$, that is $\eta_t(x)$. For the potential, $Z(x';x)$ and
+$Z(x';x')$ clamp the same positions and differ only in which denoiser call supplied the weights at the masked
+ones; those weights coincide, so the two sums are equal and $G_{t+1}=Z(x';x')/Z(x';x)=1$. At the final step
+$Z(x_T;x_{T-1})=\one_C(x_T)=\psi_T(x_T)$ and the ratio is again $1$. Constant potentials make $\widehat Z$
+deterministic and equal to $\eta_0=h_0$, and the proposal $M$ of \cref{lem:prop} is then the Doob kernel.
+\end{proof}
+
+Two consequences. First, a mean-field model does not need particles: the constraint still couples the positions,
+and $p(\cdot\mid C)$ is still not a product, but one draw from the route samples it exactly. Second, and more
+usefully, \cref{prop:mf} identifies the quantity that predicts whether the correction matters on a given model.
+Define the \emph{re-conditioning strength} as the typical size of
+\[
+  \log G_{t+1}=\log Z(x';x')-\log Z(x';x),
+\]
+the change in the route's mass caused purely by the model updating its predictions. It is zero for a mean-field
+model and grows with the model's context sensitivity. It is also directly measurable without running the sampler,
+by revealing context and watching the predicted distribution at a held-out masked position move
+(\cref{sec:experiments}). A model on which that movement is negligible is one where the methods of this note have
+nothing to correct, and reporting that is as informative as reporting a gain.
 
 \subsection{The algorithm}
 \Cref{alg:smc} is TWISTER with the automaton replaced by a route. It has two optional parameters, introduced in
@@ -938,6 +993,119 @@ exponentially with $L$. Refusing such constraints is the correct behaviour for t
   \item \emph{Calibrated sampling and best-of-$K$.} Exact conditional sampling should eventually beat mode-seeking
     decoding in best-of-$K$ selection as $K$ grows. Where the crossover lies is open.
 \end{enumerate}
+
+
+%======================================================================
+\section{Experiments}\label{sec:experiments}
+%======================================================================
+Every number below is reported from the saved result file named with it; the repository's \texttt{docs/status.md}
+carries the artifact identifiers. Three testbeds are used.
+
+\begin{description}[leftmargin=1.6em,itemsep=2pt]
+\item[Synthetic.] A denoiser over $|V|=40$ symbols whose context sensitivity is set by a scale parameter, so the
+  exact conditional can be enumerated and the sampler checked against it.
+\item[OWT-130M.] The released MDLM text model of \cite{sahoo2024} (\texttt{kuleshov-group/mdlm-owt}), the setting
+  of TWISTER's own experiments.
+\item[mRNAutilus.] A $150$M-parameter masked discrete diffusion model over full-length mRNA, used in
+  \cref{sec:expmrna} only as the subject of a model diagnostic; the design experiments are future work.
+\end{description}
+
+\subsection{Six constraint families on a real model}\label{sec:expe1}
+Constraint families chosen to exercise different routes: \textsc{copy} (a factor graph, with a closed form),
+\textsc{regular} and \textsc{counting} (automata), \textsc{dyck1-unamb} and \textsc{dyck1-amb} (grammar charts,
+one unambiguous and one not), and \textsc{rna-pair} (the Nussinov--Jacobson pairing grammar \cite{nussinov1980},
+ambiguous). OWT-130M, $L=32$, $T=16$, $K=16$; the metric is pairwise total variation against a rejection
+reference, in excess of a matched sampling floor, so $0$ is as good as the reference. Bootstrap standard errors
+on the excess are $0.003$ to $0.008$.
+
+\begin{center}\small
+\begin{tabular}{lcccccc}
+\toprule
+ & step-exact & \multicolumn{2}{c}{no resampling} & \multicolumn{2}{c}{defensive $\epsilon=0.25$} & plain \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+family & $K=1$ & $\tau=1$ & $\tau=0.5$ & $\tau=1$ & $\tau=0.5$ & $\tau=1$ \\
+\midrule
+copy          & 0.165 & 0.136 & 0.068 & 0.148 & 0.040 & 0.135\\
+regular       & 0.129 & 0.026 & 0.046 & 0.061 & 0.057 & 0.089\\
+counting      & $\approx0$ & $\approx0$ & $\approx0$ & $\approx0$ & $\approx0$ & $\approx0$\\
+dyck1-unamb   & 0.160 & 0.133 & ---   & 0.132 & ---   & 0.132\\
+dyck1-amb     & 0.154 & 0.086 & 0.091 & 0.143 & 0.158 & 0.151\\
+rna-pair      & 0.030 & 0.005 & 0.006 & 0.172 & 0.140 & 0.212\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Three things to read off. Step-exact decoding carries a substantial excess on five of the six families, which is
+the bias \cref{prop:mf} says must come from re-conditioning. Particles remove most of it. And resampling
+\emph{hurts} on the two ambiguous grammars, for the reason given in \cref{sec:ambiguity}: the chart's twist is
+derivation-weighted, so resampling concentrates particles on prefixes with many parses rather than high
+probability. The tail diagnostic moves the same way --- the Pareto shape $\hat k$ on \textsc{copy} falls from
+$1.07$ (step-exact) to $0.37$ ($K=16$) to $0.08$ with calibration.
+
+\subsection{Long horizons}\label{sec:expb}
+The same families at $L=64$, $T=64$, $K=8$, which quadruples the number of weight increments per trajectory.
+\textsc{copy} behaves as above: TV excess $0.095$ with no resampling, $0.038$ with defensive resampling and
+$\tau=0.5$, although that arm's $\widehat Z/h_0=0.902$ (CI $0.827$--$0.983$, $\hat k=0.67$) --- the best samples
+with a visibly biased normalising constant. \textsc{counting} is exact on every arm. \textsc{rna-pair} is the
+clearest remaining failure: defensive resampling gives TV excess $0.043$ but
+$\widehat Z/h_0=0.576$ (CI $0.359$--$0.858$, $\hat k=1.00$), an infinite-mean weight tail.
+
+\subsection{The calibrated twist}\label{sec:expcal}
+Synthetic testbed, context scale $8$, $K=4$, $2\times10^4$ runs per arm, sweeping the calibration temperature
+$\tau$ of \cref{sec:calibrated}. Efficiency is the ratio of $\widehat Z$ variance to the resampling-off arm at
+$\tau=1$, so $1$ means the resampling penalty has been removed.
+
+\begin{center}\small
+\begin{tabular}{cccccc}
+\toprule
+$\tau$ & no resampling & plain & defensive $\epsilon=0.25$ & hidden mass $<10^{-2}$ & resamplings/run \\
+\midrule
+1    & 1.00 & 0.14 & 0.47 & 7.8\%  & 1.78\\
+0.7  & 0.99 & 0.32 & 0.78 & 3.2\%  & 1.69\\
+0.5  & 1.02 & 0.63 & 1.09 & 0.9\%  & 1.56\\
+0.35 & 1.01 & 1.04 & 1.15 & 0.16\% & 1.40\\
+0.2  & 1.03 & 1.09 & 1.04 & 0.15\% & 1.17\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+All fifteen arms give $\widehat Z/h_0$ within $0.979$--$1.008$, as \cref{prop:calibrated} requires: calibration
+changes the variance, never the target. The mechanism on the resampling-\emph{on} arms is the one described in
+\cref{sec:calibrated} --- a flatter twist hides less mass below the resampling threshold.
+
+\begin{remark}[A claim we had to withdraw]
+We previously attributed the improvement with resampling \emph{off} to smoother per-step weight increments. That
+is false. A $K=1$ trace decomposition shows the summed per-step log-weight variance falling from $11.1$ to $6.0$
+as $\tau$ goes $1\to0.5$, while the total path log-weight standard deviation barely moves ($3.278\to3.298$) and
+the relative standard error of $\widehat Z$ is flat ($0.0128\to0.0132$). Across families at $K=16$ with
+resampling off, the ratio of relative standard errors ($\tau=0.5$ versus $\tau=1$) is $1.02$, $1.17$, $0.30$ and
+$0.66$ on \textsc{prefix}, \textsc{copy}, \textsc{counting} and \textsc{forbidden}: family-dependent, sometimes
+worse, and not explained by increment smoothness. The effect is real where it appears but its mechanism is open.
+\end{remark}
+
+\subsection{Ambiguity}\label{sec:expamb}
+The synthetic testbed with grammar routes, verifying \cref{thm:traj}: at $L=4$ and $L=6$ the sampled law
+matches the exact conditional to total variation $\le4\times10^{-16}$, ambiguity notwithstanding. The cost is in
+the weights. At $K=16$, the effective sample size fraction over $L=8$ to $32$ holds at $0.93$--$0.97$ for
+unambiguous Dyck-1 but falls from $0.92$ to $0.34$ for the ambiguous grammar and from $0.89$ to $0.30$ for
+\textsc{rna-pair}, tracking the mean log derivation count, which reaches $4.4$ and $5.3$ respectively.
+
+\subsection{Is there anything to correct on an mRNA model?}\label{sec:expmrna}
+Before designing sequences we asked whether mRNAutilus is far enough from \cref{def:mf} for the correction to
+matter. Holding one codon position masked and revealing the rest of a coding sequence in four stages, the
+predicted distribution at the held-out position moves by total variation $0.337$ end to end ($0.205$ restricted
+to the synonymous codons of the true residue), with the largest single movement, $0.291$, in the first quarter of
+reveals --- which is where step-exact decoding commits. A trajectory mean-field model would give $0$ at every
+stage. Two related measurements: randomising the whole context moves the prediction by $0.336$, and a synonymous
+shuffle that preserves the encoded protein still moves it by $0.261$, so the model's joint is not a product of
+per-position codon tables.
+
+Its \emph{mode}, however, is. On a held-out synonymous-codon prediction task ($n=548$ paired positions) the model
+is top-1 correct $39.8\%$ of the time against $38.7\%$ for a human codon-frequency lookup table and $29.5\%$ for
+uniform choice among synonyms; McNemar's test gives $z=+0.53$, not significant. These two findings are compatible
+and say different things: a product model reproduces the marginal mode and cannot reproduce the joint. Caveats:
+one coding sequence, which appears in the model's own configuration and may be in its training data; the
+perturbed contexts are somewhat out of distribution.
 
 %======================================================================
 \section{Summary of results}\label{sec:status}

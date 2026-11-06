@@ -92,3 +92,32 @@ here" -- only as "its mode matches the frequency table".
 3. **Report the frequency baseline alongside every family**, as planned.
 4. **Diversity and joint-distribution fidelity are the axes where the model contributes**, consistent with
    section 3 and with the library-generation framing.
+
+## 6. Re-conditioning strength (the quantity that decides whether our correction matters)
+
+If a masked diffusion model's prediction at a still-masked position did not change as other
+positions are revealed, the model would be mean-field over the trajectory. In that case the frozen
+twist equals the true twist, step-exact decoding is already unbiased, and the whole particle/twist
+apparatus is unnecessary: a single route sample draws from p(x | C) exactly. The value of this
+method therefore scales with how strongly the model re-conditions.
+
+Measurement: hold one codon position masked throughout; reveal the other CDS positions in random
+order in four stages; record the predicted 64-codon distribution at the held-out position at each
+stage. 6 held-out positions, one CDS (the `fluc` template), CPU, non-flash path.
+
+| fraction of other positions still masked | TV of the prediction at the held-out position |
+|---|---|
+| 1.00 -> 0.75 | 0.291 |
+| 0.75 -> 0.50 | 0.134 |
+| 0.50 -> 0.25 | 0.111 |
+| 0.25 -> 0.00 | 0.121 |
+| all-masked -> all-revealed | **0.337** |
+| same, restricted to the synonymous set (n=5) | **0.205** |
+
+Mean-field over the trajectory would give 0 in every row. The largest single movement (0.291) occurs
+in the first quarter of reveals, which is exactly where step-exact decoding commits its earliest and
+most consequential choices. The synonymous-restricted figure (0.205) is the one relevant to our
+setting, since protein identity is fixed by the route.
+
+Caveat: n=6 positions on one sequence; this is an order-of-magnitude indication, not a calibrated
+estimate. It should be repeated on several real human CDSs alongside item 3 of the open list.

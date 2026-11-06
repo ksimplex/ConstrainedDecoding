@@ -2,7 +2,9 @@
 Conjunctions of routes of different kinds (CPU reference). Each construction returns an ordinary route of
 one of the existing kinds, so the exact sampler, logZ and accepts of that kind apply unchanged.
 
-intersect_dfa_cfg(dfa, grammar)   automaton AND grammar -> grammar (Bar-Hillel, Perles & Shamir 1961).
+intersect_dfa_cfg(dfa, grammar)   automaton AND grammar -> grammar, by the triple construction of
+    Bar-Hillel, Perles & Shamir, "On formal properties of simple phrase structure grammars",
+    Zeitschrift fuer Phonetik, Sprachwissenschaft und Kommunikationsforschung 14:143-172, 1961.
     Nonterminals are triples (p, X, q): X derives the substring while the automaton moves from state p to
     state q. Rules are built only for productive triples and kept only if reachable from the new start, so
     the size is at most |R| Q^3 and usually far less. The automaton is deterministic, so each derivation of
@@ -14,6 +16,18 @@ DFAFactorProduct(dfa, fg)         automaton AND factor graph -> factor graph ove
     of pairwise factors (z_{i-1}, z_i) plus unary start / accept factors; the graph's factors are lifted to
     act on the y-part. Domain size A * Q; elimination cost (A Q)^(width), with the width of the chain plus
     the graph's own edges. Refuses past a table budget instead of running out of memory.
+
+    `allowed` restricts the symbols permitted at each position before the product is built, so only
+    feasible (symbol, state) pairs are enumerated. Without it a 60-residue coding sequence with a target
+    structure needed 1792^3 cells; with it, domain 213 and width 3 (docs/status.md Sec. 7).
+
+min_degree_order(N, scopes)       greedy minimum-degree elimination ordering on the moral graph: repeatedly
+    eliminate the variable of least current degree. It is a heuristic for treewidth, not an optimum, but is
+    the standard default and is cheap; see George & Liu, "The evolution of the minimum degree ordering
+    algorithm", SIAM Review 31(1):1-19, 1989, doi:10.1137/1031001.
+
+induced_width(N, scopes, order)   the largest bucket scope that `order` produces, which is the exponent in
+    the elimination cost above.
 """
 from collections import defaultdict, deque
 import itertools

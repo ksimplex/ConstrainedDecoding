@@ -15,6 +15,12 @@ subtree rooted at that nonterminal has a yield of at most W positions. Chart ent
 j - i > W are -inf, so logZ, sample and accepts all use the restricted derivation set, and d(y) counts the
 span-bounded derivations of y. Nonterminals not listed are unbounded.
 
+rna_pair_grammar builds the Nussinov-Jacobson base-pairing grammar (Nussinov & Jacobson, PNAS
+77(11):6309-6313, 1980, doi:10.1073/pnas.77.11.6309): every nested pairing of complementary bases is a
+derivation. It is ambiguous, so d(y) counts the secondary structures compatible with y rather than
+the strings -- see the note above, and docs/status.md on why routes of this kind are run without
+resampling.
+
 count_parses is an independent recursive parse counter used only by tests.
 """
 import numpy as np

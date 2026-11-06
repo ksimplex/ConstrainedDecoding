@@ -13,6 +13,7 @@ grammar with a factor graph, are refused.
 from .. import compile as C
 from .routes import TorchChain, TorchChart, TorchCopy
 from .factor_graph import TorchFactorGraph, TorchLifted
+from .wrappers import TorchMasked
 
 GRAMMARS = {"dyck1_unamb": C.DYCK1_UNAMBIGUOUS, "dyck1_amb": C.DYCK1_AMBIGUOUS, "dyck2": C.DYCK2}
 
@@ -72,6 +73,8 @@ def build_route(spec, device="cpu"):
 
 def torch_route(r, device="cpu"):
     """Batched route for a CPU route object."""
+    if isinstance(r, C.Masked):
+        return TorchMasked(torch_route(r.route, device), r.allowed, device, r.name)
     if isinstance(r, C.Inside):
         return TorchChart(r, device)
     if isinstance(r, C.FactorGraph):

@@ -64,7 +64,8 @@ class TokenClasses:
         return TokenClasses(m[self.token_class], max(mapping) + 1, self.excluded)
 
     def sizes(self):
-        return torch.bincount(self.token_class, minlength=self.A).tolist()
+        """Number of drawable tokens per class (excluded tokens are not counted)."""
+        return (self.onehot > 0).sum(0).long().tolist()
 
 
 def semantic_classes(tokenizer, V, mask_id):

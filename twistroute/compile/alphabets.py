@@ -3,10 +3,16 @@ Alphabet changes and per-position restrictions for routes (CPU reference). Nothi
 
 lift_dfa(dfa, h)        inverse homomorphism. h[a] is the string of base symbols that new symbol a stands for;
                         the lifted automaton reads a and moves as the base automaton does on h[a]. It accepts
-                        a1..an exactly when the base accepts h(a1)..h(an) (regular languages are closed under
-                        inverse homomorphisms). States after a partial word never appear, and the result is
+                        a1..an exactly when the base accepts h(a1)..h(an); regular languages are closed
+                        under inverse homomorphism (Hopcroft & Ullman, Introduction to Automata Theory,
+                        Languages and Computation, 1979, Thm. 3.5). Used to lift a nucleotide-level
+                        constraint to the codon alphabet. States after a partial word never appear, and the result is
                         trimmed to states that are reachable and can still accept.
-minimize_dfa(dfa)       Moore partition refinement of a trimmed automaton (same language, fewest states).
+minimize_dfa(dfa)       Moore's partition refinement of a trimmed automaton (same language, fewest states);
+                        Moore, "Gedanken-experiments on sequential machines", Automata Studies, Princeton
+                        University Press, 1956, pp. 129-153. O(Q^2 A) rather than Hopcroft's O(Q A log Q),
+                        which is ample here: lifting to codons is what inflates Q, and the refinement runs
+                        once at compile time.
 symbol_classes(dfa)     symbols that induce the same transition from every state are interchangeable for the
                         route; returns the partition and the quotient automaton over classes. `refine` keeps
                         apart symbols that must stay distinguishable for another reason (e.g. a per-position
