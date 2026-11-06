@@ -1,7 +1,6 @@
 # Project status
 
-**Updated:** 2026-11-06. **Repo:** `ksimplex/ConstrainedDecoding` (private), branch `main`, head `393e9d3` plus this
-file. This is the single source of truth for decisions, results and next steps. Update it at every milestone.
+**Updated:** 2026-11-06. **Repo:** `ksimplex/ConstrainedDecoding` (private), branch `main`, head `b78b8e9`. This is the single source of truth for decisions, results and next steps. Update it at every milestone.
 
 Labels: **[verified]** = checked by tests or by data in a saved artifact; **[hypothesis]** = a working explanation that has
 not been tested directly; **[citation unchecked]** = recalled, not yet verified against the source.
@@ -34,7 +33,7 @@ before any paper.
 | 2 domain | `twistroute_bio/` | codon alphabet, genetic code, codon lifting, synonymous masks, CDS constraint builders (in progress) | layer 1 |
 | 3 model | `twistroute_bio/models/` | vendored RiNALMo encoder (done, validated); mRNAutilus denoiser adapter (next) | layers 1-2 |
 
-Tests: 226 passing at `393e9d3` (about 12 min on CPU). Each route is checked against brute-force enumeration; the sampler
+Tests: 236 passing at `b78b8e9` (about 13 min on CPU). Each route is checked against brute-force enumeration; the sampler
 is checked for E[Ẑ] = h₀.
 
 ## 4. Decisions
@@ -157,14 +156,52 @@ roughly the magnitude that produces the 0.13-0.17 TV excess we measured for step
 possibly in its training data); perturbed contexts are somewhat out of distribution; likelihood against the
 frequency-product model not yet measured.
 
-## 7. In progress
+## 7. Done 2026-11-06
 
-- **Layer-3 adapter** (`twistroute_bio/models/mrnautilus.py`): wrap the validated encoder as a denoiser
-  (`mask_id = 4`, V = 86, `logits(x)` applying SUBS) plus `codon_classes()` excluding non-codon tokens at CDS
-  positions; smoke test sampling a short constrained CDS on CPU.
-- **Benchmark landscape survey** (delegated 2026-11-06): what the codon-optimisation literature actually measures,
-  against which baselines, with what reported gains; which scorers, learned predictors and optimisers are usable
-  comparators; mRNAutilus's intended use case and whether it evaluates UTR design.
+**Layer-3 adapter** (`twistroute_bio/models/mrnautilus.py`). `MRNAutilus` wraps the validated encoder as a
+denoiser (`mask_id = 4`, V = 86, SUBS-parameterised `logits`); `CDSWindow` is a denoiser view over the coding
+positions of a transcript with the UTRs clamped, so layer 1 sees an ordinary N-position problem;
+`codon_classes()` maps the model's 86-token vocabulary onto the 64 codons of `twistroute_bio.alphabet`,
+excluding every non-codon token. Note the model's codon order is TCAG-based and is **not** ours; the two lookup
+tables in the adapter are the only place that mapping lives. `scripts/smoke_mrnautilus.py` samples a short
+constrained CDS end to end: 16/16 particles live, 15 distinct sequences, every one translating to the target
+peptide and free of EcoRI, BamHI and HindIII sites [verified].
+
+**Refactor.** `decode/smc.py` split into `schedule.py` (reveal schedules), `resampling.py` (resamplers and the
+defensive mixture), `twist.py` (proposal, twist variants, potential) and the driver, each with a docstring
+stating what it establishes and citing the method where a reader would want the source. `log_mean_exp` promoted
+from a private helper to a documented shared one. Method citations added across layers 1-3 (Bar-Hillel,
+Moore, Hopcroft-Ullman, George-Liu minimum degree, Kitagawa systematic resampling, Cornish-Bowden IUPAC
+codes, Crick wobble, Lorenz ViennaRNA, Su RoPE), each verified against CrossRef or arXiv.
+
+**New tests** (10 for the adapter, 4 for constraints, 2 for SMC): vocabulary round trip and class bijection,
+CDS window slicing and template immutability, a motif straddling a codon boundary, wrong-protein and
+missing-stop rejection, GC band over the whole sequence, optional wobble pairing, **mean-field collapse**
+(a context-free denoiser gives zero spread in Ẑ and `eta0` matching brute-force enumeration), and
+`log_mean_exp` stability far below the float floor.
+
+**Notes rewritten** (`docs/twistroute_notes.tex`, 24 pp). Restructured per `notes_plan.md`: proofs to
+appendices, every section 1-2 pages, boxed claims, open directions as questions, related work by component,
+new sections on the mRNA application and the experiments. Prose pass removing AI tells.
+
+**Benchmark landscape survey** (`codon_benchmark_landscape.md`, artifact
+b00c68d8-c840-45be-8bd3-ef15c23a3ecb). The finding that matters: **no published learned codon-optimisation
+method reports per-position codon reconstruction accuracy against a frequency baseline as a primary result.**
+The single instance is CodonTransformer Supplementary Fig. 1, an unnumbered density plot at *nucleotide*
+resolution in which the frequency baseline is barely separated from uniform random synonymous choice. The
+field reports distributional agreement with held-out natural sequences (CAI/CSI, GC, GC3, ENC, %MinMax
+profile agreement by DTW, length-normalised MFE), downstream property prediction from embeddings, and
+measured expression. So our flat top-1 result does not contradict published gains; it is a metric those gains
+were never claimed on. **Caveats from the survey's own deviation list:** ten verified papers were not read in
+full; three quantitative claims are read off figures rather than reported numbers; GEMORNA's gains come from
+the publisher abstract only; the 2024-2026 sweep was by search rather than exhaustive.
+
+mRNAutilus's intended use, from its preprint (arXiv:2605.31296): simultaneous codon optimisation of the CDS
+**and de novo design of both UTRs** in one generative process, targeting half-life, translation efficiency and
+protein abundance. Its MCTS sampler maintains a Pareto front over three XGBoost regressors on frozen
+mRNAutilus embeddings. It does evaluate 5'UTR design, but only distributionally (MFE and GC against 1,000
+natural vertebrate 5'UTRs) plus end-to-end expression; there is no 5'UTR functional benchmark, no
+mean-ribosome-load comparison, and no ablation separating the UTR contribution from the CDS contribution.
 
 ## 8. Framing (revised 2026-11-06)
 
