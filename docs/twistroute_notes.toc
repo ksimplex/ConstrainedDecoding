@@ -13,7 +13,7 @@
 \contentsline {subsection}{\numberline {3.1}The four families}{5}{subsection.3.1}%
 \contentsline {subsection}{\numberline {3.2}Ambiguity is a feature of the route, not the constraint}{5}{subsection.3.2}%
 \contentsline {subsection}{\numberline {3.3}The tractability boundary}{6}{subsection.3.3}%
-\contentsline {section}{\numberline {4}The algorithm, and why it is exact}{6}{section.4}%
+\contentsline {section}{\numberline {4}The algorithm, and why it is exact}{7}{section.4}%
 \contentsline {subsection}{\numberline {4.1}The twist is free}{8}{subsection.4.1}%
 \contentsline {subsection}{\numberline {4.2}A diagnostic identity}{8}{subsection.4.2}%
 \contentsline {section}{\numberline {5}When the correction is unnecessary}{9}{section.5}%

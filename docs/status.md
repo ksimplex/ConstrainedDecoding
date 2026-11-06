@@ -217,6 +217,58 @@ previously stated the whole paragraph as established fact when parts of it came 
   contribution from the CDS contribution. Confirm against the paper before relying on this to justify a UTR
   experiment.
 
+## 7b. First constrained-family result (2026-11-06)
+
+**Family: restriction-site avoidance** (8 common sites), the first of the constrained families and the one
+chosen to implement and validate before expanding (user, 2026-11-06).
+
+**Setup.** 4 real human coding sequences whose natural form *violates* the constraint (HBB, B2M, HBA1, KRAS;
+111-189 codons), pulled from RefSeq. Two of the six site occurrences straddle a codon boundary and every one
+spans at least two codons, so none is visible to a single-codon substitution rule. Arms: corrected sampler
+(twisted SMC on mRNAutilus, K = 8, defensive eps = 0.25, independent schedule), step-exact (K = 1, weights
+ignored), frequency table + randomised local repair, and the natural sequence as reference. 16 samples per
+arm per gene. Codon frequency table estimated from 381 human RefSeq CDSs (147,948 codons), following
+Clarke & Clark's own practice of estimating from the organism's ORFeome rather than hardcoding a table;
+cross-checked against the repo's Kazusa-derived table at Pearson r = 0.995, modal codon agreeing for 17/18
+multi-codon amino acids [verified].
+
+**Metric.** Distance between a design's %MinMax profile (Clarke & Clark 2008, window 18) and the natural
+sequence's. This is the *positional* measure: it asks where rare codons sit, which a product model cannot
+control. CAI (Sharp & Li 1987), GC and GC3 are distributional controls. `results/mrna_profile_compare.csv`,
+figure `results/mrna_profile_compare.png`.
+
+| arm | valid | %MinMax distance to natural | CAI | GC3 |
+|---|---|---|---|---|
+| corrected sampler | 64/64 | **34.1** | 0.774 | 0.733 |
+| step-exact (uncorrected) | 64/64 | 37.8 | 0.757 | 0.696 |
+| frequency table + repair | 64/64 | 66.6 | 1.000 | 0.993 |
+| natural (reference) | 0/4 | 0 | 0.756 | 0.592 |
+
+**What it shows.**
+1. **Constraint satisfaction is table stakes**: every method reaches 64/64 once repair is allowed. It does
+   not discriminate, so it cannot be the headline on its own.
+2. **The rule baseline is degenerate on both controls**, not merely worse: CAI 1.000 is the ceiling by
+   construction and GC3 0.993 against a natural 0.592. A frequency table has no positional structure at all,
+   and its %MinMax profile is a constant at +100.
+3. **Model samples are about twice as close to natural positional structure** (34.1 vs 66.6), paired by gene:
+   mean difference -32.5, bootstrap 95% CI [-54.1, -13.2], favouring the model in 4/4 genes [verified].
+4. **Nucleotide identity does not predict positional fidelity.** All arms sit at 0.78-0.80 identity to the
+   natural sequence, yet differ twofold on the profile metric. The metric is measuring something identity is
+   blind to, which is the point of using it.
+
+**What it does NOT show [important].** The corrected sampler versus step-exact decoding is **not resolved**
+at this scale: mean paired difference -3.8 with bootstrap 95% CI [-12.0, +7.5] over n = 4 genes, favouring
+the corrected sampler in 3 of 4 (B2M runs the other way). The demonstrated effect is model-versus-rules, not
+corrected-versus-uncorrected. Separating those two needs more genes, and that is what the next run is for.
+
+**Incidental finding.** Max-CAI greedy and max-frequency greedy are the *same* construction: the CAI weight
+w(c) = f(c)/max_family f is monotone in f, so the argmax within each synonymous family coincides. They were
+planned as two arms and are one. Any paper comparing against "both" is comparing against one baseline twice.
+
+**Cost note.** The CPU denoiser degrades superlinearly with batch width: 0.55 s/row at batch 4 against
+1.86 s/row at batch 16 (memory pressure, not compute). Scaled-up runs should chunk the batch or move to GPU;
+a 148-codon gene at T = 16 took about 8 minutes per model arm.
+
 ## 8. Framing (revised 2026-11-06)
 
 The project's claim is **exact sampling from p(x | C) under hard constraints**, not better codon prediction. The two

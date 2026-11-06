@@ -220,7 +220,7 @@ route & cost of one pass & sampler & covers \\
 \midrule
 automaton & $O(L|\delta|)$ & forward-backward & motifs, counts, regular expressions, bracket depth\\
 grammar chart & $O(L^3|G|)$ & top-down from the chart & context-free constraints, RNA pairing\\
-factor graph & $O(L|\Sigma|^{\omega+1})$ & elimination then reverse & copy relations, target structures\\
+factor graph \cite{kschischang2001} & $O(L|\Sigma|^{\omega+1})$ & elimination then reverse & copy relations, target structures\\
 determinant & $O(n^3)$ & Wilson's algorithm & spanning trees, dependency structures\\
 \bottomrule
 \end{tabular}
@@ -244,7 +244,10 @@ completability and max-times answers MAP, both regardless of ambiguity; sum-prod
 $\sum_yd_S(y)\prod_iw_{i,y_i}$, which is the constrained probability \emph{if and only if} $d_S\equiv1$ on $C$.
 \end{proposition}
 \proofref{A special case of Wang et al.\ \cite{wang2024atlas}, Thm.~4 and Ex.~2: mapping a Boolean circuit into a
-semiring is tractable when the semiring is idempotent or the circuit is deterministic.}
+semiring is tractable when the semiring is idempotent or the circuit is deterministic. The underlying fact is
+older and more general: the correctness of a sum-product recursion uses only distributivity and the
+commutation of nested sums, so any commutative semiring gives a valid algorithm --- the generalized
+distributive law of Aji and McEliece \cite{aji2000}.}
 
 Idempotent addition counts the $d_S(y)$ copies of a string once; ordinary addition counts all of them. So an
 ambiguous route samples from the derivation-weighted law $\propto d(y)\prod_iw_{i,y_i}$. Dang and Ermon call their
@@ -1097,7 +1100,9 @@ $O(L|\Sigma|^{\omega+1})$, and $\op{Sample}$ eliminates in that order and sample
 being the exact conditional. Derivations are assignments, so $d=\one_C$, which is why fixed target structures
 are immune to the ambiguity problem. The motivating case is the same-order copy relation \cite{sz26}, of width 1:
 $\op{Mass}=\prod_{i\le k}\sum_\sigma w_{i,\sigma}w_{i+k,\sigma}\times\prod_{i>2k}\sum_\sigma w_{i,\sigma}$.
-Elimination orders come from greedy minimum degree (George and Liu, SIAM Review 31(1):1--19, 1989).
+Elimination cost is governed by the induced width of the order, and the smallest width over all orders is
+the treewidth; finding an optimal order is NP-hard \cite{arnborg1987}, so we use the greedy minimum-degree
+heuristic (George and Liu, SIAM Review 31(1):1--19, 1989).
 
 \paragraph{Determinants.}
 Let $w_m(h)$ be the weight that node $m$ has head $h$, and $\hat L$ the reduced Laplacian with
@@ -1147,6 +1152,8 @@ CPU and batched samplers, SMC, resampling, diagnostics, exact laws, alphabets, a
 
 %======================================================================
 \begin{thebibliography}{99}\small
+\bibitem{aji2000} S.~M.~Aji and R.~J.~McEliece. The generalized distributive law. \emph{IEEE Trans.\ Inform.\ Theory} 46(2):325--343, 2000. doi:10.1109/18.825794.
+\bibitem{arnborg1987} S.~Arnborg, D.~G.~Corneil and A.~Proskurowski. Complexity of finding embeddings in a $k$-tree. \emph{SIAM J.\ Algebraic Discrete Methods} 8(2):277--284, 1987. doi:10.1137/0608024.
 \bibitem{broadrick2025} O.~Broadrick, S.~Agarwal, G.~Van den Broeck and M.~Bl\"aser. The limits of tractable marginalization. arXiv:2506.12020, 2025.
 \bibitem{dang2026icml} M.~Dang, J.~Song, H.~Zhang, H.~Zhao, G.~Van den Broeck and S.~Ermon. Mitigating bias in locally constrained decoding via tractable proposals. ICML 2026; arXiv:2606.01926.
 \bibitem{de26} M.~Dang and S.~Ermon. Constrained decoding for diffusion language models via efficient inference over finite automata. arXiv:2607.07026, 2026.
@@ -1155,9 +1162,12 @@ CPU and batched samplers, SMC, resampling, diagnostics, exact laws, alphabets, a
 \bibitem{hesterberg1995} T.~Hesterberg. Weighted average importance sampling and defensive mixture distributions. \emph{Technometrics} 37(2), 1995. doi:10.1080/00401706.1995.10484303.
 \bibitem{jerrumsnir1982} M.~Jerrum and M.~Snir. Some exact complexity results for straight-line computations over semirings. \emph{J.\ ACM} 29(3), 1982. doi:10.1145/322326.322341.
 \bibitem{jvv86} M.~R.~Jerrum, L.~G.~Valiant and V.~V.~Vazirani. Random generation of combinatorial structures from a uniform distribution. \emph{Theor.\ Comput.\ Sci.} 43:169--188, 1986. doi:10.1016/0304-3975(86)90174-X.
+\bibitem{kschischang2001} F.~R.~Kschischang, B.~J.~Frey and H.-A.~Loeliger. Factor graphs and the sum-product algorithm. \emph{IEEE Trans.\ Inform.\ Theory} 47(2):498--519, 2001. doi:10.1109/18.910572.
 \bibitem{koo2007} T.~Koo, A.~Globerson, X.~Carreras and M.~Collins. Structured prediction models via the matrix-tree theorem. In \emph{Proc.\ EMNLP-CoNLL 2007}, pp.~141--150. ACL Anthology D07-1015.
 \bibitem{marzouk2022} R.~Marzouk and C.~de la Higuera. Marginal inference queries in hidden Markov models under context-free grammar constraints. arXiv:2206.12862, 2022.
 \bibitem{nussinov1980} R.~Nussinov and A.~B.~Jacobson. Fast algorithm for predicting the secondary structure of single-stranded RNA. \emph{PNAS} 77(11), 1980. doi:10.1073/pnas.77.11.6309.
+\bibitem{sharp1987} P.~M.~Sharp and W.-H.~Li. The codon adaptation index --- a measure of directional synonymous codon usage bias, and its potential applications. \emph{Nucleic Acids Res.} 15(3):1281--1295, 1987. doi:10.1093/nar/15.3.1281.
+\bibitem{clarke2008} T.~F.~Clarke IV and P.~L.~Clark. Rare codons cluster. \emph{PLoS ONE} 3(10):e3412, 2008. doi:10.1371/journal.pone.0003412.
 \bibitem{sahoo2024} S.~S.~Sahoo, M.~Arriola, Y.~Schiff, A.~Gokaslan, E.~Marroquin, J.~T.~Chiu et al. Simple and effective masked diffusion language models. arXiv:2406.07524, 2024.
 \bibitem{sz26} J.~Su and W.~Zhang. Constraints are graphs, not chains: exact decoding for diffusion language models. arXiv:2609.32900, 2026.
 \bibitem{twister} A.~Thimmaiah, L.~Marinov, J.~Srinivasa, H.~Vikalo, J.~J.~Li and M.~Gligoric. Twist, don't tilt: trajectory-exact constrained decoding for masked diffusion models. arXiv:2609.35609, 2026.
