@@ -24,6 +24,15 @@ before any paper.
 - Ask clarifying questions early rather than proceed on assumptions.
 - Numbers in chat are copied from saved artifacts; when chat and an artifact disagree, the artifact is authoritative.
 - The user may step away; long waits on approvals should not block local work.
+- **Before editing a shared document, check its artifact version history, not just the local file.** Sessions
+  run in parallel frames against one artifact store. On 2026-11-06 two frames edited `twistroute_notes.tex`
+  at once: frame `cda5a5e2` saved a clarity rewrite as v10/v11, this frame then saved v12 from a stale local
+  copy and discarded it, and `cda5a5e2` reconciled at v13. Nothing was lost in the end, but only because the
+  other frame merged by hand. The check is cheap:
+  `host.query("SELECT version_number, id, frame_id FROM artifact_versions WHERE artifact_id=? ORDER BY version_number DESC", [aid])`
+  — if the latest version came from another frame, start from it rather than from the working copy, and pass
+  that version id as `version_of`. Note also that git and the artifact store drift independently: the other
+  frame saved artifacts without pushing, so git sat two versions behind the canonical document.
 
 ## 3. Code layout (three layers, docs/mrna_specs.md)
 
