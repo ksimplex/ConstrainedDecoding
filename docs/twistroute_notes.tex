@@ -956,7 +956,7 @@ reweighting across samples rather than within a trajectory.
 
 The closest prior construction is not in the decoding literature at all. LinearDesign \cite{zhang2023}
 encodes the synonymous-codon design space of a protein as a weighted DFA and runs \emph{lattice parsing}
-against an RNA folding grammar: the automaton-times-grammar conjunction of \cref{app:routes}, built for
+against an RNA folding grammar --- the automaton-times-grammar conjunction of \cref{app:routes}, built for
 exactly our application. The difference is the semiring. LinearDesign evaluates the intersection in
 max-times and returns the single optimum of a hand-written objective (free energy traded against codon
 adaptation); we evaluate it in sum-product and return samples from a learned model's conditional. By

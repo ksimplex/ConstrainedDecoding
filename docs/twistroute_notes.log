@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.6.10)  6 NOV 2026 22:28
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.6.10)  6 NOV 2026 22:32
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1078,7 +1078,7 @@ fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2024/texmf-dist/f
 onts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2024/texmf-di
 st/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2024/texm
 f-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on twistroute_notes.pdf (24 pages, 438602 bytes).
+Output written on twistroute_notes.pdf (24 pages, 438588 bytes).
 PDF statistics:
  794 PDF objects out of 1000 (max. 8388607)
  708 compressed objects within 8 object streams
