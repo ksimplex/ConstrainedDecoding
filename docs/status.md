@@ -72,7 +72,7 @@ is checked for E[Ẑ] = h₀.
 | 2026-11-04 | Layer 1 before layer 2; layer 2 builders contain no generic machinery. |
 | 2026-11-05 | Match mRNAutilus's independent-unmasking schedule for layer-3 runs. Default stays `"fixed"` and bit-identical. |
 | 2026-11-05 | Protein identity enters through the route (per-position allowed-codon masks), never by renormalising model predictions. |
-| 2026-11-06 | mRNA headline shifts to constrained families (target structure, GC windows, boundary-straddling motifs, conjunctions), where rule-based construction fails outright. Plain codon optimisation is demoted to a sanity check, not a claim. |
+| 2026-11-06 | mRNA headline shifts to constrained families (target structure, GC windows, boundary-straddling motifs, conjunctions), where rule-based construction fails outright. Plain codon optimisation is demoted to a sanity check, not a claim. **Amended 2026-11-13: "fails outright" is disproven (Sec. 7b) -- DNA Chisel solves every conjunction tested. The constrained families stay the headline, but on distributional grounds (they are not samplers), not feasibility.** |
 
 ## 5. Results (all [verified] against the named artifact unless marked)
 
@@ -160,7 +160,18 @@ It avoids a hard flash-attn dependency, so layer 3 runs on CPU for development a
   indices 5-68 + 17 nucleotide codes at 69-85. Note the model's codon order is TCAG-based and differs from
   `twistroute_bio.alphabet.CODONS`, which is lexicographic ACGT; the adapter must map between them.
 - **Synonymous-codon top-1 (n = 548 paired, one CDS):** model 0.398, frequency baseline 0.387, chance 0.295.
-  McNemar z = +0.53, **not significant**. The model's per-position mode matches a lookup table.
+  McNemar z = +0.53, not significant. **SUPERSEDED -- this protocol masks 20 positions at once**, so each
+  prediction conditions on a sequence with 20 holes, which is not the setting the sampler runs in.
+- **Codon choice under full conditioning (2026-11-13, `results/codon_scoring.csv`).** One position masked at a
+  time with every other position revealed, scoring the log-probability assigned to the OBSERVED codon (a proper
+  scoring rule; top-1 is not, since a natural CDS is one draw from a high-entropy conditional and even a perfect
+  model would often rank it second). n = 307 positions, 40 each in 8 genes, both predictors renormalised over
+  the same synonymous set: **mean gain +0.164 nats** (95% CI +0.100 to +0.229), paired t = 4.97 (p = 1.1e-6),
+  Wilcoxon p = 3.4e-11, closer at 229/307 positions, **positive in 8/8 genes**, perplexity 2.465 vs 2.905.
+  Top-1 on these same positions: **64.2% vs 53.1%, McNemar z = 4.49**. Same model, same metric as the row above;
+  the entire difference is how much context was revealed. A pseudo-likelihood, not a joint (MDLMs give an ELBO).
+  **So the model's conditional does carry information about codon choice beyond a lookup table**, and the earlier
+  negative read was a low-context artefact rather than a property of the model.
 - **But its joint does not factor.** TV of the predicted codon distribution against the real-context prediction:
   one distant codon flipped 0.002-0.006; whole context randomised 0.336; synonymous shuffle with protein preserved
   **0.261**.
@@ -237,8 +248,62 @@ previously stated the whole paragraph as established fact when parts of it came 
 - **5'UTR evaluation [from the sub-agent's reading of the full text, not independently checked]**: evaluated
   only distributionally (MFE and GC against 1,000 natural vertebrate 5'UTRs) plus end-to-end expression, with
   no 5'UTR functional benchmark, no mean-ribosome-load comparison, and no ablation separating the UTR
-  contribution from the CDS contribution. Confirm against the paper before relying on this to justify a UTR
-  experiment.
+  contribution from the CDS contribution. The no-ablation half is now **[confirmed]** -- every design varies CDS
+  and UTRs jointly, so no reported number isolates either.
+
+### What the paper establishes about its own model (read directly, pp. 1-20 of 32; 21-32 are references)
+
+Four tiers of evidence, only the last of which measures efficacy:
+
+1. **Pretraining [verified, text]** -- validated *purely distributionally*: 200-sequence libraries sampled
+   unconditionally at 1000/2500/5000 tokens against length-matched Ensembl vertebrate mRNAs on GC content
+   (slightly elevated, converging with length), length-normalised MFE (more stable than natural), Kozak motif
+   frequency, pairwise diversity and per-sequence entropy. **No likelihood, no held-out perplexity, no
+   reconstruction accuracy against any baseline.** Those five statistics are a low bar: a position-independent
+   codon-frequency sampler would plausibly match GC, diversity and entropy. Pretraining is 5,526,848 transcripts
+   from Ensembl 113 across 342 vertebrate species, 100K updates.
+2. **Embeddings [verified, figure]** -- XGBoost regressors on frozen embeddings predict half-life, translation
+   efficiency and protein abundance with held-out Spearman ~0.55-0.72 against ~0.92-0.95 on training data (read
+   off Fig. 2 panels; re-check the decimals before citing). Tests the encoder representation, not the
+   generative conditional, and the train/validation gap is large.
+3. **In-silico design [verified]** -- better than GEMORNA and random on CAI, normalised MFE, optimal-codon
+   frequency, GC and uridine content, and on their own three regressors, which are also the optimisation target.
+4. **Wet lab [verified, genuinely experimental]** -- IVT from PCR-amplified T7 templates (HiScribe T7 ARCA kit),
+   column-cleaned, DNase-treated, LiCl-precipitated, integrity-QC'd by capillary electrophoresis; transfected
+   with Lipofectamine MessengerMAX, or Neon NxT electroporation for PEmax in A549. Readouts: luciferase over 12
+   time points to 60 h; Spike surface protein by flow cytometry (MFI, 3,000 live cells); Cas9 immunoblot plus
+   **editing efficiency by Sanger sequencing** at HEK site 3; and for the ubiquibody, qPCR, a TOPFlash/FOPFlash
+   Wnt reporter and cytosolic beta-catenin immunoblot whose effect is **abolished by MG132**, placing it in the
+   ubiquitin-proteasome pathway. ~400-fold over wild-type firefly luciferase (a cross-species codon-usage
+   mismatch, so a low bar), and -- the comparisons that count -- above GEMORNA zero-shot and a GenScript-optimised
+   F-Luc CDS with human alpha-globin UTRs across Jurkat/A549/HepG2, with 3 of 4 Spike designs above BNT162b2 and
+   a commercial GenScript Spike construct in A549.
+
+**Consequence for us.** Nothing they report measures the base model in isolation; tier 4 validates the whole
+bundle (denoiser + three regressors + tree-guided steering + joint CDS/UTR design + template anchoring). So the
+question "is the conditional any good?" is not answered by their paper, and our scoring result (+0.164 nats over
+a frequency table under full conditioning, 8/8 genes) is a more direct measurement of it than anything they
+report. The two absent things that would have settled it: a held-out likelihood against baselines, and a
+CDS-versus-UTR ablation.
+
+**Caveats to carry into any writeup.** Four co-authors are GenScript employees and GenScript constructs are the
+main commercial comparator; n = 3 biological replicates, two-tailed t-test, not randomised, not blinded, one
+technical outlier removed by stated criteria. Separately, the Fluc and uAb constructs were transcribed with
+HiScribe ARCA (unmodified uridine) while constructs from GenScript plasmids used m1-pseudouridine with a cap1
+analogue -- a chemistry difference that, if it tracks design vs comparator, works *against* their own result.
+
+**Their constraint mechanism [verified, text] -- this is the one that matters for positioning.** Sec. 4.4.5:
+during sampling they permit only codons encoding the same amino acid as the corresponding codon in the input
+template, which "guarantees that the sampled mRNA sequence does not form an unintended protein product"; the
+same rejection is applied during pretraining denoising. That is exactly our per-position allowed-codon masking.
+**They do have hard constraints -- of the per-position, factorising kind.** What that cannot express is anything
+with cross-position structure: a restriction site straddling a codon boundary, a global GC band, a target
+secondary structure. Per-position masking under guided unmasking is also precisely the step-exact regime whose
+trajectory error Sec. 7c measures. So the claim is not "they cannot constrain" but **"they constrain exactly the
+factorising class, and we extend to the non-factorising class -- which is also where the trajectory correction
+begins to matter."** Their expansion is additionally template-anchored, so like DNA Chisel it perturbs a given
+sequence rather than sampling; neither baseline is a sampler, which is what the library-generation claim rests
+on. Property data and regressors are deposited at 10.5281/zenodo.19600209 if we ever want the labels.
 
 ## 7b. First constrained-family result (2026-11-06)
 
@@ -393,6 +458,41 @@ Repair fails with 1e56 solutions available: a narrow GC band is a thin shell tha
 enter, so the failure is in the search landscape rather than in solution scarcity. **Caveat:** this tests one
 randomised repair heuristic, not all heuristics; a purpose-built constraint solver (DNA Chisel) is the right
 comparator before any claim here.
+
+### The caveat was decisive: the feasibility claim is dead (2026-11-13)
+
+DNA Chisel 3.2.16 run on the same conjunctions, B2M, same stem-5 hairpin, same eight restriction sites
+(`results/conjunction_comparison.csv`; exact counts recomputed here, so the log10 figures differ slightly from
+the table above, which used a different feasible placement):
+
+| constraint | log10 #solutions | ad-hoc repair | DNA Chisel |
+|---|---|---|---|
+| structure only | 59.1 | found | solved, <0.1 s |
+| motifs only | 59.6 | found | solved, <0.1 s |
+| motifs + GC 47-53% | 58.9 | found | solved, <0.1 s |
+| motifs + GC 49.5-50.5% | 57.3 | not tested | solved, <0.1 s |
+| stem5 + motifs + GC 47-53% | 58.0 | found | solved, <0.1 s |
+| stem5 + motifs + GC 49.5-50.5% | 56.4 | **failed** | solved, <0.1 s |
+| stem5 + motifs + GC 60-62% | 37.1 | **failed** | solved, <0.1 s |
+
+Every DNA Chisel solution was verified against an independent checker -- protein preserved, no sites, GC inside
+the band, all five stem positions paired -- including the hardest case, which needed 72 nucleotide changes.
+**So "rule-based construction fails on conjunctions" is false.** What failed was one randomised repair
+heuristic; a real constraint solver with localised backtracking handles every conjunction posed, instantly.
+Had the conjunction experiment been built before this check, its central comparison would have been a strawman.
+
+**What survives.** Not feasibility but *distribution*. DNA Chisel returns ONE sequence, 1-72 nt from its input:
+a minimal perturbation, not a sample, and it has no notion of relative frequency among the 1e56 valid
+alternatives. mRNAutilus's own expansion is likewise template-anchored. For library generation -- many valid,
+diverse candidates in correct relative proportion -- neither is a sampler at all, and that is the measurable
+claim. Reframe the conjunction experiment around diversity at matched validity, with DNA Chisel as a baseline
+that SUCCEEDS on feasibility, rather than as one that fails.
+
+**Also found here.** The stem-5 placement tested is feasible only via GU wobble: two of its five positions have
+zero Watson-Crick options once the protein is fixed. `TargetStructure` has `wobble=True` by default, so the
+feasibility fractions in Sec. 7b (12.0% of placements at stem 3 down to 1.6% at stem 7) count wobble-dependent
+stems as feasible. A GU-held stem is weak biophysically, so the fraction usable for real design is lower than
+those figures state -- unquantified as yet, and a one-line change to re-measure.
 
 **Compiler note.** The structure x GC-band conjunction needs `max_cells` above the 2e7 default (363^3 cells);
 at 2e8 it compiles in 0.4 s. The default is conservative rather than a capability limit.

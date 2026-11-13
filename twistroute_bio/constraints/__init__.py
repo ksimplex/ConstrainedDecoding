@@ -21,6 +21,7 @@ the model's predictions. Masking predictions step by step is the step-local proj
 trajectory law (notes, Sec. 1); a mask applied inside the route is a constraint like any other and the twisted
 SMC weights account for it exactly.
 """
+import math
 from dataclasses import dataclass, field
 import itertools
 import numpy as np
@@ -69,10 +70,28 @@ class GCBand:
     lo: int
     hi: int
 
+    def __post_init__(self):
+        # lo/hi are COUNTS of G+C bases, not fractions. Passing 0.495 instead of round(0.495 * n_nt) builds
+        # the automaton "at most 0 GC bases, at least 1", whose language is empty -- which previously showed
+        # up far downstream as an empty intersection or a zero-edge route, and cost a debugging detour.
+        for f, v in (("lo", self.lo), ("hi", self.hi)):
+            if v != int(v):
+                raise ValueError(
+                    f"GCBand.{f}={v!r} is not an integer. lo/hi are G+C BASE COUNTS, not fractions; "
+                    f"for a fraction of a sequence of length n_nt pass round({v!r} * n_nt).")
+        self.lo, self.hi = int(self.lo), int(self.hi)
+        if self.lo > self.hi:
+            raise ValueError(f"GCBand lo={self.lo} exceeds hi={self.hi}")
+
     def dfas(self):
         gc = {NUCLEOTIDES.index("C"), NUCLEOTIDES.index("G")}
         step = lambda c, y: None if c + (y in gc) > self.hi else c + (y in gc)
         return [C.build_dfa(0, step, lambda c: c >= self.lo, 4, name=f"gc[{self.lo},{self.hi}]")]
+
+    @classmethod
+    def fraction(cls, lo, hi, n_nt):
+        """Band given as a fraction of sequence length, e.g. GCBand.fraction(0.495, 0.505, 360)."""
+        return cls(math.ceil(lo * n_nt), math.floor(hi * n_nt))
 
     def check(self, nuc):
         return self.lo <= nuc.count("G") + nuc.count("C") <= self.hi

@@ -44,6 +44,11 @@ class TorchChain:
 
     def __init__(self, wdfa, device="cpu"):
         e = torch.tensor(wdfa.edges, dtype=torch.long)
+        # A trimmed-to-empty automaton has no edges at all, and e arrives as a 1-D empty tensor. That is a
+        # real answer -- the constraint is unsatisfiable -- so reshape rather than raising: logZ then comes
+        # back as -inf, which every caller already handles, instead of an IndexError deep in the transfer.
+        if e.ndim == 1:
+            e = e.reshape(0, 3)
         self.src, self.sym, self.dst = (e[:, k].to(device) for k in range(3))
         self.Q, self.q0, self.A = wdfa.n, wdfa.q0, wdfa.A
         self.Fmask = torch.zeros(self.Q, dtype=torch.bool, device=device)

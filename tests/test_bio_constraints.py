@@ -127,3 +127,35 @@ def test_wobble_pairing_is_optional():
     gu, wc = TargetStructure(((0, 5),), wobble=True), TargetStructure(((0, 5),), wobble=False)
     assert gu.check("GAAAAT") and not wc.check("GAAAAT")     # G-U (written T) pairs only under wobble
     assert gu.check("GAAAAC") and wc.check("GAAAAC")         # G-C pairs under both
+
+
+def test_gc_band_rejects_a_fraction_and_offers_the_count_constructor():
+    """A fraction passed where a COUNT is expected used to compile to an empty language, silently.
+
+    GCBand(0.495, 0.505) means "at most 0 GC bases, at least 1" -- unsatisfiable -- and the emptiness only
+    surfaced much later as an empty intersection or a zero-edge route, far from the mistake. It now fails at
+    construction, naming the conversion.
+    """
+    with pytest.raises(ValueError, match="COUNTS"):
+        GCBand(0.495, 0.505)
+    with pytest.raises(ValueError, match="COUNTS"):
+        GCBand(10, 20.5)
+    with pytest.raises(ValueError):
+        GCBand(20, 10)                                   # lo above hi
+
+    b = GCBand.fraction(0.495, 0.505, 360)
+    assert (b.lo, b.hi) == (179, 181)                    # ceil(178.2), floor(181.8)
+    assert isinstance(b.lo, int) and isinstance(b.hi, int)
+    # The band a fraction constructor produces is satisfiable where the raw fraction was not.
+    cds = compile_cds("LRG", [GCBand(5, 7)])
+    assert any(cds.check(list(c)) for c in _all_valid("LRG"))
+
+
+def test_unsatisfiable_route_counts_zero_rather_than_raising():
+    """An over-tight band is infeasible, not an error: the route should exist and have no accepting paths."""
+    from twistroute.torch_routes.build import torch_route
+    cds = compile_cds("LRG", [GCBand(0, 0)])             # every codon here carries at least one G or C
+    r = torch_route(cds.route, "cpu")
+    lz = r.logZ(torch.zeros(1, cds.n_codons, 64, dtype=torch.float64)).reshape(-1)[0]
+    assert torch.isinf(lz) and lz < 0
+    assert not any(cds.check(list(c)) for c in _all_valid("LRG"))

@@ -28,6 +28,7 @@ run stopped by a scheduler time limit still returns what it finished.
 """
 import json
 import random
+import statistics as st
 import sys
 import time
 
@@ -63,7 +64,13 @@ def draws(den, classes, route, n_codons, nrun, K, seed, dev="cpu", chunk_rows=CH
     return np.concatenate(out)
 
 
-def run(weights, cds_path, out_path, n_genes=12):
+def run(weights, cds_path, out_path, n_genes=12, budget_s=0):
+    """`budget_s` > 0 stops before starting a gene that would not finish, instead of being killed mid-gene.
+
+    The 2026-11-07 run was killed by the scheduler at 5.4 h partway through gene 7, which cost that gene's
+    compute and -- worse -- left the completed set correlated with length, since genes run shortest-first.
+    Stopping cleanly records which genes were skipped so a later job can take exactly those.
+    """
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     torch.ones(1, device=dev)                                        # fail fast on a bad node
     hum = json.load(open(cds_path))
@@ -79,7 +86,19 @@ def run(weights, cds_path, out_path, n_genes=12):
     results = []
 
     targets = sorted([h for h in hum if 90 <= h["n_codons"] <= 260], key=lambda h: h["n_codons"])[:int(n_genes)]
+    budget_s, t_start, skipped = float(budget_s), time.time(), []
+    # Cost is roughly quadratic in length; the coefficient is re-estimated from this job's own completed
+    # genes once there are any, since it varies with GPU model.
+    rate = 2.25e-4
     for h in targets:
+        if budget_s:
+            used = time.time() - t_start
+            if used + rate * h["n_codons"] ** 2 > budget_s:
+                skipped.append(h["gene"])
+                print(f"{h['gene']:<8} N={h['n_codons']:<4} skipped: "
+                      f"{rate * h['n_codons']**2/60:.0f} min needed, {(budget_s-used)/60:.0f} min left",
+                      flush=True)
+                continue
         nat = h["cds"]
         protein = translate([CODONS.index(nat[i:i + 3]) for i in range(0, len(nat), 3)])[:-1]
         cds = compile_cds(protein, [Motifs(forbidden=SITES)])
@@ -106,10 +125,15 @@ def run(weights, cds_path, out_path, n_genes=12):
         row["excess_corrected"] = row["tv_corrected"] - floor
         row["excess_step_exact"] = row["tv_step_exact"] - floor
         results.append(row)
+        rate = st.mean([x["seconds"] / x["n_codons"] ** 2 for x in results])
         print(f"{h['gene']:<8} N={N:<4} {row['seconds']:>6.0f}s  floor {floor:.4f}  "
               f"corrected {row['excess_corrected']:+.4f}  step-exact {row['excess_step_exact']:+.4f}", flush=True)
-        json.dump(dict(results=results, T=T_STEPS, K_ref=K_REF, K_arm=K_ARM,
+        json.dump(dict(results=results, skipped=skipped, T=T_STEPS, K_ref=K_REF, K_arm=K_ARM,
                        n_ref=N_REF, n_arm=N_ARM, n_pairs=N_PAIRS), open(out_path, "w"))
+    json.dump(dict(results=results, skipped=skipped, T=T_STEPS, K_ref=K_REF, K_arm=K_ARM,
+                   n_ref=N_REF, n_arm=N_ARM, n_pairs=N_PAIRS), open(out_path, "w"))
+    if skipped:
+        print(f"skipped for time budget: {', '.join(skipped)}", flush=True)
     return results
 
 

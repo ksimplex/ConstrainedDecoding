@@ -1,0 +1,8 @@
+conjunction,log10_solutions,exact_compile,dnachisel,dnachisel_seconds,dnachisel_verified,adhoc_repair
+structure only,59.07,yes,solved,0.0,yes,solved
+motifs only,59.65,yes,solved,0.0,yes,solved
+motifs+GC 47-53,58.87,yes,solved,0.0,yes,solved
+motifs+GC 49.5-50.5,57.28,yes,solved,0.0,yes,not tested
+struct+motifs+GC 47-53,57.96,yes,solved,0.0,yes,solved
+struct+motifs+GC 49.5-50.5,56.38,yes,solved,0.0,yes,failed
+struct+motifs+GC 60-62,37.1,yes,solved,0.0,yes,failed

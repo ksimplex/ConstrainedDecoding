@@ -24,7 +24,7 @@ Alphabet confirmed: codons at indices 5-68, nucleotide codes 69-85 (`Alphabet_un
 config's `any_tokenizer_discrepancies` check enforces). The `default_config["alphabet"]` entry lists the
 opposite order but is not used for tokenization.
 
-## 2. Codon choice: the model does not beat codon usage bias
+## 2. Codon choice: the model beats codon usage bias once it is measured properly
 
 Task: mask codon positions, restrict the model's output to the synonymous codons of the true residue (which is
 what our setting does, since the protein is fixed), and take the top-1 codon. Reference is not chance but the
@@ -41,9 +41,48 @@ n = 548 masked positions (30 draws of 20 positions), paired on position:
 Paired: 152 both correct, 66 model only, 60 baseline only, 270 neither. McNemar z = +0.53 on 126 discordant
 pairs: **not significant**.
 
-Both beat chance, so the model has learned codon usage. But at top-1 synonymous choice it adds nothing
-measurable over a lookup table. This is the FactorDLM triviality warning, instantiated: a constraint family
-whose answer a model-free rule reproduces is a family where the model's distribution does no work.
+Both beat chance, so the model has learned codon usage. At top-1 synonymous choice under THIS protocol it
+adds nothing measurable over a lookup table.
+
+### 2a. The protocol above understates the model (2026-11-13)
+
+Two things were wrong with reading the table above as "the model does no work".
+
+**The context was mostly removed.** Each draw masks 20 positions at once, so every prediction conditions on a
+sequence with 20 holes in it. That is not the setting the sampler runs in: constrained decoding conditions on
+everything already decided, which late in a trajectory is nearly the whole sequence. The right question is
+what the model knows given maximal context, which is one position masked at a time.
+
+**Top-1 accuracy is the wrong instrument.** A natural CDS is one draw from a high-entropy conditional, so even
+a perfect model of that conditional will frequently rank the observed codon second. Near-baseline accuracy is
+weak evidence of a weak model. The field agrees by its practice: no published learned method reports
+per-position reconstruction accuracy as a primary result (`codon_benchmark_landscape.md`), and mRNAutilus's own
+paper validates its pretraining distributionally -- GC, length-normalised MFE, Kozak frequency, pairwise
+diversity, per-sequence entropy -- never by accuracy or likelihood.
+
+Rescoring with one position masked at a time, every other position revealed, and scoring the log-probability
+assigned to the OBSERVED codon (a proper scoring rule, uniquely optimised by the true conditional), both
+predictors renormalised over the same synonymous set. n = 307 positions, 40 sampled positions in each of 8
+genes (`results/codon_scoring.csv`):
+
+| | value |
+|---|---|
+| mean log-probability gain over the frequency table | **+0.164 nats** (95% CI +0.100 to +0.229) |
+| paired t / Wilcoxon | t = 4.97, p = 1.1e-6 / p = 3.4e-11 |
+| positions where the model is closer | 229 / 307 (74.6%) |
+| genes with a positive gain | 8 / 8 |
+| per-position perplexity | model 2.465 vs frequency 2.905 |
+| top-1 on the SAME positions | model 64.2% vs frequency 53.1%, McNemar z = 4.49 |
+
+Top-1 moves from 39.8/38.7 (z = +0.53) to 64.2/53.1 (z = 4.49) on the same model and the same metric. The
+whole difference is how much context was revealed. So the triviality warning does not apply to this family:
+the model's conditional carries real information about codon choice beyond a lookup table, and the earlier
+negative read was an artefact of masking 20 positions simultaneously.
+
+Caveats: this is a pseudo-likelihood (a sum of per-position conditionals), not a joint likelihood -- masked
+diffusion models give only an ELBO for the latter. It is also the right object for the design question, which
+is per-position codon choice given context rather than the probability of a whole transcript. 8 genes, 40
+positions each, one masked position at a time.
 
 Earlier, weaker runs that pointed the same way: single-position masking gave model 0.435 vs baseline 0.522
 (n = 23, far too small to interpret); 20-position masking gave 0.420 vs 0.366 (n = 112, inside the noise).
