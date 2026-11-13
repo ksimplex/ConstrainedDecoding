@@ -324,10 +324,14 @@ issues.
 
 **Recovery note (2026-11-07).** The workspace was cleared while idle, destroying two unpushed commits. The
 results themselves were safe as artifacts (`mrna_correction_size.csv/png`, `structure_feasibility.csv`, this
-file), and the code was rebuilt from the transcript; `results/bias_results.json`, the raw per-gene record, was
-not saved as an artifact and is gone, though `mrna_correction_size.csv` carries every number reported from it.
-The panel's original accessions were also lost, and have been recovered by pinning on (gene symbol, CDS
-length) taken from the results table -- verified to return the same six transcripts.
+file) and the code was rebuilt from the transcript. The two files that were neither -- `bias_results.json`,
+the raw per-gene record, and `bias_cds.json`, the gene panel -- were recovered from the SLURM job's own
+working directory on the cluster, which had not yet been cleaned. Every per-gene number in
+`mrna_correction_size.csv` reproduces from the recovered record exactly, and the panel is now pinned by
+RefSeq accession (`experiments/fetch_human_cds.py`), verified to refetch all 16 CDSs byte-for-byte.
+Both files are now artifacts. The near miss is the point: the cleanup that was queued as a routine chore
+would have destroyed the only surviving copy, which is why it is worth looking inside a scratch directory
+before removing it.
 
 **Infrastructure lessons** (recorded in `compute_details` for ssh:ondemand): a 592 MB artifact stage stalled
 51 min on a degraded link and succeeded at 296 MB once converted to bf16 -- the dtype the GPU job computes in

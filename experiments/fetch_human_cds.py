@@ -26,15 +26,27 @@ _TCAG, _AAS = "TCAG", "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAAD
 CODE = {a + b + c: _AAS[16 * i + 4 * j + k]
         for i, a in enumerate(_TCAG) for j, b in enumerate(_TCAG) for k, c in enumerate(_TCAG)}
 
-#: The 16-gene panel, pinned by (gene symbol, CDS length in codons). Symbol alone is not enough: several of
-#: these genes have transcript isoforms of different lengths and an unpinned search picks a different one on
-#: a different day. The lengths below are those of the transcripts actually used on 2026-11-07; the first six
-#: are the genes that run completed (results/mrna_correction_size.csv). The accessions themselves were lost
-#: when the workspace was cleared before they were committed, so the length is the tightest available pin --
-#: once this script has run, `results/bias_cds.json` records the accessions and should be preferred.
-PANEL = (("CCL4L1", 93), ("PDE6D", 94), ("NDUFA2", 100), ("CRYAB", 109), ("IFT43", 114), ("B2M", 120),
-         ("KISS1", 139), ("HBB", 148), ("BCL11A", 158), ("NMNAT1", 161), ("NDUFAF2", 170), ("FTL", 176),
-         ("KRAS", 189), ("CRYBA4", 197), ("CSNK2B", 213), ("TSFM", 216))
+#: The 16-gene panel, pinned by RefSeq accession. Neither a search nor a gene symbol is a sufficient pin:
+#: the search returns a different gene set on a different day, and several of these symbols have transcript
+#: isoforms of different lengths. The accessions below are those of the transcripts the 2026-11-07 GPU run
+#: used, recovered from that job's own input file; the first six are the genes it completed before its
+#: scheduler limit (results/mrna_correction_size.csv).
+PANEL = (("CCL4L1", "NM_207007.4"),
+         ("PDE6D", "NM_001291018.2"),
+         ("NDUFA2", "NM_002488.5"),
+         ("CRYAB", "NM_001368246.1"),
+         ("IFT43", "NM_001255995.3"),
+         ("B2M", "NM_004048.4"),
+         ("KISS1", "NM_002256.4"),
+         ("HBB", "NM_000518.5"),
+         ("BCL11A", "NM_001405736.1"),
+         ("NMNAT1", "NM_001297779.2"),
+         ("NDUFAF2", "NM_174889.5"),
+         ("FTL", "NM_000146.4"),
+         ("KRAS", "NM_004985.5"),
+         ("CRYBA4", "NM_001886.3"),
+         ("CSNK2B", "NM_001282385.2"),
+         ("TSFM", "NM_001172697.2"))
 
 
 def _get(ep, **q):
@@ -99,14 +111,12 @@ def main(outdir, n_panel=16):
     # days, which would make the reported numbers irreproducible; the first six below are the ones the
     # 2026-11-07 GPU run completed before its scheduler limit, so those must stay fixed.
     pool = []
-    for sym, n_cod in PANEL:
-        got = fetch(f'{base} AND {sym}[Gene Name]', 40, lo=60, hi=400)
-        exact = [h for h in got if h["gene"].upper() == sym.upper() and h["n_codons"] == n_cod]
-        if not exact:
-            avail = sorted({h["n_codons"] for h in got if h["gene"].upper() == sym.upper()})
-            print(f"  WARNING: {sym} has no {n_cod}-codon transcript; available: {avail}")
+    for sym, acc in PANEL:
+        got = _parse(_get("efetch.fcgi", db="nuccore", id=acc, rettype="gb", retmode="text"))
+        if not got:
+            print(f"  WARNING: {acc} ({sym}) returned no parseable CDS")
             continue
-        pool.append(sorted(exact, key=lambda h: h["acc"])[0])
+        pool.append(got[0])
         time.sleep(0.3)
     panel = sorted(pool, key=lambda h: h["n_codons"])
     json.dump(panel, open(f"{outdir}/bias_cds.json", "w"))
