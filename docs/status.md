@@ -323,15 +323,29 @@ attention path, ~2-3x slower than flash, chosen deliberately after three earlier
 issues.
 
 **Recovery note (2026-11-07).** The workspace was cleared while idle, destroying two unpushed commits. The
-results themselves were safe as artifacts (`mrna_correction_size.csv/png`, `structure_feasibility.csv`, this
-file) and the code was rebuilt from the transcript. The two files that were neither -- `bias_results.json`,
-the raw per-gene record, and `bias_cds.json`, the gene panel -- were recovered from the SLURM job's own
-working directory on the cluster, which had not yet been cleaned. Every per-gene number in
-`mrna_correction_size.csv` reproduces from the recovered record exactly, and the panel is now pinned by
-RefSeq accession (`experiments/fetch_human_cds.py`), verified to refetch all 16 CDSs byte-for-byte.
-Both files are now artifacts. The near miss is the point: the cleanup that was queued as a routine chore
-would have destroyed the only surviving copy, which is why it is worth looking inside a scratch directory
-before removing it.
+results were all safe as artifacts -- `mrna_correction_size.csv/png`, `structure_feasibility.csv`, this file,
+and also `bias_results.json` and `bias_cds.json`, both saved on 2026-11-07 -- and only the code in the two
+unpushed commits had to be rebuilt, from the transcript.
+
+Every per-gene number in `mrna_correction_size.csv` reproduces from the raw record exactly, and the panel is
+now pinned by RefSeq accession (`experiments/fetch_human_cds.py`), verified to refetch all 16 CDSs
+byte-for-byte.
+
+**Correction (2026-11-13), and the more useful lesson.** The paragraph above originally said that
+`bias_results.json` and `bias_cds.json` had never been saved as artifacts and had been recovered from the
+SLURM job's working directory on the cluster -- that the queued cleanup would have destroyed the only
+surviving copy. That was wrong. Both files already had a version 1 in the artifact store, saved on
+2026-11-07, byte-identical to what the cluster search returned; `host.query` on `artifact_versions` shows it
+directly. The SSH search was unnecessary work that independently re-derived files already in hand, and the
+claim was then propagated into a pushed commit message before being caught in review.
+
+The lesson is not the one the original paragraph drew. §2 of this document already says to check an
+artifact's version history before acting on it, and that rule was simply not applied: a one-line
+`host.query` would have answered the question that a multi-step cluster search was used for. **Check the
+artifact store before concluding anything is lost, and before reconstructing or re-deriving it.** The
+store -- not the workspace, not git, not a recollection of what was saved -- is the authority on what exists.
+The audit-before-delete habit for cluster scratch is still worth keeping, but on its own merits, not because
+of a near miss that did not happen.
 
 **Infrastructure lessons** (recorded in `compute_details` for ssh:ondemand): a 592 MB artifact stage stalled
 51 min on a degraded link and succeeded at 296 MB once converted to bf16 -- the dtype the GPU job computes in
