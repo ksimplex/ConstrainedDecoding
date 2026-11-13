@@ -79,6 +79,16 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         raise ValueError("twist_power must lie in (0, 1]")
     if not 0.0 <= mix_native < 1.0:
         raise ValueError("mix_native must lie in [0, 1)")
+    # A generator on the wrong device fails deep inside the route sampler with a message that names
+    # torch.rand rather than the caller (seen on a GPU job after it had already loaded the model). CPU tests
+    # cannot catch it, since the mismatch only exists once the route is on CUDA. Check it here instead.
+    if gen is not None:
+        want = getattr(route, "device", None)
+        if want is not None and torch.device(gen.device).type != torch.device(want).type:
+            raise ValueError(
+                f"generator is on {gen.device} but the route is on {want}; "
+                f"create it with torch.Generator(device='{torch.device(want).type}')")
+
     tau = float(twist_temp)
     if not 0.0 < tau <= 1.0:
         raise ValueError("twist_temp must lie in (0, 1]")

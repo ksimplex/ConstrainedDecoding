@@ -13,6 +13,7 @@ class TorchMasked:
         self.inner = inner
         self.allowed = torch.as_tensor(allowed, dtype=torch.bool, device=device)
         self.L, self.A = self.allowed.shape
+        self.device = device
         self.name = name or f"masked({getattr(inner, 'name', 'route')})"
 
     def _mask(self, lw):

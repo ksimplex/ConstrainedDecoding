@@ -84,6 +84,7 @@ class TorchLifted:
 
     def __init__(self, inner, base_of, A, device="cpu", name=None, valid=None):
         self.inner, self.A = inner, A
+        self.device = device
         self.base_of = torch.as_tensor(base_of, dtype=torch.long, device=device)
         self.valid = None if valid is None else torch.as_tensor(valid, dtype=torch.bool, device=device)
         self.name = name or getattr(inner, "name", "lifted")

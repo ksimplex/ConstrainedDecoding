@@ -286,3 +286,26 @@ def test_log_mean_exp_matches_the_naive_computation():
     want0 = math.log(sum(math.exp(v) for v in [-1.0, 0.0, 2.0]) / 3)
     assert abs(float(got[0]) - want0) < 1e-12
     assert abs(float(got[1]) - (-900.0 + math.log((1 + math.exp(-1) + math.exp(-2)) / 3))) < 1e-9
+
+
+def test_generator_device_mismatch_is_caught_with_a_clear_message():
+    """A CPU generator against a CUDA route fails deep inside torch.rand, naming neither the caller nor the
+    cause; a GPU job died that way after loading a 148M-parameter model. No CPU-only test can reproduce the
+    real failure, so the guard is checked against a route that merely claims to be on another device."""
+    import pytest
+    import torch
+    from twistroute.decode.smc import twisted_smc
+    from twistroute.models.classes import TokenClasses
+    from twistroute.torch_routes.build import build_route
+
+    class Den:
+        mask_id, V = 4, 5
+        def logits(self, x):
+            lp = torch.zeros(x.shape + (self.V,)); lp[..., self.mask_id] = float("-inf")
+            return torch.log_softmax(lp, -1)
+
+    route = build_route(dict(kind="forbidden", A=4, N=6, patterns=[[0, 0]]), "cpu")
+    route.device = "cuda"                                  # pretend; no GPU needed to exercise the check
+    cl = TokenClasses(torch.tensor([0, 1, 2, 3, 0]), 4, excluded=(4,))
+    with pytest.raises(ValueError, match="generator is on cpu but the route is on cuda"):
+        twisted_smc(Den(), cl, route, 6, 3, 2, 1, torch.Generator().manual_seed(0))

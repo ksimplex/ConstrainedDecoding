@@ -24,6 +24,14 @@ before any paper.
 - Ask clarifying questions early rather than proceed on assumptions.
 - Numbers in chat are copied from saved artifacts; when chat and an artifact disagree, the artifact is authoritative.
 - The user may step away; long waits on approvals should not block local work.
+- **Commit AND push before any long wait.** The workspace is cleared when a session sits idle. On
+  2026-11-07 it was wiped with two commits unpushed; the results survived only because they were artifacts,
+  and the code had to be reconstructed. An artifact is durable, a workspace file is not, and a local commit
+  is not either. Anything worth keeping is either pushed or saved with `save_artifacts` before a wait.
+- **Pin experiment inputs by identifier, not by query.** The gene panel was originally built by an NCBI
+  `esearch`, which returns a different gene set on a different day and different transcript isoforms for the
+  same symbol. `experiments/fetch_human_cds.py` now pins by (symbol, CDS length) and records accessions into
+  `results/bias_cds.json`; prefer the accessions once they exist.
 - **Before editing a shared document, check its artifact version history, not just the local file.** Sessions
   run in parallel frames against one artifact store. On 2026-11-06 two frames edited `twistroute_notes.tex`
   at once: frame `cda5a5e2` saved a clarity rewrite as v10/v11, this frame then saved v12 from a stale local
@@ -277,6 +285,93 @@ planned as two arms and are one. Any paper comparing against "both" is comparing
 **Cost note.** The CPU denoiser degrades superlinearly with batch width: 0.55 s/row at batch 4 against
 1.86 s/row at batch 16 (memory pressure, not compute). Scaled-up runs should chunk the batch or move to GPU;
 a 148-codon gene at T = 16 took about 8 minutes per model arm.
+
+## 7c. The trajectory correction measurably changes the sampled distribution (2026-11-06/07)
+
+This is the comparison that tests **our** contribution rather than mRNAutilus's, and it was the gap left open
+by Sec. 7b.
+
+**Why it needed a different design from E1.** E1 measured TV against a *rejection* reference: draw native
+samples, keep those satisfying C. For a coding sequence the constraint includes the protein, whose native
+probability is ~1e-40, so no rejection reference exists. Instead the reference is the corrected sampler at
+K = 32; the arms are the corrected sampler at K = 8 and step-exact decoding (K = 1, weights ignored).
+
+**What this measures, stated exactly.** The *size of the trajectory correction*: how far step-exact decoding's
+output sits from the corrected sampler's at higher K. It does **not** independently establish that the
+corrected sampler is exact on this model -- if K = 8 and K = 32 shared a bias, this design could not see it.
+The warrant for the reference is the exactness theorem plus its enumeration check on toy families
+(TV <= 4e-16 at L = 4, 6), not this experiment.
+
+**Result** (`results/mrna_correction_size.csv`, figure `results/mrna_correction_size.png`,
+raw `results/bias_results.json`). TV excess over a matched sampling floor, 400 sampled codon-position pairs,
+2048 reference draws and 768 per arm, T = 16, one L40S:
+
+| arm | TV excess over floor | above floor in |
+|---|---|---|
+| corrected sampler (K = 8) | **-0.0030** (95% CI -0.0051 to -0.0008) | 1/6 genes |
+| step-exact (uncorrected) | **+0.0206** (95% CI +0.0137 to +0.0320) | **6/6 genes** |
+
+Paired difference +0.0236 (95% CI +0.0165 to +0.0348). Step-exact's excess averages 0.37x the floor itself.
+Both arms satisfy the constraint on 100% of samples, so this is purely distributional. The corrected sampler
+sitting *at* the floor says it has converged by K = 8; step-exact sitting above it on every gene says the
+correction changes what is sampled.
+
+**Caveats.** 6 of 16 genes completed before the 5 h SLURM limit (exit 143 at 5.4 h wall); the 6 are the
+shortest in the panel, 93-120 codons, so length is confounded with completion and the longer genes are
+untested. Partial results survived only because the script writes after each gene. The run used the non-flash
+attention path, ~2-3x slower than flash, chosen deliberately after three earlier GPU jobs died on flash/dtype
+issues.
+
+**Recovery note (2026-11-07).** The workspace was cleared while idle, destroying two unpushed commits. The
+results themselves were safe as artifacts (`mrna_correction_size.csv/png`, `structure_feasibility.csv`, this
+file), and the code was rebuilt from the transcript; `results/bias_results.json`, the raw per-gene record, was
+not saved as an artifact and is gone, though `mrna_correction_size.csv` carries every number reported from it.
+The panel's original accessions were also lost, and have been recovered by pinning on (gene symbol, CDS
+length) taken from the results table -- verified to return the same six transcripts.
+
+**Infrastructure lessons** (recorded in `compute_details` for ssh:ondemand): a 592 MB artifact stage stalled
+51 min on a degraded link and succeeded at 296 MB once converted to bf16 -- the dtype the GPU job computes in
+anyway; weights now live at `~/orcd/pool/cfg-twister/weights/` and later jobs symlink them with an `ssh://`
+locator, needing no upload. One failure was mine: a CPU RNG generator against CUDA tensors, which no CPU test
+can reproduce. `twisted_smc` now raises a clear error on that mismatch (test in `test_smc.py`).
+
+## 7d. Target-structure family: feasibility is the binding constraint (2026-11-07)
+
+Pre-test for the second constraint family, before committing GPU time.
+
+**Exact target structures are mostly infeasible under a fixed protein.** Only ~44% of nucleotide positions
+are free once the protein is set, and they concentrate at wobble positions (116 of 162 at offset 2 on B2M).
+Feasible hairpin placements, 8 genes, `results/structure_feasibility.csv` [verified]:
+
+| stem | feasible placements |
+|---|---|
+| 3 bp | 12.0% (8.5-16.3) |
+| 4 bp | 7.7% (4.9-11.5) |
+| 5 bp | 6.0% (3.7-8.2) |
+| 6 bp | 2.0% (1.1-3.7) |
+| 7 bp | 1.6% (0.8-2.8) |
+
+This is a *capability* argument, not a quality one: the compiler answers "infeasible" exactly and instantly,
+while a heuristic that fails to find a solution cannot distinguish infeasible from not-found.
+
+**Correction to an earlier claim.** Sec. 8 said target structure is where rule-based construction "fails
+outright". That is not supported: for a single feasible hairpin, randomised repair finds a solution easily,
+because ~1e57 sequences satisfy it. Where repair does fail is conjunctions:
+
+| constraint | log10 #solutions | repair, 50k tries |
+|---|---|---|
+| stem5 + GC 47-53% | 57.7 | found |
+| stem5 + motifs + GC 47-53% | 57.4 | found |
+| stem5 + motifs + GC 49.5-50.5% | 56.0 | **failed** |
+| stem5 + motifs + GC 60-62% | 36.6 | **failed** |
+
+Repair fails with 1e56 solutions available: a narrow GC band is a thin shell that random local moves rarely
+enter, so the failure is in the search landscape rather than in solution scarcity. **Caveat:** this tests one
+randomised repair heuristic, not all heuristics; a purpose-built constraint solver (DNA Chisel) is the right
+comparator before any claim here.
+
+**Compiler note.** The structure x GC-band conjunction needs `max_cells` above the 2e7 default (363^3 cells);
+at 2e8 it compiles in 0.4 s. The default is conservative rather than a capability limit.
 
 ## 8. Framing (revised 2026-11-06)
 
