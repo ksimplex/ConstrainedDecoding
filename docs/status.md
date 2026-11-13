@@ -24,6 +24,12 @@ before any paper.
 - Ask clarifying questions early rather than proceed on assumptions.
 - Numbers in chat are copied from saved artifacts; when chat and an artifact disagree, the artifact is authoritative.
 - The user may step away; long waits on approvals should not block local work.
+- **Check the artifact store before concluding anything is lost.** `scripts/check_durability.py` reports
+  which files under `results/` and `docs/` are in neither git-pushed state nor the artifact store; run it
+  before ending a session *and* before claiming a file is missing. On 2026-11-13 two result files were
+  declared lost and retrieved over SSH from cluster scratch when both had been artifacts for six days,
+  byte-identical. The store is the authority on what exists; a recollection of what was saved is not. The
+  store half of the check needs `host.query`, so run it from the repl tool.
 - **Commit AND push before any long wait.** The workspace is cleared when a session sits idle. On
   2026-11-07 it was wiped with two commits unpushed; the results survived only because they were artifacts,
   and the code had to be reconstructed. An artifact is durable, a workspace file is not, and a local commit
