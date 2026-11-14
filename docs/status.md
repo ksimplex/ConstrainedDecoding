@@ -385,6 +385,30 @@ a 148-codon gene at T = 16 took about 8 minutes per model arm.
 
 ## 7c. The trajectory correction measurably changes the sampled distribution (2026-11-06/07)
 
+### Resolved 2026-11-14: the length confound is gone, 11 genes, 93-213 codons
+
+The 2026-11-07 run completed only 6 of 16 genes before its scheduler limit, and those 6 were the SHORTEST
+(93-120 codons), so length was confounded with completion and the obvious objection was that the effect might
+shrink on longer sequences. A second job completed 5 more (139-213 codons). Pooled (`results/bias_pooled.csv`):
+
+| | mean | 95% CI | above floor |
+|---|---|---|---|
+| corrected sampler (K=8) | **-0.0015** | [-0.0035, +0.0005] | 2/11 |
+| step-exact | **+0.0262** | [+0.0184, +0.0339] | **11/11** |
+| paired difference | **+0.0277** | [+0.0208, +0.0346] | **11/11** |
+
+Paired t = 7.89 (p = 1.3e-5), Wilcoxon p = 0.0010. Both arms 100% valid on every gene. Step-exact's excess
+averages **0.49x the sampling floor**, so it is a large fraction of the measurement scale.
+
+**The confound is dead: length does not predict the effect** (Pearson r = +0.212, p = 0.53 against the paired
+difference). The correction matters about equally from 93 to 213 codons.
+
+What this does and does not establish is unchanged from the original design: the reference is a high-particle
+run of the SAME sampler, so a bias shared across K would be invisible here. The warrant for treating it as a
+reference is the route-generic exactness theorem plus its enumeration check at L = 4, 6 (TV <= 4e-16), not
+this experiment.
+
+
 This is the comparison that tests **our** contribution rather than mRNAutilus's, and it was the gap left open
 by Sec. 7b.
 
