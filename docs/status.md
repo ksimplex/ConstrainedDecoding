@@ -110,7 +110,33 @@ misallocates particles [hypothesis].
 - Counting and RNA pairing rerun, `stress_B2_summary.csv` (0c481b9c-99d4-4532-bf5a-bc133e30bfa5). Counting: TV excess
   ~0 on every arm, Ẑ/h₀ 0.99-1.18. RNA pairing: TV excess 0.109 off (Ẑ 1.105), 0.043 defensive but **Ẑ 0.576**
   (CI 0.359-0.858, k̂ 1.00), 0.142 off+calibrated, 0.075 defensive+calibrated. h₀ = 0.01865 (counting), 0.01559 (RNA).
-  The defensive RNA arm is the clearest remaining failure: good samples, badly biased normalising constant.
+  The defensive RNA arm was previously recorded here as "the clearest remaining failure".
+
+  **Resolved 2026-11-13: it is not a defect, it is the ambiguity boundary, measured.** Reading the
+  `resamplings` column of `stress_B2_summary.csv` (how often resampling actually triggered per run) splits the
+  RNA-pairing arms exactly along the no-resampling rule, and nothing else does:
+
+  | arm | resamplings/run | Ẑ/h₀ | 95% CI | k̂ |
+  |---|---|---|---|---|
+  | K8_off (`ess_min` 0, `defensive` 0) | 0.0 | 1.105 | 0.765-1.612 | 0.53 |
+  | K8_off_cal50 | 0.0 | **1.061** | 0.925-1.211 | 0.36 |
+  | K8_def (`ess_min` 0.5, `defensive` 0.25) | 11.25 | **0.576** | 0.359-0.858 | 1.00 |
+  | K8_def_cal50 | 10.34 | 0.872 | 0.410-1.664 | 0.81 |
+
+  Every sound arm has resampling OFF; every biased one has it ON, on an ambiguous route -- the configuration
+  our own rule forbids, because the string-counting twist a correct resampling step would need is #P-hard.
+  Three things make this a prediction borne out rather than a coincidence. The k̂ diagnostic tracks it
+  monotonically (0.36/0.53 off, 0.81/1.00 on), and k̂ >= 1 is the formal signature of an importance-weight
+  distribution with no finite variance. The effect is specific to ambiguity: on `counting`, an UNAMBIGUOUS
+  route, K8_def resamples 7.2 times per run and still returns 1.176 with k̂ 0.89 -- degraded, not broken. And
+  resampling-off on the same family, same K, is healthy at 1.061 with a tight CI.
+
+  **Keep this result in the paper rather than dropping it.** It is the empirical face of the scope condition:
+  the method is exact for routes whose accepting computations biject with strings (unambiguous automata and
+  grammars, factor graphs, spanning trees), and here is what breaks when you leave that frontier, with k̂ as
+  the detector. A reviewer who suspects the no-resampling rule is a convenient dodge is answered by the row
+  where we violated it. **Nothing here touches the unambiguous results, and nothing touches mRNA:** target
+  structures compile to explicit pair factors in a factor graph, one accepting computation per assignment.
 
 **E1 (all six families, N = 32, T = 16).** Complete. Rows are in `e1_stress_summary.csv`; earlier per-part tables are
 `e1_A_summary.csv` (000d9d4c-9b76-476b-b4d5-8d3acb1fae20) and `e1_B_summary.csv` (0b88dc46-666a-451a-aa69-4b6cd8f788e4).
