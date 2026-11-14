@@ -252,3 +252,34 @@ because LinearDesign cannot express the constraints and mRNAutilus cannot expres
 
 If it fails, the honest result is that exactness buys distributional correctness rather than better designs,
 and the paper is a method paper with mRNA as a worked example. That is a smaller paper but not a wrong one.
+
+## 9. Pilot observations (2026-11-14) -- single gene, NOT findings
+
+Two separate runs on CCL4L1 (93 codons). They are recorded separately because an earlier writeup merged
+their numbers into one paragraph and thereby tripled the apparent sample size of the LinearDesign arm.
+
+**Run A -- standalone lambda sweep, k = 12.** 12 lambda values produced **11 distinct sequences**, of which
+**0 satisfied C**: GC landed at 0.609-0.638 against a 0.60 ceiling, and one sequence also carried a
+restriction site. 46.5 s.
+
+**Run B -- harness pilot, k = 4** (`results/topk_pilot.csv`, the saved artifact). 4 LinearDesign candidates,
+4 distinct, **0/4 satisfying C**, GC 0.6087-0.6377. All other arm numbers below come from this run only.
+
+| arm | valid C | 5' access | body E/nt | CAI | %MinMax dist |
+|---|---|---|---|---|---|
+| natural | 0/1 | 0.4285 | -0.348 | 0.731 | 0.0 |
+| greedy CAI | 0/1 | 0.5363 | -0.411 | 1.000 | 37.0 |
+| LinearDesign | 0/4 | **0.3410** | **-0.508** | 0.832 | 12.9 |
+| DNA Chisel | 4/4 | 0.4346 | -0.369 | 0.898 | 21.6 |
+| step-exact | 4/4 | 0.4323 | -0.356 | 0.751 | 6.1 |
+| ours | 4/4 | **0.4768** | -0.361 | 0.759 | 8.4 |
+
+Both runs agree on the qualitative point -- LinearDesign's optimum sits outside the manufacturable GC window,
+because stabilising the fold favours GC -- and it achieves the best body energy together with the worst 5'
+accessibility, which is the over-structured-start trade-off the metric decomposition was designed to catch.
+
+**None of this is evidence yet.** One gene, k of 4 and 12. It establishes that the harness runs and that the
+predicted direction is visible; the falsification condition in Sec. 6 is stated over 16 genes at k = 32.
+
+**Numbers from different runs must not be merged into one paragraph.** Each row above names the run it came
+from, for exactly that reason.
