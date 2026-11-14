@@ -283,3 +283,30 @@ predicted direction is visible; the falsification condition in Sec. 6 is stated 
 
 **Numbers from different runs must not be merged into one paragraph.** Each row above names the run it came
 from, for exactly that reason.
+
+## 10. Where this runs, and why (2026-11-14)
+
+**Measured:** one denoiser forward costs **~450 ms per row on this CPU**, and that figure is FLAT across
+batch sizes 2-16 (475 / 524 / 444 / 455 ms). Flatness matters: it means the forward is already saturating
+the available cores, so larger batches buy no throughput on CPU -- they only buy memory pressure.
+
+**Implication.** The `ours` arm needs k x K x T = 32 x 8 x 16 = 4,096 row-forwards per gene, plus 512 for
+step-exact. At 450 ms that is ~34 min per gene, or **~9 hours for 16 genes** before any scoring. This is a
+GPU workload, as the bias panel was.
+
+**The incident that produced this measurement.** The first attempt used `chunk_rows=256`, inherited from the
+GPU bias job where an L40S has 48 GB. On a 16 GB machine that is ~1.3 GB per attention matrix recurring per
+layer; with two copies of the 148M model resident (the run plus a profiler started to diagnose the slowness)
+the host hit **~14 MB free of 16 GB and a load average of 440 on 8 cores**, and crashed the user's app. The
+profiler never printed a byte -- it was thrashing, not computing.
+
+Two fixes, both landed:
+
+1. `default_chunk_rows(n_codons, device)` in `experiments/topk_arms.py` sizes batches from ACTUAL free
+   memory (`psutil`, or `torch.cuda.mem_get_info` on GPU) instead of a constant. Deliberately conservative:
+   an over-small batch wastes throughput, an over-large one takes the machine down.
+2. Real runs go to the cluster GPU. Local CPU is for smoke tests only.
+
+**A tuning constant carried across hardware is a correctness bug, not a performance one.** The value was
+right where it was written and catastrophic where it was reused, and nothing in the code recorded which
+machine it assumed.

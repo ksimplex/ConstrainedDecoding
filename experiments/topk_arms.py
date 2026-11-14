@@ -109,8 +109,34 @@ def arm_greedy_cai(protein, table):
     return "".join(max(syn[aa], key=lambda c: table["abs"][c]) for aa in protein + "*")
 
 
+def default_chunk_rows(n_codons, device="cpu", reserve_gb=3.0):
+    """Rows per forward pass that fit in available memory, rather than a constant tuned for a 48 GB GPU.
+
+    Attention is quadratic in sequence length, so the transient cost of one layer is roughly
+    rows * heads * L^2 * 4 bytes, and it recurs every layer. With L ~ 250 tokens and 20 heads, 256 rows is
+    ~1.3 GB per attention matrix -- fine on an L40S, fatal on a 16 GB laptop, where it drove the machine
+    into swap (load average 440 on 8 cores, ~14 MB free of 16 GB) and took the host down with it.
+
+    This is deliberately conservative: the cost of an over-small batch is some wasted throughput, while the
+    cost of an over-large one is thrashing that makes the whole machine unusable.
+    """
+    import torch
+    L = n_codons + 160                                   # CDS plus the fixed UTR context
+    per_row_gb = 20 * (L ** 2) * 4 * 3 / 1e9             # heads * L^2 * fp32 * a few live tensors
+    if device == "cuda" and torch.cuda.is_available():
+        free_gb = torch.cuda.mem_get_info()[0] / 1e9 - reserve_gb
+    else:
+        import shutil
+        try:                                             # psutil is not guaranteed; fall back to a floor
+            import psutil
+            free_gb = psutil.virtual_memory().available / 1e9 - reserve_gb
+        except ImportError:
+            free_gb = 2.0
+    return int(max(2, min(512, free_gb / max(per_row_gb, 1e-6))))
+
+
 def arm_sampler(denoiser, classes, route, n_codons, k=32, K=8, T=16, seed=0,
-                step_exact=False, device="cpu", chunk_rows=256):
+                step_exact=False, device="cpu", chunk_rows=None):
     """Our constrained sampler (`step_exact=False`) or the step-exact baseline (`step_exact=True`).
 
     Both share the same proposal and the same route, so the ONLY difference is whether trajectory weights
@@ -126,6 +152,8 @@ def arm_sampler(denoiser, classes, route, n_codons, k=32, K=8, T=16, seed=0,
     from twistroute.decode.smc import select_particles, twisted_smc
     from twistroute_bio.alphabet import CODONS
 
+    if chunk_rows is None:
+        chunk_rows = default_chunk_rows(n_codons, device)
     per = max(1, chunk_rows // max(1, K if not step_exact else 1))
     rng = np.random.default_rng(seed)
     out = []
