@@ -635,18 +635,62 @@ does not grow with N but its gap does at fixed width and spacing (width 4, spaci
 and its two parameters were chosen after the fact. That it can be ahead says the greedy rule is not optimal in the
 middle of the range. [verified] A separator score that values thickness is a lead. [hypothesis]
 
-## 25. Next steps (as of 2026-11-15 early morning; superseded items are in sections 14 to 18)
+## 25. Constraint interaction at N = 1,024 (local, 2026-11-15) [verified]
 
-1. Hidden-mass check at N = 512 and 1,024 (job `36c53d08`): is the policy's remaining error resampling, and which
-   remedy keeps resampling (calibrated twist, 16 particles, lower trigger).
-2. Budget sweep at N = 256 and 1,024 (job `b4e15799`): steps against budget, predicted against measured r, graded
-   against two-bin kernel, order under a budget, dilated baselines.
-3. Priority-order test at N = 64 (`order_N64.json`, local, in progress), then the least-coupled arms.
-4. Constraint-aware closeness through Hessian-vector products of log Z (one extra backward pass), for the
-   mixed-path effect on copy. [hypothesis]
-5. An error measure sensitive to long-range joint structure.
-6. Stress constraints (required motif, per-segment counts, window all-different, parity, motif and count) as the
-   held-out evaluation of the priority score.
+`results/parallel_unmasking/interact_N1024_local.json`, `interact_N1024_local_summary.json`. `chain_0.85` and
+`hidden_0.85` x (`copy_spread`, `two_window`), 50 runs of 16 particles, no resampling, no one-per-step control
+(too slow locally). The full 12-cell version is drafted for the cluster (`jobs/interact_N1024.sbatch`, not submitted).
+
+Spread-out copy (51 pairs), Z_hat / p(C) with the marginal error in brackets; * = tail guard flags the standard error:
+
+| Model, budget | `separator` | `sum` | `weighted` | `lex` | `bound` | `random` | `least_tie` |
+|---|---|---|---|---|---|---|---|
+| `chain_0.85`, theta = 0 | 1.5e-10 (0.38)* | 1.19 (0.12)* | 1.07 (0.04) | 0.95 (0.02) | 1.03 (0.03) | 1.8e-3 (0.60)* | 1.4e-13 (0.60)* |
+| `chain_0.85`, B = 0.03 | 2.0e-12 (0.56)* | 1.00 (0.14)* | 0.88 (0.09)* | 1.19 (0.06) | 0.94 (0.03) | 3.8e-5 (0.66)* | 6.7e-13 (0.43)* |
+| `chain_0.85`, B = 0.3 | 1.1e-9 (0.58)* | 1.12 (0.17)* | 0.72 (0.22)* | 0.93 (0.09)* | 0.85 (0.10) | 2.7e-5 (0.57)* | 5.1e-14 (0.58)* |
+| `hidden_0.85`, theta = 0 | 1.23 (0.16)* | 0.96 (0.03) | 1.11 (0.09)* | 0.96 (0.03) | 0.99 (0.03) | 0.97 (0.17)* | 0.51 (0.32)* |
+| `hidden_0.85`, B = 0.03 | 0.64 (0.16)* | 1.02 (0.04) | 0.96 (0.03) | 0.93 (0.03) | 0.94 (0.04) | 2.28 (0.42)* | 0.23 (0.23)* |
+| `hidden_0.85`, B = 0.3 | 0.82 (0.28)* | 0.87 (0.05) | 0.88 (0.03) | 0.89 (0.04) | 0.90 (0.02) | 0.60 (0.18)* | 0.23 (0.22)* |
+
+- **On a long-range copy over a strongly correlated model, an order that ignores the constraint fails outright.**
+  With `separator`, `random` or least-coupled-first the 800 particles find 1e-13 to 1e-3 of the constrained mass on
+  `chain_0.85`: a copied token revealed after its neighbours must fit them, and almost never does. Orders with the
+  constraint term (`sum`, `weighted`, `lex`, `bound`) reveal the partners before their neighbourhoods and recover
+  p(C) to within the noise. The same cells at N = 256 show the onset (`separator` 0.67, others 0.90 to 1.20).
+- Steps are not the price: on `copy_spread`, median over the six arms, `separator` 11.0 steps, `sum` 11.0, `lex`
+  11.5, `bound` 13.7, `weighted` 14.0.
+- `sum` works but with heavier tails than `lex` or `bound` on `chain_0.85` (marginal error 0.12 to 0.17 against 0.02
+  to 0.10): at this length the constraint term deserves more weight than `sum` gives it.
+- `two_window` does not separate the orders (spread of Z_hat 0.27 to 0.30 for the five scores; steps 10.5 for
+  `separator` and `sum`, 16 to 17 for `bound` and `weighted`).
+- Unbiasedness at theta = 0 on the arms with a usable standard error (25 arms): t-statistics mean -0.06, s.d. 1.0,
+  largest 2.1. Peak memory footprint per worker 0.2 to 0.7 GB.
+
+## 26. Dyck at N = 256 (local, 2026-11-15) [verified, small sample]
+
+`results/parallel_unmasking/interact_dyck_N256_seed0.json`: four models, 25 runs of 16 particles (400 particles; a
+second seed was skipped for time), no resampling. Median steps / spread of Z_hat relative to one per step:
+`separator` 9 / 0.95, `sum` 11 / 1.31, `random` 16 / 1.37, `least_tie` 15 / 1.76, `bound` 26 / 1.44, `lex` 26 / 1.54,
+`weighted` 24 / 1.54 at theta = 0; under B = 0.03 all take 6 to 11 steps with ratios 1.06 to 1.51. Here the
+constraint has a stake everywhere, and constraint-first orders cost three times the steps without better weights.
+With 25 runs the spread ratios are indicative only.
+
+**Where this leaves the score.** No single score is best everywhere: `separator` fails on long-range copy; `lex` and
+`bound` are best there and cost 2 to 3 times the steps on Dyck and on the core constraints at N = 64; `sum` is never
+the worst and is the working default. The open question is the relative weight of the two terms. [hypothesis: a
+scale-free combination, for example ranks or each term divided by its maximum over masked positions]
+
+## 27. Next steps (2026-11-15, afternoon)
+
+1. Remote, awaiting approval: constraint-interaction study at N = 1,024 with all 12 cells and the one-per-step control
+   (`jobs/interact_N1024.sbatch`); Dyck at N = 256 with more runs and at N = 1,024.
+2. The relative weight of the constraint and separator terms in the score (section 26), then the held-out stress
+   constraints (required motif, per-segment counts, window all-different, parity, motif and count), unchanged.
+3. Gated resampling: a criterion for repeated events; test at N = 256 (`resample_N256.json`, running) and 1,024.
+4. A separator score that values thickness (section 24); sub-additivity audit of the kernel; the prediction
+   sd(r) = sqrt(2 x load) at budgets below 0.01.
+5. Constraint-aware closeness through Hessian-vector products of log Z. [hypothesis]
+6. An error measure sensitive to long-range joint structure.
 7. Owed: three proofs (resampling at unequal progress under rollback; unbiasedness with an adaptive proposal;
-   accuracy of the first-order effective-coupling formula); the fix to Definition 5.1 of the notes; the
-   `TorchChart` gradient; strip and grid oracles; a trained small model.
+   accuracy of the first-order effective-coupling formula); the fix to Definition 5.1 of the notes; the `TorchChart`
+   gradient; strip and grid oracles; a trained small model; the plan document.
