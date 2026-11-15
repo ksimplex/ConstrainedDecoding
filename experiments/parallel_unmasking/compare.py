@@ -40,6 +40,7 @@ import torch
 THETAS = (0.0, 0.003, 0.01, 0.03, 0.1)
 BUDGETS = (0.01, 0.03, 0.1, 0.3, 1.0)      # whole-sequence error budgets in nats; the policy gets rate = B / N
 MODELS = ("chain_0.6", "chain_0.85", "hidden_0.85", "segments_0.85")
+THICK_SMALL_BUDGETS = (0.001, 0.0001)    # appended after BUDGETS so earlier partial results stay valid
 THICK_WIDTHS = (1, 2, 3, 4, 6)
 THICK_SPACINGS = (8, 16, 24, 32, 48, 64)
 RESAMPLE_KS = (4, 16, 64, 256)
@@ -152,6 +153,40 @@ def metrics(out, den, truth, N, A, K, pair_truth, nb=10):
     return res
 
 
+GATE_ALPHAS = (0.25, 0.5, 0.75, 1.0)
+
+
+def resampling_gate(den, cl, route, N, schedule, n, gen, threshold=0.8):
+    """Audit for resampling. Runs n single particles without resampling and, at every step t, estimates for each
+    exponent alpha the second moment of the final weights if ancestors were drawn there by (weight so far)^alpha,
+    relative to not resampling: rho_t(alpha) = E[w_T^2 / w_t^alpha] E[w_t^alpha] / E[w_T^2] (many-particle limit,
+    one resampling event). Returns a gate f(revealed fraction) -> alpha for twisted_smc(resample_power=f): the
+    minimising alpha where rho < threshold, 0 (do not resample) elsewhere; and the curve, for the record."""
+    from twistroute.decode import twisted_smc
+    fr = []
+    def ps(xb, xa):
+        fr.append(float((xa != den.mask_id).float().mean())); return torch.zeros(xb.shape[0], dtype=torch.float64)
+    out = twisted_smc(den, cl, route, N, N, nrun=n, K=1, gen=gen, schedule=schedule, ess_min=0.0, return_trace=True, path_stat=ps)
+    tr = np.asarray(out["trace"], dtype=np.float64)[:, :, 0]
+    T = tr.shape[0]; fin = tr[-1]; ok = np.isfinite(fin)
+    wf2 = np.exp(2 * (fin[ok] - fin[ok].max()))
+    frac, alpha, rho = np.array(fr[:T]), np.zeros(T), np.ones(T)
+    for t in range(T - 1):
+        now = tr[t][ok]; m = np.isfinite(now)
+        if m.sum() < 10 or now[m].std() < 1e-12:
+            continue
+        wn = np.exp(now[m] - now[m].max())
+        r = [float((wf2[m] / wn ** al).mean() * (wn ** al).mean() / wf2.mean()) for al in GATE_ALPHAS]
+        k = int(np.argmin(r))
+        if r[k] < threshold:
+            alpha[t], rho[t] = GATE_ALPHAS[k], r[k]
+    ft, at = torch.tensor(frac), torch.tensor(alpha)
+    def gate(f):
+        i = torch.searchsorted(ft, f.double().cpu().clamp(max=float(ft[-1])), right=False).clamp(max=T - 1)
+        return at[i]
+    return gate, dict(frac=frac.round(4).tolist(), alpha=alpha.tolist(), rho=rho.round(4).tolist(), n=int(ok.sum()))
+
+
 def run_cell(job):
     mname, cname, N, a = job
     torch.set_num_threads(1)
@@ -201,7 +236,8 @@ def run_cell(job):
                                         count_edges=COUNT_EDGES)
         off = dict(ess_min=0.0)
         arms = [(f"separator B={B} graded", dict(T=N, schedule=CouplingPolicy(kern_g, 0.0, priority="separator", mixed=False, rate=B / N), smc=off), a["nrun"])
-                for B in BUDGETS]
+                for B in BUDGETS + THICK_SMALL_BUDGETS]
+        arms += [("separator theta=0.0 graded", dict(T=N, schedule=CouplingPolicy(kern_g, 0.0, priority="separator", mixed=False), smc=off), a["nrun"])]
         arms += [("dilated base=2", dict(T=N, schedule=DilatedSchedule(2), smc=off), a["nrun"])]
         arms += [(f"thick w={w} spacing={sp}", dict(T=N, schedule=ThickSeparatorSchedule(w, sp), smc=off), a["nrun"])
                  for w in THICK_WIDTHS for sp in THICK_SPACINGS if sp >= 4 * w]
@@ -209,11 +245,17 @@ def run_cell(job):
         from twistroute.decode import COUNT_EDGES                 # fixed across K; exact schedules only, so r = 0 throughout
         kern_g, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")),
                                         count_edges=COUNT_EDGES)
-        modes = (("off", dict(ess_min=0.0)), ("defensive", dict()), ("plain", dict(defensive=0.0)),
+        gates, gate_info = {}, {}
+        for sn in ("fixed 1/step", "separator theta=0.0"):       # audit: a pilot without resampling says where (and how
+            sch = "fixed" if sn.startswith("fixed") else pol(kern_g, 0.0, "separator")     # hard) resampling would help
+            gates[sn], gate_info[sn] = resampling_gate(den, cl, route, N, sch, a.get("gate_pilot", 4000),
+                                                       torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "gate", sn)))
+        modes = (("off", dict(ess_min=0.0)), ("defensive", dict()), ("plain", dict(defensive=0.0)), ("gated", dict(defensive=0.0, resample_power="gate")),
                  ("systematic", dict(defensive=0.0, resampler="systematic")),
                  ("power 0.5", dict(defensive=0.0, resample_power=0.5)), ("power 0.25", dict(defensive=0.0, resample_power=0.25)),
                  ("power 0.5 systematic", dict(defensive=0.0, resample_power=0.5, resampler="systematic")))
-        arms = [(f"{sn} K={K} resampling {rn}", dict(T=N, schedule=("fixed" if sn.startswith("fixed") else pol(kern_g, 0.0, "separator")), smc=smc, K=K),
+        arms = [(f"{sn} K={K} resampling {rn}", dict(T=N, schedule=("fixed" if sn.startswith("fixed") else pol(kern_g, 0.0, "separator")),
+                                                      smc={k: (gates[sn] if v == "gate" else v) for k, v in smc.items()}, K=K),
                  max(a["nrun"] * a["K"] // K, 2))
                 for K in (a.get("resample_ks") or RESAMPLE_KS) for sn in ("fixed 1/step", "separator theta=0.0") for rn, smc in modes]
     else:
@@ -261,6 +303,7 @@ def run_cell(job):
     import resource
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1e6 if sys.platform == "darwin" else 1e3)   # MB: bytes on macOS, kB on Linux
     meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2), peak_rss_mb=round(rss, 1),
+                resampling_gate=locals().get("gate_info"),
                 kernel_unscreened=kern.ku.tolist(), kernel_screened=kern.ks.tolist(),
                 exact_mi=[0.0] + [den.pair_mi(0, d) for d in range(1, N)], constraint_info=getattr(truth, "info", {}))
     on = next((r for r in rows if r["arm"] == "fixed 1/step"), None)
