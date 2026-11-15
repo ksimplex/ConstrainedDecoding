@@ -138,9 +138,19 @@ def main():
     ap.add_argument("--pilot-small", dest="pilot_small", type=int, default=50)
     ap.add_argument("--models", nargs="+", default=list(MODELS)); ap.add_argument("--constraints", nargs="+", default=list(CONSTRAINTS))
     ap.add_argument("--workers", type=int, default=1); ap.add_argument("--out", default="compare.json")
+    ap.add_argument("--resume", action="store_true", help="skip cells already present in --out")
     a = vars(ap.parse_args())
     jobs = [(m, c, N, a) for N in a["N"] for m in a["models"] for c in a["constraints"]]
     rows, metas, t0 = [], [], time.time()
+    if a["resume"] and os.path.exists(a["out"]):          # keep finished cells; a cell is written only when complete
+        prev = json.load(open(a["out"]))
+        same = all(prev["args"].get(k) == a[k] for k in ("nrun", "nrun_mixed", "K", "pilot", "pilot_small"))
+        if not same:
+            raise SystemExit("--resume: the existing file was made with different settings")
+        rows, metas = prev["rows"], prev["cells"]
+        have = {(c["model"], c["constraint"], c["N"]) for c in metas}
+        jobs = [j for j in jobs if (j[0], j[1], j[2]) not in have]
+        print(f"resuming: {len(have)} cells kept, {len(jobs)} to run", flush=True)
     def collect(res):
         rows.extend(res[0]); metas.append(res[1])
         json.dump(dict(args=a, rows=rows, cells=metas, wall_seconds=round(time.time() - t0, 1)), open(a["out"], "w"), indent=1)
