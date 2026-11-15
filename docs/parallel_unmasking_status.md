@@ -171,50 +171,129 @@ The control is low in 11 of 16 cells and by 2.5 to 4.4 s.e. in six. The policy a
 ground truth and sit at 1, so the truth is not the suspect. All arms ran with defensive resampling at 0.25 and
 with the calibrated twist and tempering off (tau = 1, beta = 1).
 
-**Follow-up, local, in progress (2026-11-15).** `hm_control.py` (session workspace, not yet in the repository)
-reruns the control on the three worst cells, 2,000 runs x 4 particles, torch 2.14.1, seed 3, varying only the
-resampling and twist settings. Output so far:
+**Resolution (2026-11-15).** [verified] The shortfall was one unlucky seed read against standard errors that
+were too small. It is not a bias and not a difference between scripts.
 
-```
-[    28s] chain_0.6      copy      resampling off             Z=1.017 +- 0.078  (+0.2 se) top=0.017 n_res=0.0 ess=0.26 28.2s
-[    94s] segments_0.85  forbidden resampling off             Z=0.958 +- 0.144  (-0.3 se) top=0.073 n_res=0.0 ess=0.25 65.5s
-[   175s] hidden_0.85    forbidden resampling off             Z=0.963 +- 0.027  (-1.4 se) top=0.005 n_res=0.0 ess=0.29 81.3s
-[   204s] chain_0.6      copy      defensive 0.25 (as run)    Z=1.079 +- 0.072  (+1.1 se) top=0.022 n_res=5.4 ess=0.35 28.9s
-[   279s] segments_0.85  forbidden defensive 0.25 (as run)    Z=0.981 +- 0.063  (-0.3 se) top=0.023 n_res=7.1 ess=0.29 74.9s
-[   358s] hidden_0.85    forbidden defensive 0.25 (as run)    Z=0.954 +- 0.025  (-1.8 se) top=0.008 n_res=3.2 ess=0.39 78.8s
-[   390s] chain_0.6      copy      plain multinomial          Z=1.243 +- 0.234  (+1.0 se) top=0.178 n_res=4.9 ess=0.35 32.6s
-```
+- The exact p(C) is right: an independent forward recursion reproduces `ConstrainedTruth` to ten decimals on the
+  five forbidden-motif cells, and direct sampling at N = 32 (hidden chain, forbidden motifs, 4,000,000 samples)
+  gives 1.003 (0.007) of it.
+- `experiments/parallel_unmasking/control_check.py` reruns the control with many seeds. Seed 3, the one every
+  cell of the comparison shared, reproduces the original value exactly in all 16 cells
+  (`control_seed3_check.json`; 22 to 26 seeds of 2,000 runs per cell before the job was pre-empted, pooled with
+  the 20 seeds of the first job where the cell was in both).
 
-- [verified] The local rerun at the settings of the cluster job does not reproduce the shortfall on the two
-  cells finished so far (chain 0.6 copy 1.079 against 0.827 on the cluster; segments forbidden 0.981 against
-  0.849). The random streams differ between the torch versions, so the runs are independent draws.
-- [verified] The local standard errors (0.072, 0.063) are nearly twice the cluster's jackknife values (0.039,
-  0.037) for the same arm and run count. The variance of log Z_hat in the low cells is 3.6 to 5.8, so the
-  distribution over runs is heavy-tailed and a 2,000-run standard error is itself unreliable.
-- [hypothesis] The cluster shortfall is the finite-run effect of a heavy-tailed Z_hat (the mean sits in rare
-  runs, so most finite samples fall below it and understate their own error). Whether resampling makes that
-  tail worse here, which is the hidden-mass question of notes section 6, is not settled: resampling off gives
-  values consistent with 1 but with wide errors. Not excluded: a difference between platforms.
-- Next: a longer local run of the as-run arm to pin its mean, then the same arm on the cluster with several
-  seeds.
+| cell | seeds | original | seed 3 | pooled mean (s.e.) | true s.e. of a 2,000-run mean | seed 3 in true s.e. |
+|---|---|---|---|---|---|---|
+| `chain_0.6` copy | 26 | 0.827 | 0.827 | 1.004 (0.013) | 0.088 | -2.0 |
+| `chain_0.6` counting | 23 | 0.995 | 0.995 | 0.996 (0.002) | 0.008 | -0.2 |
+| `chain_0.6` dyck | 23 | 1.041 | 1.041 | 1.002 (0.003) | 0.020 | +2.0 |
+| `chain_0.6` forbidden | 25 | 1.041 | 1.041 | 0.993 (0.012) | 0.062 | +0.8 |
+| `chain_0.85` copy | 26 | 0.812 | 0.812 | 0.964 (0.035) | 0.239 | -0.6 |
+| `chain_0.85` counting | 23 | 0.900 | 0.900 | 0.998 (0.008) | 0.053 | -1.8 |
+| `chain_0.85` dyck | 23 | 1.066 | 1.066 | 0.964 (0.016) | 0.079 | +1.3 |
+| `chain_0.85` forbidden | 25 | 0.956 | 0.956 | 0.997 (0.010) | 0.051 | -0.8 |
+| `hidden_0.85` copy | 26 | 0.887 | 0.887 | 1.002 (0.013) | 0.089 | -1.3 |
+| `hidden_0.85` counting | 23 | 0.991 | 0.991 | 0.998 (0.002) | 0.009 | -0.8 |
+| `hidden_0.85` dyck | 22 | 0.994 | 0.994 | 0.999 (0.004) | 0.021 | -0.2 |
+| `hidden_0.85` forbidden | 25 | 0.943 | 0.943 | 0.995 (0.004) | 0.027 | -1.9 |
+| `segments_0.85` copy | 25 | 0.868 | 0.868 | 1.032 (0.084) | 0.421 | -0.4 |
+| `segments_0.85` counting | 22 | 1.016 | 1.016 | 1.020 (0.015) | 0.070 | -0.0 |
+| `segments_0.85` dyck | 22 | 0.948 | 0.948 | 0.993 (0.017) | 0.081 | -0.6 |
+| `segments_0.85` forbidden | 25 | 0.849 | 0.849 | 1.017 (0.013) | 0.090 | -1.9 |
 
-At N = 32 (local, cells finished so far) the control is within 2 s.e. of 1 in every cell.
+  Against the true standard error, seed 3 is within 2.0 of the pooled mean in every cell (sum of squares
+  24.9 on 16 cells). It is the lowest of its seeds in 3 cells and the highest in 1.
+- The jackknife standard errors of the comparison understate the error where Z_hat is heavy-tailed: by a factor
+  of about 2 on chain 0.6 copy (0.039 reported, 0.088 true) and about 4 on chain 0.85 copy (0.058 against 0.239).
+- Runs within one call are independent, so standard errors across seeds are no better than within-run ones at
+  equal total runs. The remedy is more runs and a tail diagnostic, not more seeds.
+
+## 8a. Hidden mass on the one-per-step control at N = 64
+
+`control_check_N64.json`: 20 seeds x 2,000 runs x 4 particles per arm, seven cells, cluster job `613b10a7`
+(18 min on 32 CPUs). Entries: mean Z_hat / p(C) (s.e. over 40,000 runs); seeds with mean below 1; share of the
+total carried by the single largest run. [verified: read from the JSON]
+
+| cell | resampling off | plain multinomial | defensive 0.25 | defensive 0.25, tau = 0.5 |
+|---|---|---|---|---|
+| `chain_0.6` copy | 1.009 (0.018); 10/20; 0.1% | 0.961 (0.024); 15/20; 1.1% | 0.996 (0.019); 11/20; 0.7% | 0.993 (0.038); 9/20; 1.6% |
+| `chain_0.85` copy | 0.999 (0.005); 10/20; 0.0% | 0.781 (0.087); 17/20; 8.4% | 0.966 (0.074); 17/20; 7.1% | 0.995 (0.017); 12/20; 0.6% |
+| `hidden_0.85` copy | 1.003 (0.009); 10/20; 0.1% | 0.987 (0.026); 13/20; 1.0% | 0.993 (0.017); 12/20; 0.7% | 0.996 (0.019); 12/20; 0.4% |
+| `segments_0.85` forbidden | 1.068 (0.044); 5/20; 1.5% | 1.041 (0.028); 7/20; 1.3% | 1.022 (0.019); 8/20; 0.7% | 0.997 (0.022); 8/20; 0.5% |
+| `hidden_0.85` forbidden | 1.006 (0.006); 8/20; 0.0% | 0.994 (0.009); 9/20; 0.3% | 1.001 (0.006); 10/20; 0.1% | 1.005 (0.007); 8/20; 0.0% |
+| `chain_0.85` counting | 1.000 (0.003); 11/20; 0.1% | 0.964 (0.059); 16/20; 4.9% | 1.009 (0.013); 11/20; 0.6% | 1.007 (0.005); 8/20; 0.0% |
+| `chain_0.6` dyck | 0.997 (0.004); 13/20; 0.0% | 1.005 (0.006); 8/20; 0.1% | 1.000 (0.004); 10/20; 0.1% | 0.995 (0.005); 9/20; 0.0% |
+
+- **Hidden mass occurs under plain resampling on chain 0.85 with copy and with counting.** [verified] Mean 0.781
+  and 0.964, 17 and 16 of 20 seeds below 1, one run carrying 8.4% and 4.9% of the total. Resampling off gives
+  0.999 (0.005) and 1.000 (0.003) on the same cells.
+- **Defensive resampling alone does not remove it on chain 0.85 with copy** (0.966 (0.074), 17 of 20 seeds
+  below 1). Adding the calibrated twist at tau = 0.5 does (0.995 (0.017), largest run 0.6%).
+- **tau = 0.5 is not uniformly better.** [verified] On chain 0.6 with copy it doubles the standard error (0.019
+  to 0.038). [hypothesis] With an oracle denoiser the only twist error is the neglected coupling between masked
+  positions, which is large on chain 0.85 and small on chain 0.6; flattening a twist that is already accurate
+  only adds noise. The notes report the same direction on copy with resampling off (ratio 1.17).
+- **Resampling off has the lowest or tied-lowest relative spread of Z_hat in six of the seven cells.** [verified]
+  The exception is segments with forbidden motifs. This concerns the estimate of p(C) only, not sample quality.
+- **The variance of log Z_hat is the wrong criterion for choosing tau.** [verified, `tail_criteria_check.json`]
+  It picks the setting with the lowest true relative spread in 2 of 7 cells, and its worst pick is 16 times worse
+  than the best (chain 0.85 copy, where it roughly doubles at tau = 0.5 although tau = 0.5 removes the hidden
+  mass). Upper-tail criteria from 2,000-run pilots (relative spread of Z_hat, share of the top 1% of runs, Hill
+  tail index; medians over 20 pilots) pick the best setting in 5 or 6 of 7 cells and are never more than 1.1
+  times worse. [derived] The error of the mean is set by the upper tail of Z_hat; the log-variance is set mostly
+  by the lower side, and the two agree only if Z_hat is close to log-normal.
+- **Proposed rule for tau, not tested** (side project, deferred by agreement): pilot with resampling off, measure
+  the share of final weight carried by particles that were far below their run's average at some step, and take
+  the largest tau that keeps that share under a tolerance. A truth-free cross-check: mean Z_hat with resampling
+  on should agree with resampling off.
+
+## 8b. Guards now in `compare.py` (2026-11-15)
+
+- Every cell and arm has its own random stream (`stream_seed`: crc32 of base seed, model, constraint, N, arm).
+- Arm `fixed 1/step, no resampling`, which cannot hide mass, and a per-cell `control_check` (mean Z_hat of the
+  one-per-step arm with and without resampling).
+- Per arm: `top1_share`, `hill_k`, and `z_se_unreliable` when the tail index exceeds 1/2.
+- Per-run log(Z_hat / p(C)) of every arm in `<out>.logZ.npz`.
+- Arm `random theta=0.0`: the policy's sets with positions taken in random order.
+- At N = 1,024 the one-per-step control will not give a usable Z_hat with or without resampling; rely on step
+  counts, r and the exact marginals there.
+
+**Open observation: reveal order may matter even without parallelism.** [verified that these are the numbers;
+interpretation is a hypothesis] On the hidden chain at N = 32 the policy at theta = 0 takes all 32 steps, yet
+the variance of log Z_hat falls from 1.09 to 0.17 (copy) and 0.55 to 0.17 (forbidden motifs) and the mean
+minimum effective sample size rises from 0.38 to 0.53 and 0.44 to 0.66. Only the order of reveals differs from
+the control. Over all cells the policy at theta = 0 has the lower variance of log Z_hat in 11 of 16 (N = 32) and
+9 of 16 (N = 64); this cannot separate order from step count, and the measure is the one shown above to be
+weak. The rerun with the guarded script has the arms to separate them.
+
+**The gap at theta = 0 on chains is float underflow in the kernel.** [verified] The fitted unscreened kernel
+is exactly zero from distance 22 on chain 0.6 (true mutual information 1.7e-10 there), from 57 on chain 0.85
+and from 53 on the hidden chain at N = 64, and never zero on chain 0.85 and the hidden chain at N = 32. sd(r)
+is about 1e-5 to 1e-4 in exactly the cells where the kernel reaches zero and about 1e-15 elsewhere.
+
+**N = 32, local** (`compare_N32.json`, 16 cells, 336 arms, 3,501 s on 3 workers, shared seed 3): steps at
+theta = 0 are 5.0 to 6.5 on segments, 7.9 to 22.0 on chain 0.6, 8.1 to 11.4 on chain 0.85, 32.0 on the hidden
+chain. The control is within 2 s.e. of 1 in every cell.
 
 ## 9. Runs and machines
 
 - **Cluster queue.** `mit_normal` gave start estimates of days on 2026-11-14; `mit_preemptable` started within
   minutes. `sbatch --test-only` gives the estimate before submitting. Maintenance on Tuesday 2026-11-17.
-- **Local N = 32 run.** `compare.py --N 32 --nrun 2000 --nrun-mixed 500 --workers 3 --resume`, launched
-  2026-11-15 00:12, output `compare_N32_w3.json` in the session workspace. In progress.
+- **Local N = 32 run.** `compare.py --N 32 --nrun 2000 --nrun-mixed 500 --workers 3 --resume`, 2026-11-15 00:12
+  to 01:10. Done.
+- **Rerun with the guarded script.** Cluster job `a1d8bedb`, submitted 2026-11-15 02:05: N = 64 (no mixed arms)
+  then N = 32 (mixed arms), 32 CPUs, resumable. Replaces the shared-seed files for analysis.
+- **Pre-emption.** `mit_preemptable` pre-empted a 32-CPU job after about 27 min; jobs there must be resumable.
+  `sbatch --test-only` overestimates the wait on that partition by hours.
 - **Laptop.** 8 cores, 16 GB. Six workers pushed compressed memory to about 7.9 GB and load to about 12. Three
   workers lower the load but not the memory. The session's Python kernel was replaced several times at gaps in
   the conversation; cause unknown. `compare.py --resume` restarts from the saved cells.
 
 ## 10. Next steps
 
-1. Settle the control shortfall at N = 64 (section 8).
-2. Finish and analyse the N = 32 run: net account at theta = 0, theta > 0 trade-offs, mixed term against its
+1. Analyse the guarded rerun at N = 32 and 64: net account at theta = 0, theta > 0 trade-offs, mixed term against its
    reference arm, priority scores, pilot size, Var(r)/2 against measured error.
+2. Reveal order without parallelism: control against `random theta=0.0` against `policy theta=0.0`.
 3. Long-chain code: a route that applies a counting automaton to a group of positions and leaves the rest free,
    its exact ground truth, copy on a subset of pairs, an anticorrelated chain, particle chunking in
    `CouplingPolicy`. Tests against enumeration.

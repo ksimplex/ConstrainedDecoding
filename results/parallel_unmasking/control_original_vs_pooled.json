@@ -1,0 +1,86 @@
+[
+ {
+  "model": "chain_0.6",
+  "constraint": "copy",
+  "original": 0.8269797588694656,
+  "original_se": 0.03890776269217826,
+  "pooled": 0.9961034311841049,
+  "pooled_se": 0.018899461151662703,
+  "true_se_2000": 0.08452095974646853,
+  "p_le_original": 0.00975,
+  "seeds_le_original": 0,
+  "median_2000_mean": 0.9885049204887568
+ },
+ {
+  "model": "chain_0.85",
+  "constraint": "copy",
+  "original": 0.8116623433925984,
+  "original_se": 0.05753636492511489,
+  "pooled": 0.9663814591670331,
+  "pooled_se": 0.07384444966978852,
+  "true_se_2000": 0.330242418445418,
+  "p_le_original": 0.23195,
+  "seeds_le_original": 6,
+  "median_2000_mean": 0.8877902458126707
+ },
+ {
+  "model": "hidden_0.85",
+  "constraint": "copy",
+  "original": 0.8870380056927979,
+  "original_se": 0.044335567977273144,
+  "pooled": 0.9925937933495667,
+  "pooled_se": 0.017232824007975423,
+  "true_se_2000": 0.07706753185224684,
+  "p_le_original": 0.0613,
+  "seeds_le_original": 1,
+  "median_2000_mean": 0.9840069613783924
+ },
+ {
+  "model": "segments_0.85",
+  "constraint": "forbidden",
+  "original": 0.8489697816689448,
+  "original_se": 0.037124020514940285,
+  "pooled": 1.02168077381308,
+  "pooled_se": 0.019048255003206425,
+  "true_se_2000": 0.08518638607984008,
+  "p_le_original": 0.0098,
+  "seeds_le_original": 0,
+  "median_2000_mean": 1.0132387515230867
+ },
+ {
+  "model": "hidden_0.85",
+  "constraint": "forbidden",
+  "original": 0.9433614605691909,
+  "original_se": 0.015145703267514087,
+  "pooled": 1.000599414936771,
+  "pooled_se": 0.0058671347293656,
+  "true_se_2000": 0.026238624176022622,
+  "p_le_original": 0.01215,
+  "seeds_le_original": 1,
+  "median_2000_mean": 0.9998993998004431
+ },
+ {
+  "model": "chain_0.85",
+  "constraint": "counting",
+  "original": 0.9000150503921739,
+  "original_se": 0.03399581385100571,
+  "pooled": 1.0090619362808066,
+  "pooled_se": 0.013115740306841024,
+  "true_se_2000": 0.058655373802660955,
+  "p_le_original": 0.004,
+  "seeds_le_original": 0,
+  "median_2000_mean": 0.9993494303861173
+ },
+ {
+  "model": "chain_0.6",
+  "constraint": "dyck",
+  "original": 1.0414783041358482,
+  "original_se": 0.05735112015242155,
+  "pooled": 0.9996563644441311,
+  "pooled_se": 0.00414778767959771,
+  "true_se_2000": 0.018549470415633193,
+  "p_le_original": 0.98545,
+  "seeds_le_original": 20,
+  "median_2000_mean": 0.9992701541496128
+ }
+]
