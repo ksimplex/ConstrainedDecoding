@@ -662,7 +662,7 @@ Spread-out copy (51 pairs), Z_hat / p(C) with the marginal error in brackets; * 
 - `sum` works but with heavier tails than `lex` or `bound` on `chain_0.85` (marginal error 0.12 to 0.17 against 0.02
   to 0.10): at this length the constraint term deserves more weight than `sum` gives it.
 - `two_window` does not separate the orders (spread of Z_hat 0.27 to 0.30 for the five scores; steps 10.5 for
-  `separator` and `sum`, 16 to 17 for `bound` and `weighted`).
+  `separator` and `sum`, about 16 for `bound` and `weighted`).
 - Unbiasedness at theta = 0 on the arms with a usable standard error (25 arms): t-statistics mean -0.06, s.d. 1.0,
   largest 2.1. Peak memory footprint per worker 0.2 to 0.7 GB.
 
