@@ -23,6 +23,14 @@ Metrics (pooled over runs; standard errors by a delete-one-batch jackknife over 
     kept           effective fraction of outputs left if each were weighted by exp(r)
     *_corr         marg_tv and pair_tv after that weighting
     route_passes   batched route passes per particle per step requested by the policy
+    top1_share     share of the sum of Z_hat carried by the top 1% of runs
+    hill_k         Hill estimate of the upper-tail index of Z_hat over runs (top 2%); above 1/2 the variance is not
+                   finite and z_ratio_se is flagged as unreliable (z_se_unreliable)
+
+Guards against hidden mass (notes Sec. 6). Every arm uses defensive resampling (eps = 0.25) except the arm
+"fixed 1/step, no resampling", which cannot hide mass. Each cell records `control_check`: mean Z_hat of the
+one-per-step arm with and without resampling. They estimate the same p(C); a gap is the truth-free sign that
+resampling is hiding mass. Per-run log(Z_hat / p(C)) of every arm is saved to <out>.logZ.npz.
 """
 import argparse, json, math, os, time, zlib
 import numpy as np
@@ -72,6 +80,9 @@ def metrics(out, den, truth, N, A, K, pair_truth, nb=10):
     oh = np.eye(A)[cls]                                                   # (nrun, K, N, A)
     pair = oh[:, :, :-1, :, None] * oh[:, :, 1:, None, :] if pair_truth is not None else None
     zrel = np.exp(logZ - truth.log_pC)
+    zs = np.sort(zrel)[::-1]; m = max(10, len(zs) // 50)                  # upper tail of Z_hat over runs
+    tail = dict(top1_share=float(zs[:max(1, len(zs) // 100)].sum() / zs.sum()),
+                hill_k=float(np.mean(np.log(zs[:m] / zs[m]))) if zs[m] > 0 else float("nan"))
 
     def stat(idx):
         rw = (np.exp(logZ[idx] - logZ.max())[:, None] * w[idx]); rw = rw / rw.sum()
@@ -94,6 +105,8 @@ def metrics(out, den, truth, N, A, K, pair_truth, nb=10):
     for k, v in full.items():
         vals = np.array([j[k] for j in jk])
         res[k] = float(v); res[k + "_se"] = float(math.sqrt((nb - 1) / nb * ((vals - vals.mean()) ** 2).sum()))
+    res.update(tail)
+    res["z_se_unreliable"] = bool(not tail["hill_k"] <= 0.5)               # tail index above 1/2: no finite variance
     return res
 
 
@@ -111,19 +124,22 @@ def run_cell(job):
     kern_small, _ = fit_distance_kernel(den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))
     pilot_s = time.time() - t0
     arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in (N, N // 2, N // 4, N // 8)]
+    arms += [("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
     pol = lambda k, th, pr="bound", mx=False: CouplingPolicy(k, th, priority=pr, mixed=mx)
     arms += [(f"policy theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun"]) for th in THETAS]
     arms += [(f"small-pilot theta={th}", dict(T=N, schedule=pol(kern_small, th)), a["nrun"]) for th in (0.01, 0.03)]
     arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"]) for pr in ("confident", "random") for th in (0.01, 0.03)]
+    arms += [("random theta=0.0", dict(T=N, schedule=pol(kern, 0.0, "random")), a["nrun"])]   # same sets rule, order not chosen
     if a["nrun_mixed"] > 0:
         arms += [(f"mixed theta={th}", dict(T=N, schedule=pol(kern, th, mx=True)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
         arms += [(f"policy-ref theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
     ps = lambda xb, xa: parallel_log_prob(den, xb, xa)
-    rows = []
+    rows, zlog = [], {}
     for name, kw, nrun in arms:
         t0 = time.time()
         out = twisted_smc(den, cl, route, N, kw["T"], nrun=nrun, K=a["K"], gen=torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, name)),
-                          schedule=kw["schedule"], defensive=0.25, return_particles=True, path_stat=ps)
+                          schedule=kw["schedule"], defensive=0.25, return_particles=True, path_stat=ps, **kw.get("smc", {}))
+        zlog[f"{mname}|{cname}|{N}|{name}"] = (np.asarray(out["logZ"], dtype=np.float64) - truth.log_pC).astype(np.float32)
         row = dict(model=mname, constraint=cname, N=N, arm=name, nrun=nrun, K=a["K"], log_pC=truth.log_pC,
                    seed=stream_seed(a["seed"], mname, cname, N, name),
                    seconds=round(time.time() - t0, 2), frac_valid=out["frac_valid_finite"],
@@ -134,7 +150,12 @@ def run_cell(job):
     meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2),
                 kernel_unscreened=kern.ku.tolist(), kernel_screened=kern.ks.tolist(),
                 exact_mi=[0.0] + [den.pair_mi(0, d) for d in range(1, N)])
-    return rows, meta
+    on, off = rows[0], next(r for r in rows if r["arm"] == "fixed 1/step, no resampling")
+    meta["control_check"] = dict(on=on["z_ratio"], on_se=on["z_ratio_se"], off=off["z_ratio"], off_se=off["z_ratio_se"],
+                                 on_over_off=on["z_ratio"] / off["z_ratio"],
+                                 gap_in_se=(on["z_ratio"] - off["z_ratio"]) / math.hypot(on["z_ratio_se"], off["z_ratio_se"]),
+                                 se_unreliable=bool(on["z_se_unreliable"] or off["z_se_unreliable"]))
+    return rows, meta, zlog
 
 
 def main():
@@ -149,18 +170,22 @@ def main():
     ap.add_argument("--resume", action="store_true", help="skip cells already present in --out")
     a = vars(ap.parse_args())
     jobs = [(m, c, N, a) for N in a["N"] for m in a["models"] for c in a["constraints"]]
-    rows, metas, t0 = [], [], time.time()
+    rows, metas, zall, t0 = [], [], {}, time.time()
+    zpath = os.path.splitext(a["out"])[0] + ".logZ.npz"
     if a["resume"] and os.path.exists(a["out"]):          # keep finished cells; a cell is written only when complete
         prev = json.load(open(a["out"]))
         same = all(prev["args"].get(k) == a[k] for k in ("nrun", "nrun_mixed", "K", "pilot", "pilot_small"))
         if not same:
             raise SystemExit("--resume: the existing file was made with different settings")
         rows, metas = prev["rows"], prev["cells"]
+        if os.path.exists(zpath):
+            zall = dict(np.load(zpath))
         have = {(c["model"], c["constraint"], c["N"]) for c in metas}
         jobs = [j for j in jobs if (j[0], j[1], j[2]) not in have]
         print(f"resuming: {len(have)} cells kept, {len(jobs)} to run", flush=True)
     def collect(res):
-        rows.extend(res[0]); metas.append(res[1])
+        rows.extend(res[0]); metas.append(res[1]); zall.update(res[2])
+        np.savez_compressed(zpath + ".tmp.npz", **zall); os.replace(zpath + ".tmp.npz", zpath)
         json.dump(dict(args=a, rows=rows, cells=metas, wall_seconds=round(time.time() - t0, 1)), open(a["out"], "w"), indent=1)
         print(f"[{time.time() - t0:7.0f}s] done {res[1]['model']} {res[1]['constraint']} N={res[1]['N']} "
               f"({sum(r['seconds'] for r in res[0]):.0f}s of arms)", flush=True)
