@@ -37,6 +37,7 @@ import numpy as np
 import torch
 
 THETAS = (0.0, 0.003, 0.01, 0.03, 0.1)
+BUDGETS = (0.01, 0.03, 0.1, 0.3, 1.0)      # whole-sequence error budgets in nats; the policy gets rate = B / N
 MODELS = ("chain_0.6", "chain_0.85", "hidden_0.85", "segments_0.85")
 CONSTRAINTS = ("forbidden", "counting", "copy", "dyck")
 
@@ -148,10 +149,10 @@ def run_cell(job):
     pair_truth = truth.pair_marginals() if hasattr(truth, "pair_marginals") else None
     t0 = time.time()
     kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")))
-    kern_small = None if a["arms"] in ("core", "order") else fit_distance_kernel(
+    kern_small = None if a["arms"] in ("core", "order", "budget") else fit_distance_kernel(
         den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))[0]
     pilot_s = time.time() - t0
-    core = a["arms"] in ("core", "order")     # core: the controls, two naive parallel schedules, the theta sweep
+    core = a["arms"] in ("core", "order", "budget")   # core: the controls, two naive parallel schedules, the theta sweep
     arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in ((N, N // 8, N // 16) if core else (N, N // 2, N // 4, N // 8))]
     arms += [("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
     pol = lambda k, th, pr="bound", mx=False: CouplingPolicy(k, th, priority=pr, mixed=mx)
@@ -160,12 +161,23 @@ def run_cell(job):
         arms = [arms[0], ("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
         arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"])
                  for pr in ("bound", "random", "confident", "separator", "sum", "weighted", "least", "least_random")]
+    elif a["arms"] == "budget":               # whole-sequence budgets, graded against two-bin kernel, fixed dilated baselines
+        from twistroute.decode import DilatedSchedule, COUNT_EDGES
+        kern_g, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")),
+                                        count_edges=COUNT_EDGES)       # same pilot traces as `kern`
+        rated = lambda k, B, pr: CouplingPolicy(k, 0.0, priority=pr, mixed=False, rate=B / N)
+        arms = [(f"fixed 8/step", dict(T=N // 8, schedule="fixed"), a["nrun"])]
+        arms += [(f"dilated base={b}", dict(T=N, schedule=DilatedSchedule(b)), a["nrun"]) for b in (2, 4)]
+        arms += [(f"{pr} theta=0.0 graded", dict(T=N, schedule=pol(kern_g, 0.0, pr)), a["nrun"]) for pr in ("separator", "bound")]
+        arms += [(f"{pr} B={B} graded", dict(T=N, schedule=rated(kern_g, B, pr)), a["nrun"])
+                 for pr in ("separator", "bound", "random", "least_random") for B in BUDGETS]
+        arms += [(f"separator B={B} two-bin", dict(T=N, schedule=rated(kern, B, "separator")), a["nrun"]) for B in BUDGETS]
     else:
         arms += [(f"policy theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun"]) for th in THETAS]
     if not core:
         arms += [(f"small-pilot theta={th}", dict(T=N, schedule=pol(kern_small, th)), a["nrun"]) for th in (0.01, 0.03)]
         arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"]) for pr in ("confident", "random") for th in (0.01, 0.03)]
-    if a["arms"] != "order":
+    if a["arms"] not in ("order", "budget"):
         arms += [("random theta=0.0", dict(T=N, schedule=pol(kern, 0.0, "random")), a["nrun"])]   # same sets rule, order not chosen
     if a["nrun_mixed"] > 0 and not core:
         arms += [(f"mixed theta={th}", dict(T=N, schedule=pol(kern, th, mx=True)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
@@ -191,6 +203,8 @@ def run_cell(job):
                    **metrics(out, den, truth, N, S, a["K"], pair_truth))
         sch = kw["schedule"]
         row["route_passes"] = 0.0 if isinstance(sch, str) else sch.route_passes / max(sch.calls, 1)
+        if getattr(sch, "particle_calls", 0):          # mean summed kernel load per particle path: the predicted E[r]
+            row["load_per_path"] = sch.load_sum * sch.calls / sch.particle_calls
         rows.append(row)
         if part:                                                      # each arm has its own random stream, so a
             json.dump(rows, open(part + ".tmp", "w"))                 # cell resumed arm by arm equals an uninterrupted one
@@ -222,8 +236,9 @@ def main():
     ap.add_argument("--models", nargs="+", default=list(MODELS)); ap.add_argument("--constraints", nargs="+", default=list(CONSTRAINTS))
     ap.add_argument("--workers", type=int, default=1); ap.add_argument("--out", default="compare.json")
     ap.add_argument("--resume", action="store_true", help="skip cells already present in --out; within a cell, skip finished arms")
-    ap.add_argument("--arms", choices=("full", "core", "order"), default="full",
-                    help="core: 10 arms for long sequences; order: the controls and every priority score at --order-theta")
+    ap.add_argument("--arms", choices=("full", "core", "order", "budget"), default="full",
+                    help="core: 10 arms for long sequences; order: the controls and every priority score at --order-theta; "
+                         "budget: whole-sequence budgets with graded and two-bin kernels, and dilated baselines")
     ap.add_argument("--order-theta", dest="order_theta", type=float, default=0.0)
     ap.add_argument("--only", nargs="+", default=None, help="run only the arms whose name starts with one of these prefixes")
     a = vars(ap.parse_args())

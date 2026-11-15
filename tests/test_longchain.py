@@ -296,7 +296,6 @@ def test_least_coupled_first_cannot_use_screening_but_separator_can():
 def test_least_coupled_first_uses_distance_and_budget_caps_the_total():
     N = 16
     kern = DistanceKernel(unscreened=[0.0, 0.4, 0.1, 0.02] + [0.0] * (N - 4))      # range 3, no screening
-    kern.ks = kern.ku.clone()
     den, st = _state(N)
     r, valid = CouplingPolicy(kern, 0.0, priority="least", mixed=False).reveal(st, 0, N)
     assert sorted(r[0][valid[0]].tolist()) == [0, 4, 8, 12]                 # every position more than 3 apart
@@ -326,3 +325,83 @@ def test_dynamic_order_agrees_on_both_kernel_paths(priority):
         a = CouplingPolicy(kern, priority=priority, mixed=False, **kw).reveal(st, 0, N, torch.Generator().manual_seed(9))
         b = CouplingPolicy(_MatrixOnly(kern), priority=priority, mixed=False, **kw).reveal(st, 0, N, torch.Generator().manual_seed(9))
         assert torch.equal(a[0], b[0]) and torch.equal(a[1], b[1])
+
+
+def test_graded_kernel_rows_and_apply_match_the_matrix():
+    from twistroute.decode import COUNT_EDGES
+    g = torch.Generator().manual_seed(2)
+    P, N = 6, 40
+    table = torch.rand(N, len(COUNT_EDGES) + 1, generator=g).double()
+    k = DistanceKernel.from_table(table, COUNT_EDGES)
+    masked = torch.rand(P, N, generator=g) < 0.5
+    M, counts = k.matrix(masked), k.counts(masked)
+    for c in (0, 7, 19, 39):
+        assert torch.equal(k.row(counts, torch.full((P,), c)), M[:, c])
+    v = torch.rand(P, N, generator=g).double() * masked
+    assert torch.allclose(k.apply(masked, v), (M @ v[..., None]).squeeze(-1), atol=1e-12)
+    # the entry is indexed by the number of revealed positions strictly in between
+    m2 = torch.ones(1, N, dtype=torch.bool); m2[0, [3, 4, 5, 6, 7]] = False            # five revealed between 2 and 8
+    assert float(k.matrix(m2)[0, 2, 8]) == float(table[6, 4]) and float(k.matrix(m2)[0, 8, 20]) == float(table[12, 0])
+    with pytest.raises(ValueError):
+        DistanceKernel.from_table(table, (1, 2))
+
+
+def test_graded_pilot_kernel_sees_runs_screen_more_than_single_tokens():
+    from twistroute.decode import COUNT_EDGES
+    N = 24
+    hmm = noisy_hmm(N, 3, 0.85, 0.3, seed=1, concentration=2.0)
+    k, cnt = fit_distance_kernel(hmm, N, 3000, torch.Generator().manual_seed(0), count_edges=COUNT_EDGES)
+    t = k.table.numpy()
+    assert t.shape == (N, len(COUNT_EDGES) + 1)
+    for d in (4, 6):                                                      # coupling falls as more is revealed in between
+        assert t[d, 0] > t[d, 1] > t[d, 2] > t[d, 3] > 0
+    b, _ = fit_distance_kernel(hmm, N, 3000, torch.Generator().manual_seed(0))          # the two-bin kernel, same pilot
+    assert b.table.shape == (N, 2) and np.allclose(b.ku.numpy(), t[:, 0])
+    assert t[4, 1] > b.ks.numpy()[4] > t[4, 3]                            # "at least one" pools the graded bins
+    chain = lazy_chain(N, 3, 0.85)
+    k, _ = fit_distance_kernel(chain, N, 500, torch.Generator().manual_seed(0), count_edges=COUNT_EDGES)
+    assert float(k.table[:13, 1:].abs().max()) < 1e-12                    # a Markov chain is screened by one token
+    assert float(k.table[1, 1:].abs().max()) == 0 and float(k.table[2, 2:].abs().max()) == 0     # bins that cannot occur
+
+
+def test_rate_bounds_the_load_of_a_whole_trajectory():
+    """rate = B / N: the average load per position in every step is <= rate, so a full decode spends <= B."""
+    N, B = 24, 0.3
+    den = noisy_hmm(N, 3, 0.85, 0.3, seed=1, concentration=2.0); cl = den.classes()
+    route = TorchSubset(TorchChain(C.dfa_at_least_k(0, 3, 3)), [8, 9, 10, 11, 12, 13], N)
+    kern, _ = fit_distance_kernel(den, N, 500, torch.Generator().manual_seed(0))
+    steps = {}
+    for b in (0.0, B, 10 * B):
+        pol = CouplingPolicy(kern, 0.0, priority="separator", mixed=False, rate=b / N)
+        out = twisted_smc(den, cl, route, N, N, nrun=100, K=2, gen=torch.Generator().manual_seed(1), schedule=pol)
+        assert pol.load_sum / 200 <= b + 1e-9                             # mean total load per particle path
+        steps[b] = float(out["steps"].mean())
+    assert steps[0.0] > steps[B] > steps[10 * B]                          # a larger budget buys fewer steps
+    x = torch.full((1, N), den.mask_id)
+    st = RevealState(x, cl.token_class[x], cl.class_logw(den.logits(x)), den.mask_id, cl, route)
+    flat = DistanceKernel(unscreened=[0.0] + [0.01] * (N - 1))            # loads 0, 0.01, 0.02, ...: average of n is 0.005 (n - 1)
+    r, valid = CouplingPolicy(flat, 0.0, priority="random", mixed=False, forced_first=False, rate=0.021).reveal(st, 0, N, torch.Generator().manual_seed(0))
+    assert int(valid.sum()) == 5                                          # 0.005 (n - 1) <= 0.021  <=>  n <= 5
+    with pytest.raises(ValueError):
+        CouplingPolicy(flat, 0.0, rate=-1.0)
+
+
+def test_dilated_schedule_is_coarse_to_fine():
+    from twistroute.decode import DilatedSchedule
+    N = 8
+    den = lazy_chain(N, 3, 0.6, seed=7, concentration=2.0); cl = den.classes()
+    d = C.dfa_exactly_k(0, 3, 3); route = torch_route(d)
+    x = torch.full((2, N), den.mask_id)
+    sets = []
+    for t in range(3):
+        st = RevealState(x, cl.token_class[x], cl.class_logw(den.logits(x)), den.mask_id, cl, route)
+        r, valid = DilatedSchedule(2).reveal(st, t, N)
+        sets.append(sorted(r[0][valid[0]].tolist()))
+        x = x.clone(); x[:, r[0][valid[0]]] = 0
+    assert sets == [[0, 4], [2, 6], [1, 3, 5, 7]]                         # DUS eqs. 8-9 for a block of 8, zero-indexed
+    out = twisted_smc(den, cl, route, N, N, nrun=300, K=2, gen=torch.Generator().manual_seed(0), schedule=DilatedSchedule(2))
+    assert (out["steps"] == 3).all() and out["frac_valid_finite"] == 1.0
+    out = twisted_smc(den, cl, route, N, N, nrun=50, K=2, gen=torch.Generator().manual_seed(0), schedule=DilatedSchedule(4))
+    assert (out["steps"] == 2).all()                                      # base 4: strides 2 then 1
+    with pytest.raises(ValueError):
+        DilatedSchedule(1)
