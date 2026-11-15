@@ -403,7 +403,107 @@ dilated coarse-to-fine schedule under a fast-mixing assumption and names long-ra
 None handles hard constraints, importance weights, or the effect of reveal order on weights. SIRS (arXiv:2610.22238)
 suggests a random-weight correction for theta > 0 [hypothesis, untested].
 
-## 14. Next steps
+## 14. Hidden-mass check at N = 512 and 1,024 (cluster job `36c53d08`, 2026-11-15) [verified]
+
+`results/parallel_unmasking/hidden_mass_check.json`; 8 cells. Median marginal error (mean total variation between
+the weighted particle marginals and the exact constrained marginals):
+
+| Schedule | Resampling off | Defensive | Defensive, tau = 0.5 | Defensive, K = 16 | Off, K = 16 |
+|---|---|---|---|---|---|
+| One per step | 0.031 | 0.247 | 0.138 | 0.144 | n/a |
+| Constraint-first (`bound`), theta = 0 | 0.031 | 0.066 | 0.081 | 0.045 | 0.016 |
+| Separator, theta = 0 | 0.028 | 0.054 | 0.053 | 0.028 | 0.014 |
+
+- Resampling off is the best setting for every schedule; the calibrated twist does not help on these cells.
+- Particles that at some step held under 10% of their run's weight carry 74% to 99% of the final weight.
+- Without resampling the parallel schedules match one-per-step accuracy with 6 to 100 denoiser calls against 1,024.
+- **Decision:** experiments run with resampling off and more particles until a remedy is found. This is a statement
+  about this twist on these (rare, long-range) constraints at K = 4 to 16, not about resampling in general.
+
+## 15. Priority order at N = 64 (`order_N64.json`, `order_N64_least.json`, local) [verified]
+
+theta = 0, 16 cells, 2,000 runs of 4 particles, defensive resampling. Cost gain = (64 x control spread^2) /
+(steps x spread^2), where spread is sd / mean of Z_hat over runs and the control is one per step. "Lowest" is the
+lowest cost gain over the 16 cells (above 1 is a gain).
+
+| Order | Median steps | Spread / control | Median cost gain | Lowest | Cells with gain |
+|---|---|---|---|---|---|
+| `separator` | 7.0 | 0.55 | 14.7 | 0.90 | 15 |
+| `sum` | 7.7 | 0.57 | 13.5 | 1.54 | 16 |
+| `weighted` | 12.3 | 0.53 | 10.3 | 2.24 | 16 |
+| `bound` (constraint-first) | 14.2 | 0.58 | 10.0 | 0.73 | 15 |
+| `random` | 11.4 | 0.88 | 5.7 | 1.22 | 16 |
+| `confident` (lowest entropy) | 29.7 | 0.62 | 3.4 | 0.28 | 13 |
+| `least_random` (least-coupled-first, random start) | 15.6 | 0.93 | 2.2 | 0.80 | 14 |
+| `least` (least-coupled-first, left-most start; DEMASK's order) | 38.0 | 1.08 | 2.1 | 0.10 | 11 |
+
+- `separator` and `sum` are on par here. `separator`'s one loss (hidden chain, forbidden motif, 0.90) has a bootstrap
+  90% interval of 0.63 to 1.19; `sum`'s spread is lower in 10 of 16 cells with a median difference of 2%. No evidence
+  at this length that `sum` is better; the case for a constraint term is at long range (section 16).
+- Least-coupled-first ties (exact zeros of the oracle kernel) are broken left-most, so it removes one token from the
+  left edge of every gap per step and never bisects: 22 steps on `chain_0.6` and 57 on `chain_0.85`, the kernel
+  ranges. A learned dependence matrix has no exact ties, so this is not a fair verdict on DEMASK; `least_tie`
+  (random tie-break) was added for that (overnight run).
+- One-per-step controls, resampling on against off (spread of Z_hat): on the forbidden motif resampling helps in 3 of
+  4 models (3.1 against 8.5, 2.9 against 5.5, 2.1 against 2.8); on counting, copy and Dyck it hurts in all 12 cells,
+  by factors of 1.1 to 7.6. [verified] Reading: a local constraint's low weight is permanent, a long-range
+  constraint's is a provisional product-of-marginals guess. [hypothesis; `weight_trust.py` tests it]
+
+## 16. Budget sweep at N = 256 and 1,024 (cluster job `b4e15799`, 2026-11-15) [verified]
+
+`results/parallel_unmasking/budget_N256.json`, `budget_N1024.json`, `budget_sweep_summary.json`; figure
+`docs/parallel_unmasking_budget_tradeoff.png`. 12 cells per length, 30 arms, 200 runs of 4 particles at 1,024 (300 at
+256), defensive resampling (so the weight columns are confounded by section 14; steps and r are not).
+
+Separator score, graded kernel, N = 1,024: steps (spread of r):
+
+| Model | theta = 0 | B = 0.01 | 0.03 | 0.1 | 0.3 | 1.0 | Dilated base 2 | Dilated base 4 | Fixed 8/step |
+|---|---|---|---|---|---|---|---|---|---|
+| `chain_0.6` | 6 to 7 (0) | 5 to 6 (0.04 to 0.06) | 5 to 6 (0.06 to 0.11) | 5 to 6 (0.13 to 0.19) | 4 to 6 (0.11 to 0.40) | 4 to 5 (0.67 to 0.97) | 10 (0.00) | 5 (14.1 to 15.7) | 128 (1.7 to 2.7) |
+| `chain_0.85` | 8 to 9 (0) | 7 to 8 (0.02 to 0.03) | 6 to 8 (0.01 to 0.04) | 6 to 8 (0.01 to 0.10) | 6 to 8 (0.10 to 0.19) | 6 to 7 (0.03 to 0.40) | 10 (0.00) | 5 (25.6 to 26.9) | 128 (1.9 to 3.4) |
+| `hidden_0.85` | 62 to 68 (0) | 20 (0.11 to 0.12) | 17 (0.17 to 0.20) | 15 (0.33 to 0.34) | 13 (0.57 to 0.68) | 10 (1.11 to 1.28) | 10 (3.95 to 4.45) | 5 (8.5 to 9.3) | 128 (1.1 to 1.3) |
+| `repel_0.8` | 5 to 6 (0) | 4 (0.06 to 0.07) | 4 (0.11 to 0.15) | 4 (0.23 to 0.29) | 3 to 4 (0.43 to 0.47) | 3 (1.11 to 1.27) | 10 (0.00) | 5 (14.7 to 15.7) | 128 (1.7 to 1.9) |
+
+- N = 256, hidden chain: 53 to 55 steps at theta = 0; 16 to 17, 14, 12, 9 to 10, 7 to 8 under the five budgets; dilated
+  base 2 takes 8 steps with a spread of r of 2.1.
+- Predicted against measured: sd(r) / sqrt(2 x load) has median 0.84 at 1,024 (10% to 90%: 0.43 to 1.03, max 1.22)
+  and 0.91 at 256 (0.65 to 1.08, max 1.47). The load never exceeds the budget (max 0.98 and 0.94 of it; median 0.57
+  and 0.45).
+- Graded against two-bin kernel: no difference on Markov and anticorrelated chains; on the hidden chain 20 against
+  27 steps at B = 0.01, 15 against 19 at 0.1, 10 against 12 at 1.0 (N = 1,024), at equal spread of r.
+- Order under a budget (median steps over three constraints, N = 1,024, B = 0.03): `chain_0.6` separator 5.0, bound
+  8.9, random 9.0, least_random 11.0; hidden chain 17.0, 20.3, 20.5, 26.5. Least-coupled-first takes the most steps
+  on `chain_0.85` and the hidden chain at every budget and both lengths, and on `chain_0.6` except at B = 1.0, N = 256;
+  on the anticorrelated chain the four orders are within 4 to 8 steps and random takes as many or more.
+- Weights (confounded by resampling): at 1,024 the separator order has worse spread of Z_hat and marginal error than
+  constraint-first (`chain_0.6` 3.71 / 0.137 against 1.06 / 0.043). On `copy_spread` the gap is structural:
+  constraint-first reveals both partners first and the weights become constant (spread 0.00 against 10 to 14).
+- Where the gain over the dilated schedule comes from (hidden chain, N = 1,024, window, 150 paths, local): the
+  dilated schedule reveals 2, 2, 4, 8, 16, 32, 64, 128, 256, 512 tokens; its first six steps have zero gap and its
+  last two contribute spreads of 2.3 and 3.7. The budgeted schedule (1 nat) reveals 63 to 171 per step with a spread
+  of 0.3 to 0.5 at every step. [verified]
+- Reveal pattern (one path, N = 256, B = 0.03) [verified]: on `chain_0.85` 9 anchors about 26 apart, then every gap
+  is bisected each step (9, 10, 20, 40, 80, 97 tokens; 6 steps). On the hidden chain every reveal in the first five
+  steps is an isolated token; the count per step stays at 11 to 26; single tokens bisect down to a comb by step 7 and
+  the holes fill in over six more steps (14 steps). Thick runs appear only as a by-product at the end.
+
+## 17. Resampling frequency (local, 2026-11-15) [verified]
+
+Defensive resampling, trigger at half the particles. One per step: 2.8 to 8.5 resampling events per run at N = 64
+(4% to 13% of steps) and 5.6 to 12.8 at N = 512 (1% to 3%). Separator schedule at theta = 0: 1.2 to 4.4 per run.
+
+## 18. Decisions, 2026-11-15 (morning)
+
+- `sum` is not established as the default score; `separator`, `sum`, `weighted`, `lex` (constraint distortion first,
+  separator score as tie-break) and `bound` are carried through the constraint-interaction study.
+- Design-set long-range constraint: two windows sharing one count (`two_window`), plus Dyck at long lengths. Parity
+  stays held out as a false-alarm check.
+- New code: `lex`, `least_tie` priorities; `ThickSeparatorSchedule` (hand-built thick separators, to test the
+  "thick separators, then recurse" picture against the greedy rule); `resample_power` (partial resampling, unbiased);
+  arm sets `interact`, `resample`, `thick`; `weight_trust.py`.
+- Remote runs wait for approval; `experiments/parallel_unmasking/jobs/interact_N1024.sbatch` is drafted, not submitted.
+
+## 19. Next steps (as of 2026-11-15 early morning; superseded items are in sections 14 to 18)
 
 1. Hidden-mass check at N = 512 and 1,024 (job `36c53d08`): is the policy's remaining error resampling, and which
    remedy keeps resampling (calibrated twist, 16 particles, lower trigger).
