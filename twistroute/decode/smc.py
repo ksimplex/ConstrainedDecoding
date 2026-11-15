@@ -43,7 +43,7 @@ __all__ = ["twisted_smc", "select_particles", "reveal_sets", "reveal_indices", "
 def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, return_particles=False,
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
                 lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0,
-                twist_temp=1.0, guard="warn", schedule="fixed"):
+                twist_temp=1.0, guard="warn", schedule="fixed", path_stat=None):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -66,9 +66,17 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     schedule     "fixed" (N / T positions per step, the default and TWISTER's) or "independent" (each masked
                  position reveals with probability 1 / (T - t), the MDLM reverse step; see reveal_indices).
                  The native kernel must use the same schedule for the result to target that process.
+                 A policy object with .reveal(state, t, T, gen) (decode.policy.CouplingPolicy) is also
+                 accepted: the number of reveals per step then varies by particle, T is a cap on the number
+                 of steps, a particle that completes early takes the exact indicator as its twist from
+                 that step on, and the run stops once every particle is complete.
+    path_stat    optional f(x_before, x_after) -> (P,) evaluated at every step and summed along each
+                 particle's ancestry; returned as 'path_stat' (nrun, K). Used for the parallel-reveal gap.
     guard        "warn" (default), "raise" or "off": support invariants checked at every step (see
                  SUPPORT_CHECKS); counts are returned under 'guard'. They consume no randomness.
-    Returns a dict with per-run 'logZ' (log Z_hat), 'ess_min', 'n_res', validity checks, 'eta0'; with
+    Returns a dict with per-run 'logZ' (log Z_hat), 'ess_min', 'n_res', validity checks, 'eta0', and 'steps'
+    (nrun, K), the number of steps in which each final particle's ancestry revealed something (its denoiser
+    calls); with
     return_trace the per-step log-weights before resampling, shape (T, nrun, K); with return_particles the
     final class sequences (nrun, K, N) and log-weights (nrun, K). K = 1 without the weights is step-exact
     decoding (Dang & Ermon, arXiv:2607.07026).
@@ -104,7 +112,10 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         return torch.where(torch.isneginf(g), g, lookahead_shrink * g)
     general = lookahead > 0 or mix_native > 0 or tau != 1.0           # otherwise the TWISTER / tempered update below
     dev = classes.onehot.device
-    if schedule not in SCHEDULES:
+    policy = not isinstance(schedule, str)
+    if policy and not hasattr(schedule, "reveal"):
+        raise ValueError("schedule must be a name or an object with .reveal(state, t, T, gen)")
+    if not policy and schedule not in SCHEDULES:
         raise ValueError(f"schedule must be one of {SCHEDULES}")
     P, beta = nrun * K, float(twist_power)
     run_offset = K * torch.arange(nrun, device=dev)[:, None]
@@ -126,6 +137,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     ess_track = torch.full((nrun,), float(K), device=dev, dtype=torch.float64)
     n_res = torch.zeros(nrun, device=dev)
     trace = []
+    steps = torch.zeros(P, dtype=torch.long, device=dev)
+    pstat = torch.zeros(P, dtype=torch.float64, device=dev) if path_stat is not None else None
     if guard not in ("warn", "raise", "off"):
         raise ValueError("guard must be 'warn', 'raise' or 'off'")
     checks = {k: 0 for k in SUPPORT_CHECKS}
@@ -134,6 +147,17 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         last = t == T - 1
         x2, y2, z_old, log_ratio = _propose(den, classes, route, s, t, T, schedule, gen, mix_native, tau)
         lp2, lw2, eta2, psi2 = _successor_twist(den, classes, route, x2, y2, z_old, last, beta, tau)
+        all_done = False
+        if policy and not last:                 # a particle that is complete takes the exact terminal twist
+            done = (x2 != den.mask_id).all(-1)
+            if done.any():
+                ok = route.accepts(classes.token_class[x2])
+                fin = torch.where(ok, torch.zeros_like(eta2), torch.full_like(eta2, NEG_INF))
+                eta2, psi2 = torch.where(done, fin, eta2), torch.where(done, fin, psi2)
+                all_done = bool(done.all())
+        steps = steps + (x2 != s.x).any(-1).long()
+        if pstat is not None:
+            pstat = pstat + path_stat(s.x, x2)
         if guard != "off":
             live = torch.isfinite(logw) & torch.isfinite(s.eta)
             on = torch.isfinite(z_old)
@@ -165,6 +189,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         wn = torch.nan_to_num(torch.softmax(lwr, -1), nan=1.0 / K)
         ess = 1.0 / (wn.double() ** 2).sum(-1)
         ess_track = torch.minimum(ess_track, torch.nan_to_num(ess, nan=0.0))
+        if all_done:
+            break
         if last or K == 1:
             continue
         fire = ess < ess_min * K
@@ -175,7 +201,11 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         probs = torch.where(fire[:, None], pi, torch.full_like(wn, 1.0 / K)).float()
         idx = resample_indices(probs, K, resampler, gen, res_gen)
         idx = torch.where(fire[:, None], idx, torch.arange(K, device=dev)[None])
-        s.take((idx + run_offset).reshape(-1))
+        flat = (idx + run_offset).reshape(-1)
+        s.take(flat)
+        steps = steps[flat]
+        if pstat is not None:
+            pstat = pstat[flat]
         logw = torch.where(fire[:, None], offspring_logweights(wn, pi, idx, defensive), lwr).reshape(-1)
         n_res = n_res + fire.float()
 
@@ -188,6 +218,9 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                frac_valid_finite=float((valid & wfin).sum() / wfin.sum().clamp_min(1)),
                any_finite_invalid=bool((wfin & ~valid).any()), eta0=float(eta0[0]))
     out["guard"] = checks
+    out["steps"] = steps.view(nrun, K).cpu().numpy()
+    if pstat is not None:
+        out["path_stat"] = pstat.view(nrun, K).cpu().numpy()
     bad = {k: v for k, v in checks.items() if v}
     if bad and guard != "off":
         msg = "support invariants violated: " + "; ".join(f"{k} x{v} ({SUPPORT_CHECKS[k]})" for k, v in bad.items())
@@ -195,10 +228,11 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
             raise FloatingPointError(msg)
         warnings.warn(msg, RuntimeWarning, stacklevel=2)
     if return_trace:
-        out["trace"] = torch.stack(trace).view(T, nrun, K).numpy()
+        out["trace"] = torch.stack(trace).view(len(trace), nrun, K).numpy()
     if return_particles:
         out["classes"] = final.view(nrun, K, N).cpu().numpy()
         out["logw"] = lwr.cpu().numpy()
+        out["tokens"] = s.x.view(nrun, K, N).cpu().numpy()
     return out
 
 

@@ -40,9 +40,9 @@ At each step, reveal as many positions as possible such that no two co-revealed 
 - The kernel is frozen after the pilot.
 
 **Constraint coupling ρ, from the route.**
-- Each step, draw a few dozen extra route samples per particle and estimate a normalised association in [0, 1] between the classes at each pair of masked positions (for example Cramér's V).
-- The same route pass gives the forced positions and the constrained marginals μ.
-- These extra samples must be independent of the route sample used for revealing.
+- The constrained marginals μ are exact: they are the gradient of log Mass with respect to the class log-weights, one backward pass. **[checked for automaton and copy routes; the chart route's gradient is NaN as the code stands]**
+- Pairwise terms come from the same pass with one position clamped to one class, N × A clamps per particle per step. ρ(j, b) is the mutual information between the classes at j and b under the constrained law, divided by the smaller of their two entropies, so it lies in [0, 1].
+- This replaces the sampled association of the first draft. It is exact but not cheap, and its route passes are counted alongside denoiser calls. A sampled estimate remains the fallback for routes that are not differentiable.
 
 **Effective coupling E.** For candidate positions a and b:
 
@@ -54,14 +54,15 @@ Use the symmetrised value E(a, b) + E(b, a). The first term is direct model coup
 
 1. Call the denoiser at the current state, batched over particles.
 2. Run the route: constrained marginals, forced positions, association estimates from the extra samples.
-3. Put every forced single-token position into the reveal set.
-4. Rank the remaining masked positions by a priority score (section 3.5).
-5. Go down the ranking. Add a position if its total effective coupling to the positions already chosen is at most θ.
+3. Rank forced single-token positions first.
+4. Rank the remaining masked positions after them by a priority score (section 3.5).
+5. Go down the ranking. Add a position, forced or not, if its total effective coupling to the positions already chosen is at most θ.
 6. Draw the route sample used for revealing and reveal the chosen set.
 7. Update weights and resample exactly as in Algorithm 1.
 
 Rules that keep this legal:
-- A position forced by values drawn in this step waits for the next step. Revealing it in the same step drops the fresh/stale factor on the forced token, which is the correction of Example 1.1. Positions forced at the all-mask state are free. **[derived]**
+- A position forced by values drawn in this step waits for the next step. Revealing it in the same step drops the fresh/stale factor on the forced token, which is the correction of Example 1.1. **[derived]**
+- Forced positions are not exempt from the coupling test. The native kernel draws a forced position from the model's marginal like any other, so revealing it together with a position the model couples it to drops the factor p(x_a | x_forced) / p(x_a). **[checked: corrected 2026-11-14, see section 12]**
 - A particle that becomes fully revealed before the last step switches its twist to `Accepts` at that step. **[derived]**
 
 ### 3.4 Limiting cases
@@ -232,3 +233,7 @@ These are saved in the project artifact store, not in the repository.
 - `parallel_reveal_bound_check_output.txt` and `parallel_reveal_bound_check.py`: check of the KL identity and bounds.
 - `constraint_block_detection_check.txt`: brute-force check of block detection.
 - `schedule_cost_model.txt`: cost-model table, including L = 256 and 1024.
+
+## 12. Corrections
+
+- **2026-11-14, forced positions.** Earlier drafts, and the first implementation, revealed forced positions unconditionally on the grounds that they carry no randomness. That is true under the constrained law but not under the native law, which the weights are defined against. A test on a Markov chain caught it: once a count constraint saturates, several adjacent positions become forced together, and revealing them in one step left a parallel-reveal gap of up to 3.3 nats on individual paths. Forced positions now only get priority. The earlier statements that forced positions are "free" should be read with this correction.

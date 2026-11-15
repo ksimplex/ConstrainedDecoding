@@ -13,17 +13,26 @@ native_path_weights  along native trajectories, the importance weight that K=1 t
 """
 import torch
 from .smc import reveal_indices, clamp_revealed
+from .policy import RevealState
 
 
 @torch.no_grad()
-def native_sample(den, classes, N, T, B, gen=None, return_tokens=False, schedule="fixed"):
+def native_sample(den, classes, N, T, B, gen=None, return_tokens=False, schedule="fixed", route=None):
     """B native samples of length N in T steps. Returns class sequences (B, N) (and tokens if requested).
-    `schedule` must match the one used for decoding (see decode.smc.reveal_indices)."""
+    `schedule` must match the one used for decoding (see decode.smc.reveal_indices). A policy schedule
+    (decode.policy) reads the current predictions and the constraint, so it also needs `route`."""
     dev = classes.onehot.device
     x = torch.full((B, N), den.mask_id, dtype=torch.long, device=dev)
     for t in range(T):
-        r, valid = reveal_indices(x == den.mask_id, t, T, schedule, gen)
-        lp = den.logits(x)
+        if isinstance(schedule, str):
+            r, valid = reveal_indices(x == den.mask_id, t, T, schedule, gen)
+            lp = den.logits(x)
+        else:
+            if not (x == den.mask_id).any():
+                break
+            lp = den.logits(x)
+            st = RevealState(x, classes.token_class[x], classes.class_logw(lp), den.mask_id, classes, route)
+            r, valid = schedule.reveal(st, t, T, gen)
         rows = torch.gather(lp, 1, r[..., None].expand(-1, -1, lp.shape[-1]))
         tok = torch.multinomial(torch.exp(rows).reshape(-1, rows.shape[-1]), 1, generator=gen).reshape(B, -1)
         if valid is not None:

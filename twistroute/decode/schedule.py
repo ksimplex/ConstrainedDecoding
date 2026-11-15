@@ -63,3 +63,12 @@ def reveal_indices(masked, t, T, schedule, gen=None):
 def clamp_revealed(lw, x, ycls, mask_id):
     """Replace class log-weights at revealed positions of x by the one-hot of their class."""
     return torch.where((x != mask_id)[..., None], onehot_log(ycls, lw.shape[-1]), lw)
+
+
+def choose_reveals(schedule, masked, t, T, gen=None, state=None):
+    """Reveal set for step t: a named schedule (see reveal_indices), or a policy object with
+    .reveal(state, t, T, gen) -> (indices, valid) (decode.policy). `state` is a zero-argument callable that
+    builds the policy's view of the particles; it is not evaluated for named schedules."""
+    if isinstance(schedule, str):
+        return reveal_indices(masked, t, T, schedule, gen)
+    return schedule.reveal(state(), t, T, gen)

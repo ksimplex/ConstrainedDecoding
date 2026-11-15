@@ -33,7 +33,8 @@ import torch
 
 from ..torch_routes.routes import onehot_log
 from .resampling import log_mean_exp
-from .schedule import NEG_INF, clamp_revealed, reveal_indices
+from .policy import RevealState
+from .schedule import NEG_INF, clamp_revealed, choose_reveals
 
 # Support invariants. With a denoiser that gives every token positive probability, the set of
 # completable states does not depend on the predictions, so a live particle must keep a finite
@@ -79,8 +80,9 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
     locally optimal one for that twist, M(x'|x) ∝ kappa(x'|x) Z_q(x'; x): y is drawn with the true class law p at
     the reveal set r and q elsewhere, so log(M / kappa) = Z_q(x'; x) - Z_mix(x; x) and z_old = Z_q(x'; x)."""
     P = s.x.shape[0]
+    view = lambda: RevealState(s.x, s.ycls, s.lw, den.mask_id, classes, route)   # for policy schedules only
     if tau != 1.0:
-        r, rvalid = reveal_indices(s.x == den.mask_id, t, T, schedule, gen)
+        r, rvalid = choose_reveals(schedule, s.x == den.mask_id, t, T, gen, view)
         lwq = tempered_class_logw(s.lw, tau)
         inr = torch.zeros(s.x.shape, dtype=torch.bool, device=s.x.device)
         inr.scatter_(1, r, rvalid if rvalid is not None else torch.ones_like(r, dtype=torch.bool))
@@ -89,7 +91,7 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
     else:
         lwc = clamp_revealed(s.lw, s.x, s.ycls, den.mask_id)
         y = route.sample(lwc, gen)                                          # y ~ q(. | C; den(x))
-        r, rvalid = reveal_indices(s.x == den.mask_id, t, T, schedule, gen)  # native scheduler
+        r, rvalid = choose_reveals(schedule, s.x == den.mask_id, t, T, gen, view)  # native scheduler
     nt = r.shape[1]
     cr = torch.gather(y, 1, r)                                              # classes revealed this step
     rows_all = torch.gather(s.lp, 1, r[..., None].expand(-1, -1, s.lp.shape[-1]))
