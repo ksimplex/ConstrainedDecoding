@@ -33,7 +33,7 @@ import torch
 
 from .schedule import NEG_INF, clamp_revealed
 
-PRIORITIES = ("bound", "confident", "random", "separator", "sum", "weighted")
+PRIORITIES = ("bound", "confident", "random", "separator", "sum", "weighted", "least", "least_random")
 
 
 # ---------------------------------------------------------------------------------------------- route queries
@@ -196,7 +196,16 @@ class CouplingPolicy:
                  "weighted"   D_i + sum_j M(i, j) D_j: the constraint's stake in i and in the positions the model
                               ties to i. The twist is exact for constraint coupling; its error is model coupling
                               among masked positions the constraint cares about, and this is what a reveal removes.
+                 "least"      least-coupled-first: start from the left-most masked position, then repeatedly add
+                              the position with the smallest summed coupling to the set so far (the selection
+                              order of DEMASK, Ringel, Ali & Romano, arXiv:2604.02560, Alg. 2, without its
+                              confidence gate). "least_random" starts from a random masked position instead.
                None of these reads the constraint's type: they use the route's marginals and the model kernel only.
+    budget     optional total per step (nats): a position joins only while the sum of the loads of the positions
+               admitted so far, its own included, stays <= budget. In KL the error of revealing a set together is
+               the sum over its positions, in the order chosen, of each one's mutual information with those before
+               it; if pairwise couplings are sub-additive that is at most this sum, so `budget` bounds the expected
+               gap r of the step. With budget set, theta is not used.
     mixed      include the term sum_j M(a, j) rho(j, b). False drops it (and its N * A clamped route passes).
     forced_first   consider positions whose class is determined (single token) before all others; they still
                pass through the coupling test
@@ -206,13 +215,16 @@ class CouplingPolicy:
     `route_passes` counts batched logZ evaluations per particle requested by the policy (for cost accounting).
     """
 
-    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True):
+    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None):
         if priority not in PRIORITIES:
             raise ValueError(f"priority must be one of {PRIORITIES}")
         if theta < 0:
             raise ValueError("theta must be >= 0")
         self.kernel, self.theta, self.priority, self.mixed = kernel, float(theta), priority, mixed
         self.forced_first = forced_first
+        if budget is not None and budget < 0:
+            raise ValueError("budget must be >= 0")
+        self.budget = None if budget is None else float(budget)
         self.route_passes = 0.0
         self.calls = 0
 
@@ -250,7 +262,11 @@ class CouplingPolicy:
             else:
                 E = self.coupling(st, masked, mu, ent)
                 E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
-            if self.priority == "confident":
+            dynamic = self.priority in ("least", "least_random")
+            if dynamic:                        # the order is built during selection; the score only picks the start
+                idx = torch.arange(N, device=dev).double()
+                score = -idx.expand(P, N) if self.priority == "least" else torch.rand(masked.shape, generator=gen, device=dev).double()
+            elif self.priority == "confident":
                 score = -ent
             elif self.priority == "random":
                 score = torch.rand(masked.shape, generator=gen, device=dev).double()
@@ -265,7 +281,7 @@ class CouplingPolicy:
                     nb = self.kernel.apply(masked, v).to(dev) if hasattr(self.kernel, "apply") else \
                         (self.kernel.matrix(masked).to(dev) @ v[..., None]).squeeze(-1)
                     score = nb if self.priority == "separator" else dist + nb
-            if self.forced_first:
+            if self.forced_first and not dynamic:
                 sizes = (st.classes.onehot > 0).sum(0).to(dev)
                 forced = masked & (ent < 1e-9) & (sizes[mu.argmax(-1)] == 1)
                 score = torch.where(forced, torch.full_like(score, float("inf")), score)
@@ -274,10 +290,25 @@ class CouplingPolicy:
             chosen = torch.zeros_like(masked)
             load = torch.zeros(P, N, dtype=torch.float64, device=dev)
             rows = torch.arange(P, device=dev)
+            spent = torch.zeros(P, dtype=torch.float64, device=dev)       # sum of the loads admitted so far
+            alive = torch.ones(P, dtype=torch.bool, device=dev)           # dynamic order: still adding positions
+            tie = torch.arange(N, device=dev).double() * 1e-300           # ties go to the left-most position
             for k in range(N):
-                c = order[:, k]
-                ok = cand[rows, c] & (load[rows, c] <= self.theta)
+                if dynamic and k > 0:
+                    rest = cand & ~chosen
+                    c = torch.where(rest, load + tie, torch.full_like(load, float("inf"))).argmin(-1)
+                    live = alive & rest[rows, c]
+                else:
+                    c = order[:, k]
+                    live = cand[rows, c]
+                lc = load[rows, c]
+                ok = live & ((spent + lc <= self.budget) if self.budget is not None else (lc <= self.theta))
+                if dynamic:
+                    alive = alive & ok                                     # the least-coupled one failed: stop this particle
+                    if not alive.any():
+                        break
                 chosen[rows, c] |= ok
+                spent = spent + torch.where(ok, lc, torch.zeros_like(lc))
                 if lean:                         # rows only for the particles that admitted their candidate
                     sel = ok.nonzero(as_tuple=True)[0]
                     if sel.numel():

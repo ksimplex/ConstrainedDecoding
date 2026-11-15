@@ -269,3 +269,60 @@ def test_new_priorities_on_both_kernel_paths_and_stay_exact(priority):
     assert np.abs(r).max() < 1e-8 and out["steps"].mean() < 0.7 * N
     z = np.exp(out["logZ"]); se = z.std(ddof=1) / math.sqrt(len(z))
     assert abs(z.mean() - math.exp(truth.log_pC)) < 4 * se and out["frac_valid_finite"] == 1.0
+
+
+def test_least_coupled_first_cannot_use_screening_but_separator_can():
+    """Markov chain, theta = 0, the chain's true structure as the kernel. Least-coupled-first from the left-most
+    position reveals one position per step (the left-most masked position never separates anything), so it needs
+    N steps; the separator score bisects and needs about log2 N."""
+    N = 15
+    kern = DistanceKernel(unscreened=[0.0] + [0.5 ** d for d in range(1, N)], screened=[0.0] * N)
+    den, st = _state(N)
+    r, valid = CouplingPolicy(kern, 0.0, priority="least", mixed=False).reveal(st, 0, N)
+    assert r[0][valid[0]].tolist() == [0]
+    den, st = _state(N, reveal=[(0, 1)])
+    r, valid = CouplingPolicy(kern, 0.0, priority="least", mixed=False).reveal(st, 1, N)
+    assert r[0][valid[0]].tolist() == [1]
+    den = lazy_chain(N, 3, 0.7, seed=7, concentration=2.0); cl = den.classes()
+    route = TorchSubset(TorchChain(C.dfa_at_least_k(0, 2, 3)), [10, 11, 12, 13], N)
+    steps = {}
+    for pr in ("least", "separator"):
+        out = twisted_smc(den, cl, route, N, N, nrun=50, K=1, gen=torch.Generator().manual_seed(0),
+                          schedule=CouplingPolicy(kern, 0.0, priority=pr, mixed=False))
+        steps[pr] = float(out["steps"].mean())
+    assert steps["least"] == N and steps["separator"] <= 5
+
+
+def test_least_coupled_first_uses_distance_and_budget_caps_the_total():
+    N = 16
+    kern = DistanceKernel(unscreened=[0.0, 0.4, 0.1, 0.02] + [0.0] * (N - 4))      # range 3, no screening
+    kern.ks = kern.ku.clone()
+    den, st = _state(N)
+    r, valid = CouplingPolicy(kern, 0.0, priority="least", mixed=False).reveal(st, 0, N)
+    assert sorted(r[0][valid[0]].tolist()) == [0, 4, 8, 12]                 # every position more than 3 apart
+    # a flat weak coupling of 0.01 between every pair: the per-candidate threshold 0.05 admits loads 0, 0.01, ..., 0.05
+    # (six positions, total 0.15); a total budget of 0.05 admits loads 0, 0.01, 0.02 (three positions, total 0.03)
+    flat = DistanceKernel(unscreened=[0.0] + [0.01] * (N - 1))
+    for pr in ("least", "random"):
+        r, valid = CouplingPolicy(flat, 0.05, priority=pr, mixed=False, forced_first=False).reveal(st, 0, N, torch.Generator().manual_seed(0))
+        assert int(valid.sum()) == 6
+        r, valid = CouplingPolicy(flat, 0.0, priority=pr, mixed=False, forced_first=False, budget=0.05).reveal(st, 0, N, torch.Generator().manual_seed(0))
+        assert int(valid.sum()) == 3
+    with pytest.raises(ValueError):
+        CouplingPolicy(kern, 0.0, budget=-1.0)
+
+
+@pytest.mark.parametrize("priority", ["least", "least_random"])
+def test_dynamic_order_agrees_on_both_kernel_paths(priority):
+    N = 14
+    den = noisy_hmm(N, 3, 0.8, 0.3, seed=1, concentration=2.0); cl = den.classes()
+    route = TorchSubset(TorchChain(C.dfa_at_least_k(0, 3, 3)), [4, 5, 6, 7, 8, 9], N)
+    kern, _ = fit_distance_kernel(den, N, 300, torch.Generator().manual_seed(0))
+    g = torch.Generator().manual_seed(3)
+    x = den.sample(40, g)
+    x = torch.where(torch.rand(40, N, generator=g) < 0.4, x, torch.full_like(x, den.mask_id))
+    st = RevealState(x, cl.token_class[x], cl.class_logw(den.logits(x)), den.mask_id, cl, route)
+    for kw in (dict(theta=0.05), dict(theta=0.0, budget=0.1)):
+        a = CouplingPolicy(kern, priority=priority, mixed=False, **kw).reveal(st, 0, N, torch.Generator().manual_seed(9))
+        b = CouplingPolicy(_MatrixOnly(kern), priority=priority, mixed=False, **kw).reveal(st, 0, N, torch.Generator().manual_seed(9))
+        assert torch.equal(a[0], b[0]) and torch.equal(a[1], b[1])

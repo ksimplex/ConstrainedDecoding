@@ -159,7 +159,7 @@ def run_cell(job):
         th = a["order_theta"]
         arms = [arms[0], ("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
         arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"])
-                 for pr in ("bound", "random", "confident", "separator", "sum", "weighted")]
+                 for pr in ("bound", "random", "confident", "separator", "sum", "weighted", "least", "least_random")]
     else:
         arms += [(f"policy theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun"]) for th in THETAS]
     if not core:
@@ -170,6 +170,8 @@ def run_cell(job):
     if a["nrun_mixed"] > 0 and not core:
         arms += [(f"mixed theta={th}", dict(T=N, schedule=pol(kern, th, mx=True)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
         arms += [(f"policy-ref theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
+    if a.get("only"):                          # keep the arms whose name starts with one of the given prefixes
+        arms = [x for x in arms if any(x[0].startswith(p) for p in a["only"])]
     ps = lambda xb, xa: parallel_log_prob(den, xb, xa)
     rows, zlog = [], {}
     part = os.path.join(a["partial"], f"{mname}__{cname}__{N}") if a.get("partial") else None
@@ -199,7 +201,10 @@ def run_cell(job):
     meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2),
                 kernel_unscreened=kern.ku.tolist(), kernel_screened=kern.ks.tolist(),
                 exact_mi=[0.0] + [den.pair_mi(0, d) for d in range(1, N)], constraint_info=getattr(truth, "info", {}))
-    on, off = rows[0], next(r for r in rows if r["arm"] == "fixed 1/step, no resampling")
+    on = next((r for r in rows if r["arm"] == "fixed 1/step"), None)
+    off = next((r for r in rows if r["arm"] == "fixed 1/step, no resampling"), None)
+    if on is None or off is None:              # a filtered run without both controls
+        return rows, meta, zlog
     meta["control_check"] = dict(on=on["z_ratio"], on_se=on["z_ratio_se"], off=off["z_ratio"], off_se=off["z_ratio_se"],
                                  on_over_off=on["z_ratio"] / off["z_ratio"],
                                  gap_in_se=(on["z_ratio"] - off["z_ratio"]) / math.hypot(on["z_ratio_se"], off["z_ratio_se"]),
@@ -220,6 +225,7 @@ def main():
     ap.add_argument("--arms", choices=("full", "core", "order"), default="full",
                     help="core: 10 arms for long sequences; order: the controls and every priority score at --order-theta")
     ap.add_argument("--order-theta", dest="order_theta", type=float, default=0.0)
+    ap.add_argument("--only", nargs="+", default=None, help="run only the arms whose name starts with one of these prefixes")
     a = vars(ap.parse_args())
     a["partial"] = os.path.splitext(a["out"])[0] + ".partial" if a["resume"] else None
     if a["partial"]:
