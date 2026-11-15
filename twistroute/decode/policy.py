@@ -242,6 +242,13 @@ class CouplingPolicy:
                               order of DEMASK, Ringel, Ali & Romano, arXiv:2604.02560, Alg. 2, without its
                               confidence gate). "least_random" starts from a random masked position instead.
                None of these reads the constraint's type: they use the route's marginals and the model kernel only.
+    pull_forced  when > 0: for up to this many admitted positions per step on which the constraint has a stake, the
+               positions that this reveal will force (those whose constrained marginal becomes deterministic once
+               the admitted position is fixed) are admitted in the same step, ahead of the other candidates, if
+               their load fits. Without it a parallel step can open several constraint-linked groups (say, one
+               token from each of two copy pairs) and leave their forced partners masked beside fresh reveals.
+               Found with one extra route pass per pull, with the admitted position clamped to its most likely
+               class; no denoiser call. The set still does not depend on the values about to be drawn.
     max_set    optional cap on the number of positions revealed per step; 1 gives one token per step in priority
                order, the sequential control for "is it the order or the parallelism?"
     budget     optional total per step (nats): a position joins only while the sum of the loads of the positions
@@ -262,12 +269,13 @@ class CouplingPolicy:
     `route_passes` counts batched logZ evaluations per particle requested by the policy (for cost accounting).
     """
 
-    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None):
+    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None, pull_forced=0):
         if priority not in PRIORITIES:
             raise ValueError(f"priority must be one of {PRIORITIES}")
         if theta < 0:
             raise ValueError("theta must be >= 0")
         self.max_set = None if max_set is None else int(max_set)
+        self.pull_forced = int(pull_forced)
         self.kernel, self.theta, self.priority, self.mixed = kernel, float(theta), priority, mixed
         self.forced_first = forced_first
         if budget is not None and budget < 0:
@@ -315,6 +323,10 @@ class CouplingPolicy:
             else:
                 E = self.coupling(st, masked, mu, ent)
                 E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
+            dist_all = None
+            if self.pull_forced:
+                w_ = torch.exp(st.lw.double())
+                dist_all = (torch.xlogy(mu, mu) - mu * torch.log(w_.clamp_min(1e-300))).sum(-1).clamp_min(0.0)
             dynamic = self.priority in ("least", "least_random", "least_tie")
             if dynamic:                        # the order is built during selection; the score only picks the start
                 idx = torch.arange(N, device=dev).double()
@@ -345,6 +357,7 @@ class CouplingPolicy:
             rows = torch.arange(P, device=dev)
             spent = torch.zeros(P, dtype=torch.float64, device=dev)       # sum of the loads admitted so far
             alive = torch.ones(P, dtype=torch.bool, device=dev)           # dynamic order: still adding positions
+            pulls = 0
             tie = torch.arange(N, device=dev).double() * 1e-300           # ties go to the left-most position
             if self.priority == "least_tie":                               # or to a random one: a learned dependence
                 tie = torch.rand(masked.shape, generator=gen, device=dev).double() * 1e-300     # matrix has no exact ties
@@ -381,6 +394,37 @@ class CouplingPolicy:
                         load[sel] += torch.where(cand[sel], r, torch.zeros_like(r))
                 else:
                     load = load + torch.where(ok[:, None], E[rows, c], torch.zeros_like(load))
+                if self.pull_forced and not dynamic and pulls < self.pull_forced and lean:
+                    stake = ok & (ent[rows, c] > 1e-9) & (dist_all[rows, c] > 1e-9)       # the constraint cares about c
+                    sel = stake.nonzero(as_tuple=True)[0]
+                    if sel.numel():
+                        pulls += 1
+                        cs = c[sel]; rep = mu[sel, cs].argmax(-1)
+                        l2 = lwc[sel].clone()
+                        keep = torch.zeros_like(l2[:, 0], dtype=torch.bool); keep[torch.arange(sel.numel(), device=dev), rep] = True
+                        l2[torch.arange(sel.numel(), device=dev), cs] = torch.where(keep, l2[torch.arange(sel.numel(), device=dev), cs], torch.full_like(l2[:, 0], NEG_INF))
+                        mu2 = constrained_marginals(st.route, l2); self.route_passes += sel.numel() / P
+                        e2 = -torch.xlogy(mu2, mu2).sum(-1)
+                        forced2 = cand[sel] & ~chosen[sel] & (e2 < 1e-9) & (ent[sel] >= 1e-9)
+                        forced2[torch.arange(sel.numel(), device=dev), cs] = False
+                        for _ in range(int(forced2.sum(-1).max())):                     # admit them in index order
+                            has = forced2.any(-1); j = forced2.to(torch.int8).argmax(-1)
+                            rs = sel[has]; js = j[has]
+                            lj = load[rs, js]
+                            if self.rate is not None:
+                                fit = spent[rs] + lj <= self.rate * (chosen[rs].sum(-1) + 1)
+                            elif self.budget is not None:
+                                fit = spent[rs] + lj <= self.budget
+                            else:
+                                fit = lj <= self.theta
+                            if self.max_set is not None:
+                                fit = fit & (chosen[rs].sum(-1) < self.max_set)
+                            ra, ja = rs[fit], js[fit]
+                            if ra.numel():
+                                chosen[ra, ja] = True; spent[ra] = spent[ra] + load[ra, ja]
+                                r2 = self.kernel.row((counts[0][ra], counts[1][ra]), ja).to(dev)
+                                load[ra] += torch.where(cand[ra], r2, torch.zeros_like(r2))
+                            forced2[torch.arange(sel.numel(), device=dev)[has], js] = False
             self.load_sum += float(spent.sum())
         self.calls += 1
         self.particle_calls += P
