@@ -34,6 +34,8 @@ import torch
 from .schedule import NEG_INF, clamp_revealed
 
 PRIORITIES = ("bound", "confident", "random", "separator", "sum", "weighted", "lex", "least", "least_random", "least_tie")
+PULL_TOL = 1e-6        # nats: coupling below this is treated as none when admitting forced partners
+STAKE_TOL = 1e-6       # nats of constraint distortion above which the constraint "has a stake" in a position
 LEX_SCALE = 1e6        # "lex": one nat of constraint distortion outranks any separator score below 1e6 nats
 
 
@@ -249,6 +251,13 @@ class CouplingPolicy:
                token from each of two copy pairs) and leave their forced partners masked beside fresh reveals.
                Found with one extra route pass per pull, with the admitted position clamped to its most likely
                class; no denoiser call. The set still does not depend on the values about to be drawn.
+               A forced partner is admitted when its load is at most max(theta, PULL_TOL): pilot kernels carry
+               numerical noise of order 1e-10 nats at long range, which is not coupling.
+    guard      when True, a position on which the constraint has no stake starts each step with a load equal to its
+               model coupling to the still-masked positions on which it has one, as if those were already in the
+               step's set. It is then not revealed beside an unresolved constrained position unless the threshold
+               or budget allows that coupling: the event that makes a later forced token clash with its
+               neighbours. Positions with a stake are exempt (they are the ones to reveal first).
     max_set    optional cap on the number of positions revealed per step; 1 gives one token per step in priority
                order, the sequential control for "is it the order or the parallelism?"
     budget     optional total per step (nats): a position joins only while the sum of the loads of the positions
@@ -269,13 +278,14 @@ class CouplingPolicy:
     `route_passes` counts batched logZ evaluations per particle requested by the policy (for cost accounting).
     """
 
-    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None, pull_forced=0):
+    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None, pull_forced=0, guard=False):
         if priority not in PRIORITIES:
             raise ValueError(f"priority must be one of {PRIORITIES}")
         if theta < 0:
             raise ValueError("theta must be >= 0")
         self.max_set = None if max_set is None else int(max_set)
         self.pull_forced = int(pull_forced)
+        self.guard = bool(guard)
         self.kernel, self.theta, self.priority, self.mixed = kernel, float(theta), priority, mixed
         self.forced_first = forced_first
         if budget is not None and budget < 0:
@@ -324,7 +334,7 @@ class CouplingPolicy:
                 E = self.coupling(st, masked, mu, ent)
                 E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
             dist_all = None
-            if self.pull_forced:
+            if self.pull_forced or self.guard:
                 w_ = torch.exp(st.lw.double())
                 dist_all = (torch.xlogy(mu, mu) - mu * torch.log(w_.clamp_min(1e-300))).sum(-1).clamp_min(0.0)
             dynamic = self.priority in ("least", "least_random", "least_tie")
@@ -358,6 +368,11 @@ class CouplingPolicy:
             spent = torch.zeros(P, dtype=torch.float64, device=dev)       # sum of the loads admitted so far
             alive = torch.ones(P, dtype=torch.bool, device=dev)           # dynamic order: still adding positions
             pulls = 0
+            if self.guard and not dynamic and hasattr(self.kernel, "apply"):
+                stake_m = cand & (dist_all > STAKE_TOL)                   # still-masked positions the constraint cares about
+                g = self.kernel.apply(masked, stake_m.double()).to(dev)
+                g = torch.where(g < PULL_TOL, torch.zeros_like(g), g)     # pilot noise is not coupling
+                load = torch.where(cand & ~stake_m, g, load)
             tie = torch.arange(N, device=dev).double() * 1e-300           # ties go to the left-most position
             if self.priority == "least_tie":                               # or to a random one: a learned dependence
                 tie = torch.rand(masked.shape, generator=gen, device=dev).double() * 1e-300     # matrix has no exact ties
@@ -416,7 +431,9 @@ class CouplingPolicy:
                             elif self.budget is not None:
                                 fit = spent[rs] + lj <= self.budget
                             else:
-                                fit = lj <= self.theta
+                                fit = lj <= max(self.theta, PULL_TOL)
+                            if self.rate is not None or self.budget is not None:
+                                fit = fit | (lj <= PULL_TOL)
                             if self.max_set is not None:
                                 fit = fit & (chosen[rs].sum(-1) < self.max_set)
                             ra, ja = rs[fit], js[fit]

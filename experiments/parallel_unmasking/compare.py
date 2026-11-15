@@ -223,10 +223,10 @@ def run_cell(job):
     pair_truth = truth.pair_marginals() if hasattr(truth, "pair_marginals") else None
     t0 = time.time()
     kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")))
-    kern_small = None if a["arms"] in ("core", "order", "budget", "interact", "resample", "thick", "seqorder") else fit_distance_kernel(
+    kern_small = None if a["arms"] in ("core", "order", "budget", "interact", "resample", "thick", "seqorder", "fix") else fit_distance_kernel(
         den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))[0]
     pilot_s = time.time() - t0
-    core = a["arms"] in ("core", "order", "budget", "interact", "resample", "thick", "seqorder")   # core: the controls, two naive parallel schedules, the theta sweep
+    core = a["arms"] in ("core", "order", "budget", "interact", "resample", "thick", "seqorder", "fix")   # core: the controls, two naive parallel schedules, the theta sweep
     arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in ((N, N // 8, N // 16) if core else (N, N // 2, N // 4, N // 8))]
     arms += [("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
     pol = lambda k, th, pr="bound", mx=False: CouplingPolicy(k, th, priority=pr, mixed=mx)
@@ -277,6 +277,14 @@ def run_cell(job):
             arms += [(f"{pr} sequential", dict(T=N, schedule=mk(pr, cap=1), smc=off), a["nrun"]),
                      (f"{pr} theta=0.0", dict(T=N, schedule=mk(pr), smc=off), a["nrun"]),
                      (f"{pr} B=0.03", dict(T=N, schedule=mk(pr, 0.03), smc=off), a["nrun"])]
+    elif a["arms"] == "fix":                  # selection fixes: forced-partner pull-in and the guard, against the plain rule
+        from twistroute.decode import COUNT_EDGES
+        kern_g, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")),
+                                        count_edges=COUNT_EDGES)
+        off = dict(ess_min=0.0)
+        mk = lambda pr, B, pull, gd: CouplingPolicy(kern_g, 0.0, priority=pr, mixed=False, rate=None if B is None else B / N, pull_forced=pull, guard=gd)
+        arms = [(f"{pr} " + ("theta=0.0" if B is None else f"B={B}") + tag, dict(T=N, schedule=mk(pr, B, pull, gd), smc=off), a["nrun"])
+                for pr in ("lex", "sum") for B in (None, 0.03) for tag, pull, gd in (("", 0, False), (" +pull", 8, False), (" +pull+guard", 8, True))]
     elif a["arms"] == "resample":             # does resampling hurt only when K is small? Total particles nrun * K held
         from twistroute.decode import COUNT_EDGES                 # fixed across K; exact schedules only, so r = 0 throughout
         kern_g, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")),
@@ -300,7 +308,7 @@ def run_cell(job):
     if not core:
         arms += [(f"small-pilot theta={th}", dict(T=N, schedule=pol(kern_small, th)), a["nrun"]) for th in (0.01, 0.03)]
         arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"]) for pr in ("confident", "random") for th in (0.01, 0.03)]
-    if a["arms"] not in ("order", "budget", "interact", "resample", "thick", "seqorder"):
+    if a["arms"] not in ("order", "budget", "interact", "resample", "thick", "seqorder", "fix"):
         arms += [("random theta=0.0", dict(T=N, schedule=pol(kern, 0.0, "random")), a["nrun"])]   # same sets rule, order not chosen
     if a["nrun_mixed"] > 0 and not core:
         arms += [(f"mixed theta={th}", dict(T=N, schedule=pol(kern, th, mx=True)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
@@ -364,7 +372,7 @@ def main():
     ap.add_argument("--models", nargs="+", default=list(MODELS)); ap.add_argument("--constraints", nargs="+", default=list(CONSTRAINTS))
     ap.add_argument("--workers", type=int, default=1); ap.add_argument("--out", default="compare.json")
     ap.add_argument("--resume", action="store_true", help="skip cells already present in --out; within a cell, skip finished arms")
-    ap.add_argument("--arms", choices=("full", "core", "order", "budget", "interact", "resample", "thick", "seqorder"), default="full",
+    ap.add_argument("--arms", choices=("full", "core", "order", "budget", "interact", "resample", "thick", "seqorder", "fix"), default="full",
                     help="core: 10 arms for long sequences; order: the controls and every priority score at --order-theta; "
                          "budget: whole-sequence budgets with graded and two-bin kernels, and dilated baselines")
     ap.add_argument("--order-theta", dest="order_theta", type=float, default=0.0)
