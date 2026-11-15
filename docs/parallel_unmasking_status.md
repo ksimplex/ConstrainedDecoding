@@ -281,25 +281,140 @@ chain. The control is within 2 s.e. of 1 in every cell.
   minutes. `sbatch --test-only` gives the estimate before submitting. Maintenance on Tuesday 2026-11-17.
 - **Local N = 32 run.** `compare.py --N 32 --nrun 2000 --nrun-mixed 500 --workers 3 --resume`, 2026-11-15 00:12
   to 01:10. Done.
-- **Rerun with the guarded script.** Cluster job `a1d8bedb`, submitted 2026-11-15 02:05: N = 64 (no mixed arms)
-  then N = 32 (mixed arms), 32 CPUs, resumable. Replaces the shared-seed files for analysis.
+- **Rerun with the guarded script.** Cluster job `a1d8bedb`, 2026-11-15 02:07 to 03:00. Done; section 10.
 - **Pre-emption.** `mit_preemptable` pre-empted a 32-CPU job after about 27 min; jobs there must be resumable.
   `sbatch --test-only` overestimates the wait on that partition by hours.
 - **Laptop.** 8 cores, 16 GB. Six workers pushed compressed memory to about 7.9 GB and load to about 12. Three
   workers lower the load but not the memory. The session's Python kernel was replaced several times at gaps in
   the conversation; cause unknown. `compare.py --resume` restarts from the saved cells.
 
-## 10. Next steps
+## 10. Rerun with guards (N = 32 and 64, cluster job `a1d8bedb`, 2026-11-15)
 
-1. Analyse the guarded rerun at N = 32 and 64: net account at theta = 0, theta > 0 trade-offs, mixed term against its
-   reference arm, priority scores, pilot size, Var(r)/2 against measured error.
-2. Reveal order without parallelism: control against `random theta=0.0` against `policy theta=0.0`.
-3. Long-chain code: a route that applies a counting automaton to a group of positions and leaves the rest free,
-   its exact ground truth, copy on a subset of pairs, an anticorrelated chain, particle chunking in
-   `CouplingPolicy`. Tests against enumeration.
-4. Long-chain run, after the user's go-ahead.
-5. Open checks: cross-entropy cap on co-revealed sets (model entropy, constrained entropy and cross-entropy
-   compared); predicted against measured r from accumulated kernel loads; separator-first ordering.
-6. Owed: three proofs (resampling at unequal progress under rollback; unbiasedness with an adaptive proposal;
-   accuracy of the first-order effective-coupling formula); the fix to Definition 5.1 of the notes (predictions
-   must not depend on the mask set); the `TorchChart` gradient; strip and grid oracles.
+`compare2_N32.json`, `compare2_N64.json`: 16 cells each, 368 and 272 arms, independent streams, no invalid samples.
+Two flags (chain 0.6 copy at N = 32, control on against off, recorded gap -4.8 jackknife s.e., -3.4 plain s.e.;
+chain 0.85 counting at N = 64, policy theta = 0 at 0.904) did not reproduce with four new base seeds (8,000 runs per
+arm: 0.994 (0.017) against 0.991 (0.014); 0.992 (0.028)). [verified] The Z-ratio s.e. in `compare.py` is now the
+plain per-run one.
+
+**Net account at theta = 0** (`net_account_theta0.json`). Cost per unit precision of Z_hat = steps x (relative
+spread of Z_hat over runs)^2; entries are control / policy, above 1 means the policy is cheaper. [verified: read
+from the JSON; single 2,000-run draws]
+
+| constraint | N | segments | chain 0.6 | chain 0.85 | hidden chain |
+|---|---|---|---|---|---|
+| forbidden | 32 | 5.8 | 2.4 | 3.8 | 2.3 |
+| forbidden | 64 | 4.3 | 4.8 | 3.6 | 3.3 |
+| counting | 32 | 4.9 | 1.1 | 4.8 | 0.5 |
+| counting | 64 | 12.9 | 2.1 | 8.9 | 0.4 |
+| copy | 32 | 539.4 | 3.9 | 272.5 | 7.4 |
+| copy | 64 | 9936.6 | 64.4 | 80.0 | 7.6 |
+| dyck | 32 | 10.2 | 2.3 | 11.6 | 3.5 |
+| dyck | 64 | 18.9 | 3.5 | 19.6 | 5.3 |
+
+The policy is cheaper in 15 of 16 cells at both lengths (median 4.3 at N = 32,
+6.4 at N = 64); the loss is the hidden chain with counting at both lengths. The largest copy
+entries come from controls with heavy tails and are not reliable as sizes. Six of the eight counting cells gain.
+
+**Order.** [verified that these are the numbers; mechanisms are hypotheses]
+- Priority order ("bound": largest constraint distortion first) lowers the spread of Z_hat against the control in
+  12 of 16 cells at both lengths, but raises it on counting, including on the hidden chain where no positions are
+  co-revealed (0.35 to 0.47 at N = 32), so that part is an order effect alone.
+- On forbidden motifs the same rule is the bottleneck for steps: chain 0.6, N = 64, 26.6 steps against 10.2 for the
+  same sets in random order. It reveals next to existing reveals and creates little separation.
+- The mixed-path term (N = 32, 500 runs) does not clearly reduce the counting noise and costs about 97 route passes
+  per step (`mixed_vs_ref_N32.json`). Not pursued in that form.
+
+## 11. Long chains (cluster job `24696121`, 2026-11-15 03:10 to 04:03)
+
+`long_N128.json` ... `long_N1024.json`: 4 models (chain 0.6, chain 0.85, hidden chain, anticorrelated chain
+`repel_0.8`) x 3 constraints (window: at least k of a contiguous tenth; copy on a tenth of the positions, spread or
+contiguous) x 10 arms; 500 runs x 4 particles up to N = 256, 300 at 512, 200 at 1,024. 480 arms, no invalid samples.
+Summary table: `long_chain_summary.json`.
+
+**Steps at theta = 0 ("bound" priority).** [verified]
+
+| model | constraint | N = 128 | N = 256 | N = 512 | N = 1024 |
+|---|---|---|---|---|---|
+| `chain_0.6` | window | 11.0 | 11.3 | 12.2 | 12.3 |
+| `chain_0.6` | copy_spread | 9.7 | 10.5 | 10.4 | 10.5 |
+| `chain_0.6` | copy_block | 13.5 | 18.0 | 20.8 | 21.1 |
+| `chain_0.85` | window | 13.2 | 13.7 | 13.4 | 14.1 |
+| `chain_0.85` | copy_spread | 11.5 | 13.2 | 14.3 | 12.2 |
+| `chain_0.85` | copy_block | 13.7 | 13.0 | 17.5 | 20.7 |
+| `hidden_0.85` | window | 70.5 | 87.2 | 107.5 | 93.0 |
+| `hidden_0.85` | copy_spread | 77.3 | 86.3 | 110.9 | 107.4 |
+| `hidden_0.85` | copy_block | 75.4 | 96.9 | 99.7 | 100.1 |
+| `repel_0.8` | window | 7.9 | 8.4 | 9.5 | 9.2 |
+| `repel_0.8` | copy_spread | 7.9 | 8.1 | 8.3 | 8.5 |
+| `repel_0.8` | copy_block | 8.6 | 8.9 | 9.0 | 8.7 |
+
+| N | step gain, median (min to max) | wall-time gain, median (min to max) | marginal error below control | max sd(r) |
+|---|---|---|---|---|
+| 128 | 10.4 (1.7 to 16.3) | 4.0 (0.9 to 8.3) | 12 of 12 | 1.4e-04 |
+| 256 | 19.6 (2.6 to 31.7) | 6.0 (1.0 to 12.0) | 11 of 12 | 1.1e-04 |
+| 512 | 37.0 (4.6 to 62.0) | 11.2 (2.6 to 17.8) | 11 of 12 | 1.7e-04 |
+| 1024 | 77.7 (9.5 to 120.4) | 19.7 (4.7 to 30.5) | 12 of 12 | 2.4e-04 |
+
+- Steps are flat in N, so the gain grows in proportion to N. [verified] [derived] Distance gives independence of N:
+  with dependence range l, about N / l positions go together from the first step; separators then act within a
+  range (about log l steps with perfect screening, about l without).
+- Wall times are single runs on a shared node and include the policy's overhead.
+- At N = 1,024 the one-per-step control with resampling is not a usable reference (marginal error 0.14 to 0.57 on
+  the Markov chains, Z_hat off by large factors): hidden mass, as predicted. On the window cells the control
+  without resampling has marginal error about 0.03 and the policy at theta = 0, run with resampling, about 0.09.
+  Whether resampling is the cause for the policy is being tested (`hidden_mass_check.py`, job `36c53d08`).
+- At fixed theta > 0 the spread of r grows about as sqrt(N) (chain 0.6 window, theta = 0.003: 0.29, 0.42, 0.60, 0.78).
+  [verified] Marginal and adjacent-pair error do not detect this: co-revealed positions are far apart, so the
+  error is in long-range joint structure. r is the instrument.
+- On the hidden chain "theta = 0" means "the fitted kernel is exactly zero", which happens only where it underflows
+  (about 50 positions; true mutual information about 1e-8 nats). The useful regime is a small positive tolerance.
+
+## 12. Decisions and design changes, 2026-11-15 (later)
+
+- **Whole-sequence error budget** B (nats) is the user-facing knob. Implemented statelessly as a per-position rate:
+  a position joins a step's set only while the average load of the set stays <= B / N (`CouplingPolicy(rate=...)`).
+  [derived] In KL the error of revealing a set together is the sum, in the order chosen, of each position's mutual
+  information with those before it; under sub-additivity this is at most the summed kernel load.
+- **Graded screening kernel**: coupling by distance and by the number of revealed positions in between
+  (`fit_distance_kernel(count_edges=COUNT_EDGES)`), so that a run of revealed tokens screens more than one.
+  On the hidden chain at N = 1,024 the pooled "at least one in between" curve is already 0.29 (d = 2) to 0.02
+  (d = 45) of the unscreened one. [verified]
+- **Constraint-blind priority scores** (`separator`, `sum`, `weighted`) and, as baselines, least-coupled-first
+  (DEMASK's selection order) and a fixed dilated schedule (DUS). The priority must not depend on the constraint's
+  type; design on the four core constraints, evaluate unchanged on the stress constraints and the long-chain ones.
+- **Model geometry is a prior, not removed**: the kernel is pooled by distance; any user-supplied distance can
+  replace it; the r audit checks it per model.
+- **Metric**: distance to the constrained law, not benchmark accuracy. The goal is "an off-the-shelf diffusion model
+  plus constraints": no training, one audit per model and constraint family.
+- **Scope**: improving on DEMASK for unconstrained decoding is a possible separate paper; ideas that help here are
+  used here, evaluated in the constrained setting only.
+- Dry run of the budget sweep (N = 128, window, 150 runs; indicative only): on the hidden chain the spread of r is
+  within about 15% of sqrt(2 x load) at budgets 0.01 to 1 nat; steps 15, 13, 10, 8, 7 against 46 at theta = 0;
+  the dilated schedule with base 2 takes 7 steps with a spread of 1.47. On the Markov chain the separator score and
+  the dilated schedule both take 7 steps with zero gap. Full sweep: job `b4e15799`.
+
+## 13. Related work (read 2026-11-15)
+
+`docs/parallel_unmasking_related_work.md` (five readers, full texts; DEMASK and DUS method sections also read
+directly). DEMASK (arXiv:2604.02560) has our greedy threshold rule in structure (pairwise expected-shift matrix,
+cumulative budget, positions before values) for unconstrained decoding, with a learned dependence head. PUNT
+(arXiv:2510.21961) tests dependence online; its sets depend on sampled values. DUS (arXiv:2506.19037) is a fixed
+dilated coarse-to-fine schedule under a fast-mixing assumption and names long-range constraints as its limitation.
+None handles hard constraints, importance weights, or the effect of reveal order on weights. SIRS (arXiv:2610.22238)
+suggests a random-weight correction for theta > 0 [hypothesis, untested].
+
+## 14. Next steps
+
+1. Hidden-mass check at N = 512 and 1,024 (job `36c53d08`): is the policy's remaining error resampling, and which
+   remedy keeps resampling (calibrated twist, 16 particles, lower trigger).
+2. Budget sweep at N = 256 and 1,024 (job `b4e15799`): steps against budget, predicted against measured r, graded
+   against two-bin kernel, order under a budget, dilated baselines.
+3. Priority-order test at N = 64 (`order_N64.json`, local, in progress), then the least-coupled arms.
+4. Constraint-aware closeness through Hessian-vector products of log Z (one extra backward pass), for the
+   mixed-path effect on copy. [hypothesis]
+5. An error measure sensitive to long-range joint structure.
+6. Stress constraints (required motif, per-segment counts, window all-different, parity, motif and count) as the
+   held-out evaluation of the priority score.
+7. Owed: three proofs (resampling at unequal progress under rollback; unbiasedness with an adaptive proposal;
+   accuracy of the first-order effective-coupling formula); the fix to Definition 5.1 of the notes; the
+   `TorchChart` gradient; strip and grid oracles; a trained small model.
