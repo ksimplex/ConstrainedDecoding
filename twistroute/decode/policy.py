@@ -95,6 +95,27 @@ class DistanceKernel:
         M[:, i, i] = 0.0
         return M
 
+    def counts(self, masked):
+        """Per-particle revealed counts used by `row`: (revealed at positions <= i, revealed at positions < i)."""
+        rev = (~masked).long()
+        upto = rev.cumsum(-1)
+        return upto, upto - rev
+
+    def row(self, counts, c):
+        """(P, N): row c[p] of matrix(masked)[p] for every particle, from `counts(masked)`, without forming
+        the (P, N, N) matrix. Memory O(P N), so long sequences do not need N^2 storage per particle."""
+        upto, before = counts
+        P, N = upto.shape
+        dev = upto.device
+        j = torch.arange(N, device=dev)[None]
+        cc = c[:, None]
+        d = (j - cc).abs()
+        lo_upto = torch.where(j > cc, upto.gather(1, cc).expand(P, N), upto)           # revealed at <= min(c, j)
+        hi_before = torch.where(j > cc, before, before.gather(1, cc).expand(P, N))     # revealed at <  max(c, j)
+        scr = (hi_before - lo_upto) > 0
+        r = torch.where(scr, self.ks.to(dev)[d], self.ku.to(dev)[d])
+        return torch.where(d == 0, torch.zeros_like(r), r)
+
 
 @torch.no_grad()
 def fit_distance_kernel(den, N, n_traces, gen=None, device="cpu"):
@@ -196,8 +217,12 @@ class CouplingPolicy:
             self.route_passes += 1 + (N * mu.shape[-1] if self.mixed else 0)
             ent = -torch.xlogy(mu, mu).sum(-1)
             cand = masked
-            E = self.coupling(st, masked, mu, ent)
-            E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
+            lean = not self.mixed and hasattr(self.kernel, "row")     # kernel rows on demand: no (P, N, N) storage
+            if lean:
+                counts = self.kernel.counts(masked)
+            else:
+                E = self.coupling(st, masked, mu, ent)
+                E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
             if self.priority == "bound":
                 w = torch.exp(st.lw.double())
                 score = (torch.xlogy(mu, mu) - mu * torch.log(w.clamp_min(1e-300))).sum(-1)
@@ -218,7 +243,13 @@ class CouplingPolicy:
                 c = order[:, k]
                 ok = cand[rows, c] & (load[rows, c] <= self.theta)
                 chosen[rows, c] |= ok
-                load = load + torch.where(ok[:, None], E[rows, c], torch.zeros_like(load))
+                if lean:                         # rows only for the particles that admitted their candidate
+                    sel = ok.nonzero(as_tuple=True)[0]
+                    if sel.numel():
+                        r = self.kernel.row((counts[0][sel], counts[1][sel]), c[sel]).to(dev)
+                        load[sel] += torch.where(cand[sel], r, torch.zeros_like(r))
+                else:
+                    load = load + torch.where(ok[:, None], E[rows, c], torch.zeros_like(load))
         self.calls += 1
         cnt = chosen.sum(-1)
         k = int(cnt.max().clamp_min(1))

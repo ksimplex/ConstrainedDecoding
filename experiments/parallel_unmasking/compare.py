@@ -48,7 +48,10 @@ def stream_seed(base, *parts):
 
 
 def make_model(name, N, S):
-    from twistroute.models import lazy_chain, noisy_hmm
+    from twistroute.models import lazy_chain, noisy_hmm, repel_chain
+    if name == "repel_0.8":                               # neighbours anticorrelated, at 80% of the admissible strength
+        pi = lazy_chain(2, S, 0.0, seed=1, concentration=2.0).pi.numpy()
+        return repel_chain(N, S, 0.8 * pi.min() / (1 - pi.min()), seed=1, concentration=2.0)
     if name == "chain_0.6":
         return lazy_chain(N, S, 0.6, seed=1, concentration=2.0)
     if name == "chain_0.85":
@@ -64,9 +67,32 @@ def make_constraint(name, den, N):
     from twistroute import compile as C
     from twistroute.models import ConstrainedTruth, CopyTruth
     from twistroute.torch_routes import torch_route, build_route
+    from twistroute.torch_routes import TorchChain, TorchCopy, TorchSubset
     cl = den.classes()
     if name == "copy":
         return cl, build_route(dict(kind="copy", A=den.S, pairs=N // 2, N=N)), CopyTruth(den, cl)
+    if name in ("copy_spread", "copy_block"):             # copy on about 10% of the positions: N / 20 of the N / 2 pairs
+        n, m = N // 2, max(1, N // 20)
+        idx = list(range(0, n, n // m))[:m] if name == "copy_spread" else list(range(n // 2 - m // 2, n // 2 - m // 2 + m))
+        truth = CopyTruth(den, cl, pairs=idx)
+        truth.info = dict(pairs=len(idx), first=idx[:3], constrained_fraction=2 * len(idx) / N)
+        return cl, TorchCopy([(i, n + i) for i in idx], N, den.S), truth
+    if name == "window":                                  # at least k of a contiguous tenth of the positions are class 0
+        import numpy as np
+        w = max(8, N // 10); lo = N // 2 - w // 2
+        act = np.zeros(N, dtype=bool); act[lo:lo + w] = True
+        a, b = 0, max(1, round(0.75 * w))                 # smallest k with p(C) <= 1e-3 (the constraint clearly binds),
+                                                          # capped at 3/4 of the window so the window is never fully forced
+        while b - a > 1:
+            k = (a + b) // 2
+            if ConstrainedTruth(den, cl, C.dfa_at_least_k(0, k, den.S), active=act).log_pC > math.log(1e-3):
+                a = k
+            else:
+                b = k
+        d = C.dfa_at_least_k(0, b, den.S)
+        truth = ConstrainedTruth(den, cl, d, active=act)
+        truth.info = dict(window=[lo, lo + w], k=b, p_C=math.exp(truth.log_pC), expected_count=float(w * (den.pi @ den.emit[0])[0]), constrained_fraction=w / N)
+        return cl, TorchSubset(TorchChain(d), list(range(lo, lo + w)), N), truth
     d = {"forbidden": lambda: C.dfa_forbidden([(0, 0), (1, 2)], 3), "counting": lambda: C.dfa_exactly_k(0, N // 3, 3),
          "dyck": lambda: C.dfa_dyck1(N)}[name]()
     return cl, torch_route(d), ConstrainedTruth(den, cl, d)
@@ -121,21 +147,30 @@ def run_cell(job):
     pair_truth = truth.pair_marginals() if hasattr(truth, "pair_marginals") else None
     t0 = time.time()
     kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")))
-    kern_small, _ = fit_distance_kernel(den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))
+    kern_small = None if a["arms"] == "core" else fit_distance_kernel(
+        den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))[0]
     pilot_s = time.time() - t0
-    arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in (N, N // 2, N // 4, N // 8)]
+    core = a["arms"] == "core"                # long sequences: the controls, two naive parallel schedules, the theta sweep
+    arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in ((N, N // 8, N // 16) if core else (N, N // 2, N // 4, N // 8))]
     arms += [("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
     pol = lambda k, th, pr="bound", mx=False: CouplingPolicy(k, th, priority=pr, mixed=mx)
     arms += [(f"policy theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun"]) for th in THETAS]
-    arms += [(f"small-pilot theta={th}", dict(T=N, schedule=pol(kern_small, th)), a["nrun"]) for th in (0.01, 0.03)]
-    arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"]) for pr in ("confident", "random") for th in (0.01, 0.03)]
+    if not core:
+        arms += [(f"small-pilot theta={th}", dict(T=N, schedule=pol(kern_small, th)), a["nrun"]) for th in (0.01, 0.03)]
+        arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"]) for pr in ("confident", "random") for th in (0.01, 0.03)]
     arms += [("random theta=0.0", dict(T=N, schedule=pol(kern, 0.0, "random")), a["nrun"])]   # same sets rule, order not chosen
-    if a["nrun_mixed"] > 0:
+    if a["nrun_mixed"] > 0 and not core:
         arms += [(f"mixed theta={th}", dict(T=N, schedule=pol(kern, th, mx=True)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
         arms += [(f"policy-ref theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
     ps = lambda xb, xa: parallel_log_prob(den, xb, xa)
     rows, zlog = [], {}
+    part = os.path.join(a["partial"], f"{mname}__{cname}__{N}") if a.get("partial") else None
+    if part and os.path.exists(part + ".json"):                       # arms finished before an interruption
+        rows = json.load(open(part + ".json")); zlog = dict(np.load(part + ".npz"))
+    done = {r["arm"] for r in rows}
     for name, kw, nrun in arms:
+        if name in done:
+            continue
         t0 = time.time()
         out = twisted_smc(den, cl, route, N, kw["T"], nrun=nrun, K=a["K"], gen=torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, name)),
                           schedule=kw["schedule"], defensive=0.25, return_particles=True, path_stat=ps, **kw.get("smc", {}))
@@ -147,9 +182,15 @@ def run_cell(job):
         sch = kw["schedule"]
         row["route_passes"] = 0.0 if isinstance(sch, str) else sch.route_passes / max(sch.calls, 1)
         rows.append(row)
+        if part:                                                      # each arm has its own random stream, so a
+            json.dump(rows, open(part + ".tmp", "w"))                 # cell resumed arm by arm equals an uninterrupted one
+            np.savez_compressed(part + ".tmp.npz", **zlog)
+            os.replace(part + ".tmp", part + ".json"); os.replace(part + ".tmp.npz", part + ".npz")
+    order = {name: i for i, (name, _, _) in enumerate(arms)}
+    rows.sort(key=lambda r: order[r["arm"]])
     meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2),
                 kernel_unscreened=kern.ku.tolist(), kernel_screened=kern.ks.tolist(),
-                exact_mi=[0.0] + [den.pair_mi(0, d) for d in range(1, N)])
+                exact_mi=[0.0] + [den.pair_mi(0, d) for d in range(1, N)], constraint_info=getattr(truth, "info", {}))
     on, off = rows[0], next(r for r in rows if r["arm"] == "fixed 1/step, no resampling")
     meta["control_check"] = dict(on=on["z_ratio"], on_se=on["z_ratio_se"], off=off["z_ratio"], off_se=off["z_ratio_se"],
                                  on_over_off=on["z_ratio"] / off["z_ratio"],
@@ -167,14 +208,18 @@ def main():
     ap.add_argument("--pilot-small", dest="pilot_small", type=int, default=50)
     ap.add_argument("--models", nargs="+", default=list(MODELS)); ap.add_argument("--constraints", nargs="+", default=list(CONSTRAINTS))
     ap.add_argument("--workers", type=int, default=1); ap.add_argument("--out", default="compare.json")
-    ap.add_argument("--resume", action="store_true", help="skip cells already present in --out")
+    ap.add_argument("--resume", action="store_true", help="skip cells already present in --out; within a cell, skip finished arms")
+    ap.add_argument("--arms", choices=("full", "core"), default="full", help="core: 10 arms for long sequences")
     a = vars(ap.parse_args())
+    a["partial"] = os.path.splitext(a["out"])[0] + ".partial" if a["resume"] else None
+    if a["partial"]:
+        os.makedirs(a["partial"], exist_ok=True)
     jobs = [(m, c, N, a) for N in a["N"] for m in a["models"] for c in a["constraints"]]
     rows, metas, zall, t0 = [], [], {}, time.time()
     zpath = os.path.splitext(a["out"])[0] + ".logZ.npz"
     if a["resume"] and os.path.exists(a["out"]):          # keep finished cells; a cell is written only when complete
         prev = json.load(open(a["out"]))
-        same = all(prev["args"].get(k) == a[k] for k in ("nrun", "nrun_mixed", "K", "pilot", "pilot_small"))
+        same = all(prev["args"].get(k, a[k]) == a[k] for k in ("nrun", "nrun_mixed", "K", "pilot", "pilot_small", "seed", "arms"))
         if not same:
             raise SystemExit("--resume: the existing file was made with different settings")
         rows, metas = prev["rows"], prev["cells"]

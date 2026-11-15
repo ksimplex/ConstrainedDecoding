@@ -174,6 +174,20 @@ def lazy_chain(N, S, lam, seed=0, concentration=None, breaks=(), device="cpu"):
     return OracleHMM(pi, trans, np.tile(np.eye(S), (N, 1, 1)), device, name=f"lazy_chain(lam={lam})")
 
 
+def repel_chain(N, S, mu, seed=0, concentration=None, device="cpu"):
+    """Markov chain over S tokens whose neighbours are anticorrelated: transition (1 + mu) 1 pi^T - mu I, the
+    lazy chain continued to a negative stay weight. A token is repeated less often than under independence;
+    the stationary law is pi and the correlation at distance d is (-mu)^d, alternating in sign. Entries stay
+    positive only for mu < min(pi) / (1 - min(pi)) (1 / (S - 1) for uniform pi); the bound itself would give
+    a token probability zero after itself, which the sampler's positivity assumption excludes."""
+    pi = _stationary(S, seed, concentration)
+    cap = pi.min() / (1 - pi.min())
+    if not 0.0 <= mu < cap:
+        raise ValueError(f"mu must lie in [0, {cap:.4f}) for this stationary law")
+    T = (1 + mu) * np.tile(pi, (S, 1)) - mu * np.eye(S)
+    return OracleHMM(pi, np.tile(T, (N - 1, 1, 1)), np.tile(np.eye(S), (N, 1, 1)), device, name=f"repel_chain(mu={mu})")
+
+
 def noisy_hmm(N, S, lam, noise, seed=0, concentration=None, device="cpu"):
     """Hidden lazy chain over S states (as in `lazy_chain`) observed through a noisy channel: the token equals
     the hidden state with probability 1 - noise, otherwise it is uniform. Token dependence decays with distance
@@ -199,15 +213,24 @@ class ConstrainedTruth:
 
     Forward-backward over the product state (hidden state, automaton state), O(N H^2 Q + N H |E|), float64
     with per-step scaling. Attributes: `log_pC` = log p(C); `marginals` (N, A) = p(class at i | C).
-    `sample(n, rng)` draws class sequences from p(. | C) exactly by backward sampling."""
+    `sample(n, rng)` draws class sequences from p(. | C) exactly by backward sampling.
 
-    def __init__(self, den, classes, wdfa):
+    `active` (N,) bool restricts the constraint to a subset of positions: the automaton reads the classes at
+    the active positions, in order, and ignores the others (the constraint of torch_routes.TorchSubset over
+    TorchChain). Default: every position is active."""
+
+    def __init__(self, den, classes, wdfa, active=None):
         H, N, A, Q = den.H, den.N, classes.A, wdfa.n
         onehot = classes.onehot[: den.S].double().cpu().numpy()             # (S, A); the mask token has no class
         self.Ec = den.emit.cpu().numpy() @ onehot                           # (N, H, A) class emissions
         self.T, self.pi = den.trans.cpu().numpy(), den.pi.cpu().numpy()
         e = np.asarray(wdfa.edges, dtype=np.int64).reshape(-1, 3)
         self.src, self.sym, self.dst = e[:, 0], e[:, 1], e[:, 2]
+        self.active = np.ones(N, dtype=bool) if active is None else np.asarray(active, dtype=bool)
+        if self.active.shape != (N,):
+            raise ValueError("active must have one entry per position")
+        qs = np.repeat(np.arange(Q), A)                                     # an inactive position leaves the
+        self._idle = (qs, np.tile(np.arange(A), Q), qs)                     # automaton state where it is
         self.N, self.H, self.A, self.Q = N, H, A, Q
         self._q0 = wdfa.q0
         Fm = np.zeros(Q); Fm[sorted(wdfa.F)] = 1.0
@@ -215,8 +238,9 @@ class ConstrainedTruth:
         self.alpha, logscale = np.zeros((N, H, Q)), 0.0
         pred = np.zeros((H, Q)); pred[:, wdfa.q0] = self.pi                 # (h_0, state before position 0)
         for i in range(N):
+            src, sym, dst = self._edges(i)
             a = np.zeros((H, Q))
-            np.add.at(a, (slice(None), self.dst), pred[:, self.src] * self.Ec[i][:, self.sym])
+            np.add.at(a, (slice(None), dst), pred[:, src] * self.Ec[i][:, sym])
             s = a.sum()
             if s <= 0:
                 raise ValueError("the constraint has probability zero under the model")
@@ -224,42 +248,46 @@ class ConstrainedTruth:
             self.alpha[i] = a
             if i < N - 1:
                 pred = self.T[i].T @ a
-        self.log_pC = float(logscale + np.log((self.alpha[-1] * Fm[None]).sum()))
+        tail = (self.alpha[-1] * Fm[None]).sum()
+        if tail <= 0:
+            raise ValueError("the constraint has probability zero under the model")
+        self.log_pC = float(logscale + np.log(tail))
         # beta[i][h, q]: p(accept | h_i = h, automaton state q after position i), scaled
         self.beta = np.zeros((N, H, Q)); self.beta[-1] = Fm[None]
         self.beta[-1] /= self.beta[-1].sum()
         for i in range(N - 2, -1, -1):
+            src, sym, dst = self._edges(i + 1)
             w = np.zeros((H, Q))                                            # weight of (h_{i+1}, state after i)
-            np.add.at(w, (slice(None), self.src), self.Ec[i + 1][:, self.sym] * self.beta[i + 1][:, self.dst])
+            np.add.at(w, (slice(None), src), self.Ec[i + 1][:, sym] * self.beta[i + 1][:, dst])
             b = self.T[i] @ w
             self.beta[i] = b / b.sum()
         self.marginals = np.zeros((N, A))
         pred = np.zeros((H, Q)); pred[:, wdfa.q0] = self.pi
         for i in range(N):
-            contrib = pred[:, self.src] * self.Ec[i][:, self.sym] * self.beta[i][:, self.dst]   # (H, E)
-            np.add.at(self.marginals[i], self.sym, contrib.sum(0))
+            src, sym, dst = self._edges(i)
+            contrib = pred[:, src] * self.Ec[i][:, sym] * self.beta[i][:, dst]   # (H, E)
+            np.add.at(self.marginals[i], sym, contrib.sum(0))
             self.marginals[i] /= self.marginals[i].sum()
             if i < N - 1:
                 pred = self.T[i].T @ self.alpha[i]
 
+    def _edges(self, i):
+        """(src, sym, dst) of the automaton edges that apply at position i."""
+        return (self.src, self.sym, self.dst) if self.active[i] else self._idle
+
     def pair_marginals(self):
         """(N - 1, A, A): exact joint law of the classes at positions (i, i + 1) under p(. | C)."""
-        N, A = self.N, self.A
+        N, A, H, Q = self.N, self.A, self.H, self.Q
         out = np.zeros((N - 1, A, A))
-        pred = np.zeros((self.H, self.Q)); pred[:, self._q0] = self.pi
-        by_src = {}
-        for e, s0 in enumerate(self.src):
-            by_src.setdefault(int(s0), []).append(e)
+        pred = np.zeros((H, Q)); pred[:, self._q0] = self.pi
         for i in range(N - 1):
-            first = pred[:, self.src] * self.Ec[i][:, self.sym]                       # (H, E): edge e taken at i
-            for e in range(len(self.src)):
-                nxt = by_src.get(int(self.dst[e]), [])
-                if not nxt:
-                    continue
-                nxt = np.asarray(nxt)
-                w2 = self.Ec[i + 1][:, self.sym[nxt]] * self.beta[i + 1][:, self.dst[nxt]]   # (H', E2)
-                v = (first[:, e] @ self.T[i]) @ w2                                    # (E2,)
-                np.add.at(out[i], (self.sym[e], self.sym[nxt]), v)
+            s1, y1, d1 = self._edges(i)
+            s2, y2, d2 = self._edges(i + 1)
+            left = np.zeros((H, Q, A))                                      # [h_i, state after i, class at i]
+            np.add.at(left, (slice(None), d1, y1), pred[:, s1] * self.Ec[i][:, y1])
+            right = np.zeros((H, Q, A))                                     # [h_{i+1}, state after i, class at i+1]
+            np.add.at(right, (slice(None), s2, y2), self.Ec[i + 1][:, y2] * self.beta[i + 1][:, d2])
+            out[i] = np.einsum("hqy,hk,kqz->yz", left, self.T[i], right)
             out[i] /= out[i].sum()
             pred = self.T[i].T @ self.alpha[i]
         return out
@@ -273,44 +301,52 @@ class ConstrainedTruth:
         hq = rng.choice(H * Q, size=n, p=w / w.sum())
         h, q = hq // Q, hq % Q
         for i in range(N - 1, -1, -1):
+            src, sym, dst = self._edges(i)
             if i > 0:
                 pred_all = self.alpha[i - 1]                                 # (H', Q') state after position i-1
             for r in range(n):
-                ed = np.nonzero(self.dst == q[r])[0]                         # edges entering q
+                ed = np.nonzero(dst == q[r])[0]                              # edges entering q
                 if i == 0:
-                    sc = self.pi[h[r]] * (self.src[ed] == self._q0) * self.Ec[0][h[r], self.sym[ed]]
+                    sc = self.pi[h[r]] * (src[ed] == self._q0) * self.Ec[0][h[r], sym[ed]]
                     k = rng.choice(len(ed), p=sc / sc.sum())
-                    y[r, 0] = self.sym[ed[k]]
+                    y[r, 0] = sym[ed[k]]
                 else:
                     # joint over (previous hidden state h', edge): alpha[i-1][h', src] T[h', h] Ec[i][h, sym]
-                    sc = pred_all[:, self.src[ed]] * self.T[i - 1][:, h[r]][:, None] * self.Ec[i][h[r], self.sym[ed]][None]
+                    sc = pred_all[:, src[ed]] * self.T[i - 1][:, h[r]][:, None] * self.Ec[i][h[r], sym[ed]][None]
                     k = rng.choice(sc.size, p=(sc / sc.sum()).reshape(-1))
                     hp, ke = k // len(ed), k % len(ed)
-                    y[r, i] = self.sym[ed[ke]]
-                    h[r], q[r] = hp, self.src[ed[ke]]
+                    y[r, i] = sym[ed[ke]]
+                    h[r], q[r] = hp, src[ed[ke]]
         return y
 
 
 class CopyTruth:
     """Exact p(. | C) for an OracleHMM and the same-order copy constraint class(x_i) = class(x_{n + i}),
-    i < n = N / 2 (the constraint of torch_routes.TorchCopy with n pairs). Attributes: `log_pC`, and
-    `marginals` (N, A) = p(class at i | C); positions i and n + i share a row.
+    n = N / 2, for every i < n or for the i listed in `pairs` (the constraint of torch_routes.TorchCopy with
+    those pairs; the other positions are free). Attributes: `log_pC`, and `marginals` (N, A) =
+    p(class at i | C); constrained positions i and n + i have the same row.
 
     The hidden chain runs through positions 0..N-1, so the two halves form a pair chain (h_i, h_{n+i}) joined by
     one extra transition from h_{n-1} to h_n. Conditioning on h_n makes the pair chain a plain forward-backward
     over H^2 states; summing over the H values of h_n gives the result. Cost O(n H^5)."""
 
-    def __init__(self, den, classes):
+    def __init__(self, den, classes, pairs=None):
         N, H, A = den.N, den.H, classes.A
         if N % 2:
             raise ValueError("N must be even")
         n = N // 2
+        tied = np.ones(n, dtype=bool)
+        if pairs is not None:
+            tied[:] = False; tied[np.asarray(list(pairs), dtype=np.int64)] = True
         onehot = classes.onehot[: den.S].double().cpu().numpy()
         Ec = den.emit.cpu().numpy() @ onehot                                # (N, H, A)
         T, pi = den.trans.cpu().numpy(), den.pi.cpu().numpy()
         g = np.einsum("iac,ibc->iabc", Ec[:n], Ec[n:])                      # [i, a, b, c]: both emit class c
-        gs = g.sum(-1)                                                      # [i, a, b]
-        total, marg = 0.0, np.zeros((n, A))
+        one = np.ones((n, H, H))
+        gs = np.where(tied[:, None, None], g.sum(-1), one)                  # [i, a, b]; a free pair has factor 1
+        g1 = np.where(tied[:, None, None, None], g, Ec[:n, :, None, :] * one[..., None])   # class c at position i
+        g2 = np.where(tied[:, None, None, None], g, Ec[n:, None, :, :] * one[..., None])   # class c at position n + i
+        total, m1, m2 = 0.0, np.zeros((n, A)), np.zeros((n, A))
         for b0 in range(H):                                                 # condition on h_n = b0
             F = np.zeros((n, H, H)); F[0, :, b0] = pi                       # before the factor at i
             for i in range(1, n):
@@ -319,10 +355,10 @@ class CopyTruth:
             for i in range(n - 2, -1, -1):
                 B[i] = np.einsum("xy,ax,by->ab", gs[i + 1] * B[i + 1], T[i], T[n + i])
             total += (F[n - 1] * gs[n - 1] * B[n - 1]).sum()
-            marg += np.einsum("iab,iabc,iab->ic", F, g, B)
+            m1 += np.einsum("iab,iabc,iab->ic", F, g1, B)
+            m2 += np.einsum("iab,iabc,iab->ic", F, g2, B)
         if total <= 0:
             raise ValueError("the constraint has probability zero under the model")
         self.log_pC = float(np.log(total))
-        marg = marg / marg.sum(-1, keepdims=True)
-        self.marginals = np.concatenate([marg, marg], 0)
+        self.marginals = np.concatenate([m1 / m1.sum(-1, keepdims=True), m2 / m2.sum(-1, keepdims=True)], 0)
         self.N, self.A = N, A

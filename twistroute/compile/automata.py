@@ -180,6 +180,12 @@ def dfa_exactly_k(cls, K, A, name="exactly_k"):
     return build_dfa(0, step, lambda c: c == K, A, name=name)
 
 
+def dfa_at_least_k(cls, K, A, name="at_least_k"):
+    """Accept if class `cls` occurs at least K times. The counter saturates at K, so the automaton has K + 1
+    states whatever the length (dfa_fraction_band(cls, K, n, A) needs n + 1)."""
+    return build_dfa(0, lambda c, y: min(K, c + (y == cls)), lambda c: c == K, A, name=name)
+
+
 def dfa_fraction_band(cls, lo, hi, A, name="band"):
     # accept if count of `cls` in [lo, hi]; state = count, bounded by hi
     step = lambda c, y: (None if c + (y == cls) > hi else c + (y == cls))
