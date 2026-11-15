@@ -78,10 +78,15 @@ def make_constraint(name, den, N):
         truth = CopyTruth(den, cl, pairs=idx)
         truth.info = dict(pairs=len(idx), first=idx[:3], constrained_fraction=2 * len(idx) / N)
         return cl, TorchCopy([(i, n + i) for i in idx], N, den.S), truth
-    if name == "window":                                  # at least k of a contiguous tenth of the positions are class 0
-        import numpy as np
-        w = max(8, N // 10); lo = N // 2 - w // 2
-        act = np.zeros(N, dtype=bool); act[lo:lo + w] = True
+    if name in ("window", "two_window"):                  # at least k of a tenth of the positions are class 0: one contiguous
+        import numpy as np                                # window, or two distant windows sharing the count (every position
+        w = max(8, N // 10)                               # of one is tied to every position of the other until both are done)
+        act = np.zeros(N, dtype=bool)
+        if name == "window":
+            lo = N // 2 - w // 2; act[lo:lo + w] = True
+        else:
+            w = 2 * (w // 2); lo = N // 4 - w // 4
+            act[lo:lo + w // 2] = True; act[lo + N // 2:lo + N // 2 + w // 2] = True
         a, b = 0, max(1, round(0.75 * w))                 # smallest k with p(C) <= 1e-3 (the constraint clearly binds),
                                                           # capped at 3/4 of the window so the window is never fully forced
         while b - a > 1:
@@ -92,8 +97,10 @@ def make_constraint(name, den, N):
                 b = k
         d = C.dfa_at_least_k(0, b, den.S)
         truth = ConstrainedTruth(den, cl, d, active=act)
-        truth.info = dict(window=[lo, lo + w], k=b, p_C=math.exp(truth.log_pC), expected_count=float(w * (den.pi @ den.emit[0])[0]), constrained_fraction=w / N)
-        return cl, TorchSubset(TorchChain(d), list(range(lo, lo + w)), N), truth
+        pos = [int(i) for i in np.nonzero(act)[0]]
+        truth.info = dict(window=[pos[0], pos[-1] + 1], positions=len(pos), k=b, p_C=math.exp(truth.log_pC),
+                          expected_count=float(w * (den.pi @ den.emit[0])[0]), constrained_fraction=w / N)
+        return cl, TorchSubset(TorchChain(d), pos, N), truth
     d = {"forbidden": lambda: C.dfa_forbidden([(0, 0), (1, 2)], 3), "counting": lambda: C.dfa_exactly_k(0, N // 3, 3),
          "dyck": lambda: C.dfa_dyck1(N)}[name]()
     return cl, torch_route(d), ConstrainedTruth(den, cl, d)
