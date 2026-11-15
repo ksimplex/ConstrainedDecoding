@@ -160,3 +160,23 @@ def test_forced_positions_go_first_but_respect_coupling():
     assert 5 in got and not ({4, 6} & got) and len(got) >= 3              # its neighbours wait, others join
     r, valid = CouplingPolicy(dense, 0.0, priority="confident", mixed=False, forced_first=False).reveal(st, 0, N)
     assert int(valid.sum()) == 1
+
+
+def test_max_set_one_reveals_one_token_per_step_and_is_exact():
+    """max_set = 1 turns any priority into a sequential order: N steps, no parallel-reveal gap."""
+    import numpy as np
+    from twistroute.decode import CouplingPolicy, fit_distance_kernel, twisted_smc
+    from twistroute.models import lazy_chain, parallel_log_prob
+    from twistroute.compile import automata as C
+    from twistroute.torch_routes import torch_route
+    N = 16
+    den = lazy_chain(N, 3, 0.6, seed=3, concentration=2.0); cl = den.classes()
+    route = torch_route(C.dfa_exactly_k(0, 5, 3))
+    kern, _ = fit_distance_kernel(den, N, 200, torch.Generator().manual_seed(0))
+    for pr in ("sum", "separator", "lex"):
+        out = twisted_smc(den, cl, route, N, N, nrun=60, K=2, gen=torch.Generator().manual_seed(1), ess_min=0.0,
+                          schedule=CouplingPolicy(kern, 0.5, priority=pr, mixed=False, max_set=1), return_particles=True,
+                          path_stat=lambda xb, xa: parallel_log_prob(den, xb, xa))
+        assert (out["steps"] == N).all() and out["frac_valid_finite"] == 1.0
+        r = den.log_joint(torch.tensor(out["tokens"]).view(-1, N)).numpy().reshape(out["path_stat"].shape) - out["path_stat"]
+        assert np.abs(r).max() < 1e-9

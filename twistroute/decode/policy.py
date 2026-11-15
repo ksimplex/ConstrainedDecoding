@@ -242,6 +242,8 @@ class CouplingPolicy:
                               order of DEMASK, Ringel, Ali & Romano, arXiv:2604.02560, Alg. 2, without its
                               confidence gate). "least_random" starts from a random masked position instead.
                None of these reads the constraint's type: they use the route's marginals and the model kernel only.
+    max_set    optional cap on the number of positions revealed per step; 1 gives one token per step in priority
+               order, the sequential control for "is it the order or the parallelism?"
     budget     optional total per step (nats): a position joins only while the sum of the loads of the positions
                admitted so far, its own included, stays <= budget. In KL the error of revealing a set together is
                the sum over its positions, in the order chosen, of each one's mutual information with those before
@@ -260,11 +262,12 @@ class CouplingPolicy:
     `route_passes` counts batched logZ evaluations per particle requested by the policy (for cost accounting).
     """
 
-    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None):
+    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None):
         if priority not in PRIORITIES:
             raise ValueError(f"priority must be one of {PRIORITIES}")
         if theta < 0:
             raise ValueError("theta must be >= 0")
+        self.max_set = None if max_set is None else int(max_set)
         self.kernel, self.theta, self.priority, self.mixed = kernel, float(theta), priority, mixed
         self.forced_first = forced_first
         if budget is not None and budget < 0:
@@ -360,6 +363,10 @@ class CouplingPolicy:
                     fits = spent + lc <= self.budget
                 else:
                     fits = lc <= self.theta
+                if self.max_set is not None:
+                    fits = fits & (chosen.sum(-1) < self.max_set)
+                    if k > 0 and not dynamic and bool((chosen.sum(-1) >= self.max_set).all()):
+                        break
                 ok = live & fits
                 if dynamic:
                     alive = alive & ok                                     # the least-coupled one failed: stop this particle

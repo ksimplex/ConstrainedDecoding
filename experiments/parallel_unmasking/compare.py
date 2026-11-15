@@ -43,6 +43,7 @@ MODELS = ("chain_0.6", "chain_0.85", "hidden_0.85", "segments_0.85")
 THICK_SMALL_BUDGETS = (0.001, 0.0001)    # appended after BUDGETS so earlier partial results stay valid
 THICK_WIDTHS = (1, 2, 3, 4, 6)
 THICK_SPACINGS = (8, 16, 24, 32, 48, 64)
+SEQ_ORDERS = ("sum", "lex", "separator", "random", "bound")
 RESAMPLE_KS = (4, 16, 64, 256)
 INTERACT_BUDGETS = (0.03, 0.3)
 INTERACT_ORDERS = ("separator", "sum", "weighted", "lex", "bound", "random", "least_tie")
@@ -66,6 +67,8 @@ def make_model(name, N, S):
         return lazy_chain(N, S, 0.85, seed=1, concentration=2.0)
     if name == "hidden_0.85":
         return noisy_hmm(N, S, 0.85, 0.3, seed=1, concentration=2.0)
+    if name.startswith("hidden_0.85_n"):                  # the hidden chain with another noise level: less noise, more
+        return noisy_hmm(N, S, 0.85, float(name.split("_n")[1]), seed=1, concentration=2.0)     # screening by one token
     if name == "segments_0.85":
         return lazy_chain(N, S, 0.85, seed=1, concentration=2.0, breaks=tuple(range(7, N - 1, 8)))
     raise ValueError(name)
@@ -220,10 +223,10 @@ def run_cell(job):
     pair_truth = truth.pair_marginals() if hasattr(truth, "pair_marginals") else None
     t0 = time.time()
     kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")))
-    kern_small = None if a["arms"] in ("core", "order", "budget", "interact", "resample", "thick") else fit_distance_kernel(
+    kern_small = None if a["arms"] in ("core", "order", "budget", "interact", "resample", "thick", "seqorder") else fit_distance_kernel(
         den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))[0]
     pilot_s = time.time() - t0
-    core = a["arms"] in ("core", "order", "budget", "interact", "resample", "thick")   # core: the controls, two naive parallel schedules, the theta sweep
+    core = a["arms"] in ("core", "order", "budget", "interact", "resample", "thick", "seqorder")   # core: the controls, two naive parallel schedules, the theta sweep
     arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in ((N, N // 8, N // 16) if core else (N, N // 2, N // 4, N // 8))]
     arms += [("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
     pol = lambda k, th, pr="bound", mx=False: CouplingPolicy(k, th, priority=pr, mixed=mx)
@@ -263,6 +266,17 @@ def run_cell(job):
         arms += [("dilated base=2", dict(T=N, schedule=DilatedSchedule(2), smc=off), a["nrun"])]
         arms += [(f"thick w={w} spacing={sp}", dict(T=N, schedule=ThickSeparatorSchedule(w, sp), smc=off), a["nrun"])
                  for w in THICK_WIDTHS for sp in THICK_SPACINGS if sp >= 4 * w]
+    elif a["arms"] == "seqorder":             # order or parallelism? every score one token per step, against its parallel
+        from twistroute.decode import COUNT_EDGES                 # versions; resampling off throughout
+        kern_g, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")),
+                                        count_edges=COUNT_EDGES)
+        off = dict(ess_min=0.0)
+        mk = lambda pr, B=None, cap=None: CouplingPolicy(kern_g, 0.0, priority=pr, mixed=False, rate=None if B is None else B / N, max_set=cap)
+        arms = [("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=off), a["nrun"])]
+        for pr in SEQ_ORDERS:
+            arms += [(f"{pr} sequential", dict(T=N, schedule=mk(pr, cap=1), smc=off), a["nrun"]),
+                     (f"{pr} theta=0.0", dict(T=N, schedule=mk(pr), smc=off), a["nrun"]),
+                     (f"{pr} B=0.03", dict(T=N, schedule=mk(pr, 0.03), smc=off), a["nrun"])]
     elif a["arms"] == "resample":             # does resampling hurt only when K is small? Total particles nrun * K held
         from twistroute.decode import COUNT_EDGES                 # fixed across K; exact schedules only, so r = 0 throughout
         kern_g, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")),
@@ -286,7 +300,7 @@ def run_cell(job):
     if not core:
         arms += [(f"small-pilot theta={th}", dict(T=N, schedule=pol(kern_small, th)), a["nrun"]) for th in (0.01, 0.03)]
         arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"]) for pr in ("confident", "random") for th in (0.01, 0.03)]
-    if a["arms"] not in ("order", "budget", "interact", "resample", "thick"):
+    if a["arms"] not in ("order", "budget", "interact", "resample", "thick", "seqorder"):
         arms += [("random theta=0.0", dict(T=N, schedule=pol(kern, 0.0, "random")), a["nrun"])]   # same sets rule, order not chosen
     if a["nrun_mixed"] > 0 and not core:
         arms += [(f"mixed theta={th}", dict(T=N, schedule=pol(kern, th, mx=True)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
@@ -350,7 +364,7 @@ def main():
     ap.add_argument("--models", nargs="+", default=list(MODELS)); ap.add_argument("--constraints", nargs="+", default=list(CONSTRAINTS))
     ap.add_argument("--workers", type=int, default=1); ap.add_argument("--out", default="compare.json")
     ap.add_argument("--resume", action="store_true", help="skip cells already present in --out; within a cell, skip finished arms")
-    ap.add_argument("--arms", choices=("full", "core", "order", "budget", "interact", "resample", "thick"), default="full",
+    ap.add_argument("--arms", choices=("full", "core", "order", "budget", "interact", "resample", "thick", "seqorder"), default="full",
                     help="core: 10 arms for long sequences; order: the controls and every priority score at --order-theta; "
                          "budget: whole-sequence budgets with graded and two-bin kernels, and dilated baselines")
     ap.add_argument("--order-theta", dest="order_theta", type=float, default=0.0)
