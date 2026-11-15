@@ -21,7 +21,7 @@ def run(job):
     den = make_model(m, N, 2 if c == "dyck" else 3)
     cl, route, truth = make_constraint(c, den, N)
     t0 = time.time()
-    out = twisted_smc(den, cl, route, N, N, nrun=nrun, K=K, gen=torch.Generator().manual_seed(1000 + seed),
+    out = twisted_smc(den, cl, route, N, N, nrun=nrun, K=K, gen=torch.Generator().manual_seed(seed),
                       schedule="fixed", **ARMS[arm])
     z = np.exp(np.asarray(out["logZ"], dtype=np.float64) - truth.log_pC)
     return (m, c, arm, seed), z, float(np.mean(out["n_res"])), time.time() - t0
@@ -31,12 +31,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--N", type=int, default=64); ap.add_argument("--nrun", type=int, default=2000)
     ap.add_argument("--K", type=int, default=4); ap.add_argument("--seeds", type=int, default=20)
+    ap.add_argument("--seed0", type=int, default=1000, help="generator seeds are seed0, seed0 + 1, ...")
     ap.add_argument("--cells", nargs="+", default=["chain_0.6:copy", "chain_0.85:copy", "hidden_0.85:copy",
                     "segments_0.85:forbidden", "hidden_0.85:forbidden", "chain_0.85:counting", "chain_0.6:dyck"])
     ap.add_argument("--arms", nargs="+", default=list(ARMS)); ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--out", default="control_check")
     a = ap.parse_args()
-    jobs = [(*cell.split(":"), a.N, arm, s, a.nrun, a.K) for s in range(a.seeds) for arm in a.arms for cell in a.cells]
+    jobs = [(*cell.split(":"), a.N, arm, s, a.nrun, a.K) for s in range(a.seed0, a.seed0 + a.seeds) for arm in a.arms for cell in a.cells]
     import multiprocessing as mp
     z, nres, secs, t0 = {}, {}, {}, time.time()
 

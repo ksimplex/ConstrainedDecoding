@@ -24,13 +24,19 @@ Metrics (pooled over runs; standard errors by a delete-one-batch jackknife over 
     *_corr         marg_tv and pair_tv after that weighting
     route_passes   batched route passes per particle per step requested by the policy
 """
-import argparse, json, math, os, time
+import argparse, json, math, os, time, zlib
 import numpy as np
 import torch
 
 THETAS = (0.0, 0.003, 0.01, 0.03, 0.1)
 MODELS = ("chain_0.6", "chain_0.85", "hidden_0.85", "segments_0.85")
 CONSTRAINTS = ("forbidden", "counting", "copy", "dyck")
+
+
+def stream_seed(base, *parts):
+    """A generator seed for one (model, constraint, N, arm, purpose) stream. Stable across processes and
+    platforms (crc32, not hash()), so no two cells or arms share random numbers and a run is reproducible."""
+    return zlib.crc32("|".join(str(p) for p in (base, *parts)).encode()) & 0x7FFFFFFF
 
 
 def make_model(name, N, S):
@@ -101,8 +107,8 @@ def run_cell(job):
     cl, route, truth = make_constraint(cname, den, N)
     pair_truth = truth.pair_marginals() if hasattr(truth, "pair_marginals") else None
     t0 = time.time()
-    kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(0))
-    kern_small, _ = fit_distance_kernel(den, N, a["pilot_small"], torch.Generator().manual_seed(1))
+    kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")))
+    kern_small, _ = fit_distance_kernel(den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))
     pilot_s = time.time() - t0
     arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in (N, N // 2, N // 4, N // 8)]
     pol = lambda k, th, pr="bound", mx=False: CouplingPolicy(k, th, priority=pr, mixed=mx)
@@ -116,9 +122,10 @@ def run_cell(job):
     rows = []
     for name, kw, nrun in arms:
         t0 = time.time()
-        out = twisted_smc(den, cl, route, N, kw["T"], nrun=nrun, K=a["K"], gen=torch.Generator().manual_seed(3),
+        out = twisted_smc(den, cl, route, N, kw["T"], nrun=nrun, K=a["K"], gen=torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, name)),
                           schedule=kw["schedule"], defensive=0.25, return_particles=True, path_stat=ps)
         row = dict(model=mname, constraint=cname, N=N, arm=name, nrun=nrun, K=a["K"], log_pC=truth.log_pC,
+                   seed=stream_seed(a["seed"], mname, cname, N, name),
                    seconds=round(time.time() - t0, 2), frac_valid=out["frac_valid_finite"],
                    **metrics(out, den, truth, N, S, a["K"], pair_truth))
         sch = kw["schedule"]
@@ -135,6 +142,7 @@ def main():
     ap.add_argument("--N", type=int, nargs="+", default=[32, 64])
     ap.add_argument("--nrun", type=int, default=2000); ap.add_argument("--nrun-mixed", dest="nrun_mixed", type=int, default=500)
     ap.add_argument("--K", type=int, default=4); ap.add_argument("--pilot", type=int, default=2000)
+    ap.add_argument("--seed", type=int, default=0, help="base seed; every cell and arm derives its own stream from it")
     ap.add_argument("--pilot-small", dest="pilot_small", type=int, default=50)
     ap.add_argument("--models", nargs="+", default=list(MODELS)); ap.add_argument("--constraints", nargs="+", default=list(CONSTRAINTS))
     ap.add_argument("--workers", type=int, default=1); ap.add_argument("--out", default="compare.json")
