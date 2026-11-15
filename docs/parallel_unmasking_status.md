@@ -503,7 +503,93 @@ Defensive resampling, trigger at half the particles. One per step: 2.8 to 8.5 re
   arm sets `interact`, `resample`, `thick`; `weight_trust.py`.
 - Remote runs wait for approval; `experiments/parallel_unmasking/jobs/interact_N1024.sbatch` is drafted, not submitted.
 
-## 19. Next steps (as of 2026-11-15 early morning; superseded items are in sections 14 to 18)
+## 19. Thick separators against the greedy rule (local, 2026-11-15) [verified]
+
+`results/parallel_unmasking/thick_N256.json`, `thick_N256_small.json`; figure
+`docs/parallel_unmasking_thick_vs_greedy.png`. `ThickSeparatorSchedule(width, spacing)`: separators `width` tokens
+thick every `spacing` positions, built one token per step, then the same inside every stretch. N = 256, window
+constraint, 500 runs of 4 particles, no resampling. Greedy = separator score, graded kernel, whole-sequence budget.
+
+Hidden chain, steps (spread of r):
+
+| Greedy rule | Best thick schedule at the same steps |
+|---|---|
+| 7 (1.15), 9 (0.62) | width 2, spacing 16: 8 (0.85) |
+| 11.7 (0.34) | width 3, spacing 16: 10 (0.48); width 4, spacing 16: 12 (0.27) |
+| 14 (0.185) | width 4, spacing 24: 14 (0.196) |
+| 16 (0.102) | width 4, spacing 32: 16 (0.142) |
+| 21 (0.031), 26 (0.009) | width 6: 18 (0.057), 20 (0.054), 24 (0.030) |
+
+- At its best spacing the hand-built schedule is on the greedy rule's curve: ratio of spreads at equal steps 1.01,
+  0.97, 0.84, 1.06, 1.39 at 8, 10, 12, 14, 16 steps. Other spacings are 1.5 to 4 times worse. Neither dominates.
+- The gap is set by the separator width, hardly by the spacing: about 2.1 (width 1), 0.85 (2), 0.33 to 0.48 (3),
+  0.14 to 0.27 (4), 0.03 to 0.06 (6). Width 1 is recursive bisection and is as poor as the dilated schedule (2.1).
+- Markov chains: width 1 with spacing at the kernel range is exact or nearly so in one step fewer than the greedy
+  rule at theta = 0 (`chain_0.85`: 7 steps, spread 0.000 to 0.001, against 8; `chain_0.6`: 5 steps, 0.002, against 6).
+  The greedy rule under budgets of 1e-4 to 1e-3 reaches the same step counts with spreads of 0.002 to 0.014.
+- The rough count made beforehand ("thick-first costs more steps") was wrong. [verified]
+
+## 20. Do intermediate weights predict final weights? (`weight_trust.py`, local, 2026-11-15) [verified]
+
+`results/parallel_unmasking/weight_trust_N64.json`, `weight_trust_summary.json`; figure
+`docs/parallel_unmasking_resampling_variance_ratio.png`. N = 64, 16 cells, 4,000 single particles per cell, no
+resampling. rho = E[w_T^2 / w_t] E[w_t] / E[w_T^2]: the second moment of the final weights if ancestors were drawn
+by the weights at step t (one event, many-particle limit), relative to not resampling. One per step, median over four
+models, at 10 / 25 / 50 / 75 / 90% of the steps:
+
+| Constraint | rho | Regression slope of final on current log-weight |
+|---|---|---|
+| Forbidden motif | 1.79, 0.21, 0.046, 0.027, 0.024 | 0.98, 0.94, 0.96, 0.98, 1.00 |
+| Copy | 1,420, 10,300, 1.95, 0.145, 0.142 | 0.62, 0.67, 0.86, 0.98, 1.00 |
+| Dyck | 11.1, 7.9, 0.86, 0.30, 0.24 | 0.41, 0.51, 0.76, 0.94, 0.99 |
+| Counting | 5.6, 103, 12.5, 0.88, 0.62 | 0.07, 0.21, 0.51, 0.86, 0.98 |
+
+- The local constraint's weights are permanent (slope near 1) and resampling pays from a quarter of the way in. For
+  counting and Dyck early weight differences mostly do not survive, and resampling adds variance until half to three
+  quarters of the way. Copy looks predictable in the bulk (slope 0.6 to 0.9) but a few particles with low early
+  weight carry the final mass, so early resampling is the most harmful of all: the rank correlation misses it, rho
+  does not. rho is heavy-tailed; values above 100 are orders of magnitude only.
+- A partial exponent of 0.25 to 0.5 brings rho below 1 at 25% for copy (0.14 to 0.34 in three of four models) and
+  Dyck (0.58 to 0.76), and does nothing for counting (about 1).
+- This is the audit behind **gated resampling** (`resampling_gate` in `compare.py`, `resample_power` as a function of
+  progress in `twisted_smc`): a pilot without resampling gives, per step, the exponent that minimises rho, and 0 where
+  no exponent brings it under 0.8. Unbiased by construction (tests in `tests/test_resampling.py`).
+
+## 21. Constraint-interaction study at N = 256 (local, 2026-11-15) [verified]
+
+`results/parallel_unmasking/interact_N256.json`, `interact_N256_summary.json`. 4 models x (window, two_window,
+copy_spread, copy_block), 100 runs of 16 particles, **no resampling**, graded kernel. Control = one per step with the
+same particles. Medians over the 16 cells: steps | spread of Z_hat / control | marginal error / control.
+
+| Order | theta = 0 | B = 0.03 | B = 0.3 |
+|---|---|---|---|
+| `separator` | 7.5, 0.76, 0.86 | 5.5, 0.79, 0.88 | 5.0, 1.02, 1.04 |
+| `sum` | 7.6, 0.57, 0.77 | 6.0, 0.63, 0.79 | 5.6, 0.62, 0.83 |
+| `weighted` | 13.9, 0.50, 0.70 | 9.1, 0.61, 0.78 | 8.0, 0.60, 0.78 |
+| `lex` | 9.7, 0.55, 0.71 | 7.2, 0.67, 0.83 | 6.4, 0.65, 0.79 |
+| `bound` | 15.1, 0.50, 0.77 | 9.9, 0.57, 0.75 | 8.0, 0.56, 0.74 |
+| `random` | 13.2, 0.83, 0.91 | 9.7, 0.88, 0.93 | 8.3, 0.95, 0.97 |
+| `least_tie` | 13.1, 1.19, 1.16 | 10.0, 1.12, 1.06 | 8.5, 1.15, 1.10 |
+
+- `sum` takes about the steps of `separator` (ratio 1.14, 1.01, 1.12) with a lower spread in 12 of 16 cells at every
+  budget; cost (steps x spread^2) is 1.4 to 1.7 times lower. This is the evidence for `sum` that N = 64 did not give.
+- The difference is the long-range copy: spread ratio on `copy_spread` 0.10 to 0.14 (`sum`) against 0.69 to 1.36
+  (`separator`); `bound`, `lex`, `weighted` reach 0.01 to 0.08 there but pay 1.2 to 2 times the steps overall.
+- The schedule's gap does not depend on the constraint: spread of r under `sum` is 0.098 to 0.115 across the four
+  constraints at B = 0.03 and 0.41 to 0.46 at B = 0.3. The weights do, as predicted.
+- Cost gain over one per step (256 x control spread^2 / steps x spread^2), median (lowest cell): `sum` 91 (6.2),
+  93 (29), 117 (23) at the three budgets; `separator` 40 (4.3), 65 (18), 41 (19); `least_tie` 12 (1.9), 19 (7.8), 20 (3.9).
+- Unbiasedness: at theta = 0 the 108 arms have (Z_hat / p(C) - 1) / s.e. with mean 0.05, s.d. 0.99, largest 2.4.
+  Under a budget Z_hat estimates the parallel law's p~(C): median ratio 0.986 at B = 0.03 and 0.952 at B = 0.3.
+
+## 22. Fair least-coupled-first and `lex` at N = 64 (`order_N64_extra.json`) [verified]
+
+Same protocol as section 15. `least_tie` (least-coupled-first with random tie-breaks): median 10.7 steps, spread /
+control 0.94, cost gain 4.7, lowest 1.08, 16 of 16 cells with a gain: the level of `random` (11.4, 0.88, 5.7), above
+the left-most tie-break (2.1 to 2.2) and `confident` (3.4), below `separator` (14.7). `lex`: 13.7 steps, 0.56, 10.9,
+lowest 0.12: on the core constraints the constraint term is non-zero everywhere, so it behaves like `bound`.
+
+## 23. Next steps (as of 2026-11-15 early morning; superseded items are in sections 14 to 18)
 
 1. Hidden-mass check at N = 512 and 1,024 (job `36c53d08`): is the policy's remaining error resampling, and which
    remedy keeps resampling (calibrated twist, 16 particles, lower trigger).
