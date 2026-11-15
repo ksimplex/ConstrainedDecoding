@@ -33,7 +33,7 @@ import torch
 
 from .schedule import NEG_INF, clamp_revealed
 
-PRIORITIES = ("bound", "confident", "random")
+PRIORITIES = ("bound", "confident", "random", "separator", "sum", "weighted")
 
 
 # ---------------------------------------------------------------------------------------------- route queries
@@ -116,6 +116,23 @@ class DistanceKernel:
         r = torch.where(scr, self.ks.to(dev)[d], self.ku.to(dev)[d])
         return torch.where(d == 0, torch.zeros_like(r), r)
 
+    def apply(self, masked, v):
+        """(P, N): sum_j M(i, j) v_j, i.e. matrix(masked) @ v, without forming the matrix. One pass per distance
+        up to the kernel's range (the largest distance at which it is nonzero): O(P N range)."""
+        upto, before = self.counts(masked)
+        dev = masked.device
+        ku, ks = self.ku.to(dev), self.ks.to(dev)
+        nz = ((ku > 0) | (ks > 0)).nonzero()
+        W = min(int(nz.max()) if nz.numel() else 0, masked.shape[1] - 1)
+        v = v.double()
+        out = torch.zeros_like(v)
+        for d in range(1, W + 1):
+            scr = (before[:, d:] - upto[:, :-d]) > 0                       # something revealed strictly inside (i, i + d)
+            m = torch.where(scr, ks[d], ku[d])
+            out[:, :-d] += m * v[:, d:]
+            out[:, d:] += m * v[:, :-d]
+        return out
+
 
 @torch.no_grad()
 def fit_distance_kernel(den, N, n_traces, gen=None, device="cpu"):
@@ -168,8 +185,18 @@ class CouplingPolicy:
     kernel     model coupling, an object with .matrix(masked) -> (P, N, N) (e.g. DistanceKernel)
     theta      a position joins the reveal set if its summed coupling to the positions already chosen is <= theta
                (nats). theta = 0 admits only positions with exactly zero coupling to the set.
-    priority   order in which positions are considered: "bound" (largest KL(mu_i || w_i): where the constraint
-               distorts the model most), "confident" (lowest entropy of mu_i), or "random"
+    priority   order in which positions are considered. With D_i = KL(mu_i || w_i), how far the constraint moves
+               the model's prediction at i, and M the model coupling among masked positions:
+                 "bound"      D_i: where the constraint distorts the model most
+                 "confident"  lowest entropy of mu_i
+                 "random"
+                 "separator"  sum_j M(i, j): total model coupling to the other masked positions; highest in the
+                              middle of a long masked stretch, so reveals split it
+                 "sum"        D_i + sum_j M(i, j)
+                 "weighted"   D_i + sum_j M(i, j) D_j: the constraint's stake in i and in the positions the model
+                              ties to i. The twist is exact for constraint coupling; its error is model coupling
+                              among masked positions the constraint cares about, and this is what a reveal removes.
+               None of these reads the constraint's type: they use the route's marginals and the model kernel only.
     mixed      include the term sum_j M(a, j) rho(j, b). False drops it (and its N * A clamped route passes).
     forced_first   consider positions whose class is determined (single token) before all others; they still
                pass through the coupling test
@@ -223,13 +250,21 @@ class CouplingPolicy:
             else:
                 E = self.coupling(st, masked, mu, ent)
                 E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
-            if self.priority == "bound":
-                w = torch.exp(st.lw.double())
-                score = (torch.xlogy(mu, mu) - mu * torch.log(w.clamp_min(1e-300))).sum(-1)
-            elif self.priority == "confident":
+            if self.priority == "confident":
                 score = -ent
-            else:
+            elif self.priority == "random":
                 score = torch.rand(masked.shape, generator=gen, device=dev).double()
+            else:
+                w = torch.exp(st.lw.double())
+                dist = (torch.xlogy(mu, mu) - mu * torch.log(w.clamp_min(1e-300))).sum(-1)       # D_i, nats
+                dist = torch.where(cand, dist, torch.zeros_like(dist)).clamp_min(0.0)
+                if self.priority == "bound":
+                    score = dist
+                else:
+                    v = cand.double() if self.priority in ("separator", "sum") else dist
+                    nb = self.kernel.apply(masked, v).to(dev) if hasattr(self.kernel, "apply") else \
+                        (self.kernel.matrix(masked).to(dev) @ v[..., None]).squeeze(-1)
+                    score = nb if self.priority == "separator" else dist + nb
             if self.forced_first:
                 sizes = (st.classes.onehot > 0).sum(0).to(dev)
                 forced = masked & (ent < 1e-9) & (sizes[mu.argmax(-1)] == 1)

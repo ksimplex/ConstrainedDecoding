@@ -205,3 +205,67 @@ def test_policy_on_a_windowed_constraint_is_gap_free_on_a_chain():
     assert np.abs(r).max() < 1e-8 and out["steps"].mean() < 0.7 * N
     z = np.exp(out["logZ"]); se = z.std(ddof=1) / math.sqrt(len(z))
     assert abs(z.mean() - math.exp(truth.log_pC)) < 4 * se and out["frac_valid_finite"] == 1.0
+
+
+def test_kernel_apply_matches_the_matrix():
+    g = torch.Generator().manual_seed(1)
+    P, N = 6, 15
+    ku = torch.rand(N, generator=g).double(); ku[9:] = 0.0                # a kernel with finite range
+    k = DistanceKernel(ku, 0.3 * ku)
+    masked = torch.rand(P, N, generator=g) < 0.6
+    v = torch.rand(P, N, generator=g).double() * masked
+    assert torch.allclose(k.apply(masked, v), (k.matrix(masked) @ v[..., None]).squeeze(-1), atol=1e-12)
+    full = DistanceKernel(torch.rand(N, generator=g).double())           # range N - 1
+    assert torch.allclose(full.apply(masked, v), (full.matrix(masked) @ v[..., None]).squeeze(-1), atol=1e-12)
+
+
+def _state(N=15, reveal=()):
+    den = lazy_chain(N, 3, 0.7, seed=7, concentration=2.0); cl = den.classes()
+    route = TorchSubset(TorchChain(C.dfa_at_least_k(0, 2, 3)), [10, 11, 12, 13], N)
+    x = torch.full((1, N), den.mask_id)
+    for i, tok in reveal:
+        x[0, i] = tok
+    return den, RevealState(x, cl.token_class[x], cl.class_logw(den.logits(x)), den.mask_id, cl, route)
+
+
+def test_separator_priority_splits_the_longest_masked_stretch():
+    N = 15
+    kern = DistanceKernel(unscreened=[0.0] + [0.5 ** d for d in range(1, N)], screened=[0.0] * N)   # a Markov chain
+    den, st = _state(N)
+    r, valid = CouplingPolicy(kern, 0.0, priority="separator", mixed=False).reveal(st, 0, N)
+    assert r[0][valid[0]].tolist() == [N // 2]                           # nothing revealed: the middle goes first, alone
+    den, st = _state(N, reveal=[(7, 1)])
+    r, valid = CouplingPolicy(kern, 0.0, priority="separator", mixed=False).reveal(st, 1, N)
+    assert sorted(r[0][valid[0]].tolist()) == [3, 11]                    # then the middle of each half
+    den, st = _state(N, reveal=[(7, 1), (3, 0), (11, 2)])
+    r, valid = CouplingPolicy(kern, 0.0, priority="separator", mixed=False).reveal(st, 2, N)
+    assert sorted(r[0][valid[0]].tolist()) == [1, 5, 9, 13]              # bisection: the set doubles each step
+
+
+@pytest.mark.parametrize("priority", ["separator", "sum", "weighted"])
+def test_new_priorities_on_both_kernel_paths_and_stay_exact(priority):
+    N = 14
+    den = noisy_hmm(N, 3, 0.8, 0.3, seed=1, concentration=2.0); cl = den.classes()
+    route = TorchSubset(TorchChain(C.dfa_at_least_k(0, 3, 3)), [4, 5, 6, 7, 8, 9], N)
+    kern, _ = fit_distance_kernel(den, N, 300, torch.Generator().manual_seed(0))
+    g = torch.Generator().manual_seed(3)
+    x = den.sample(40, g)
+    x = torch.where(torch.rand(40, N, generator=g) < 0.4, x, torch.full_like(x, den.mask_id))
+    st = RevealState(x, cl.token_class[x], cl.class_logw(den.logits(x)), den.mask_id, cl, route)
+    a = CouplingPolicy(kern, 0.05, priority=priority, mixed=False).reveal(st, 0, N)
+    b = CouplingPolicy(_MatrixOnly(kern), 0.05, priority=priority, mixed=False).reveal(st, 0, N)
+    assert torch.equal(a[0], b[0]) and torch.equal(a[1], b[1])
+    # exactness on a Markov chain with its true structure as the kernel: no gap, unbiased Z_hat
+    N = 16
+    den = lazy_chain(N, 3, 0.7, seed=7, concentration=2.0); cl = den.classes()
+    d, pos = C.dfa_at_least_k(0, 4, 3), list(range(5, 11))
+    act = np.zeros(N, dtype=bool); act[pos] = True
+    truth = ConstrainedTruth(den, cl, d, active=act)
+    kern = DistanceKernel(unscreened=[0.0] + [0.7 ** k for k in range(1, N)], screened=[0.0] * N)
+    out = twisted_smc(den, cl, TorchSubset(TorchChain(d), pos, N), N, N, nrun=4000, K=1,
+                      gen=torch.Generator().manual_seed(2), schedule=CouplingPolicy(kern, 0.0, priority=priority, mixed=False),
+                      return_particles=True, path_stat=lambda a, b: parallel_log_prob(den, a, b))
+    r = den.log_joint(torch.tensor(out["tokens"]).view(-1, N)).numpy() - out["path_stat"].reshape(-1)
+    assert np.abs(r).max() < 1e-8 and out["steps"].mean() < 0.7 * N
+    z = np.exp(out["logZ"]); se = z.std(ddof=1) / math.sqrt(len(z))
+    assert abs(z.mean() - math.exp(truth.log_pC)) < 4 * se and out["frac_valid_finite"] == 1.0

@@ -131,7 +131,8 @@ def metrics(out, den, truth, N, A, K, pair_truth, nb=10):
     for k, v in full.items():
         vals = np.array([j[k] for j in jk])
         res[k] = float(v); res[k + "_se"] = float(math.sqrt((nb - 1) / nb * ((vals - vals.mean()) ** 2).sum()))
-    res.update(tail)
+    res["z_ratio_se"] = float(zrel.std(ddof=1) / math.sqrt(nrun))         # runs are independent: the plain standard error
+    res.update(tail)                                                      # is exact here and steadier than 10 batches
     res["z_se_unreliable"] = bool(not tail["hill_k"] <= 0.5)               # tail index above 1/2: no finite variance
     return res
 
@@ -147,18 +148,25 @@ def run_cell(job):
     pair_truth = truth.pair_marginals() if hasattr(truth, "pair_marginals") else None
     t0 = time.time()
     kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot")))
-    kern_small = None if a["arms"] == "core" else fit_distance_kernel(
+    kern_small = None if a["arms"] in ("core", "order") else fit_distance_kernel(
         den, N, a["pilot_small"], torch.Generator().manual_seed(stream_seed(a["seed"], mname, cname, N, "pilot_small")))[0]
     pilot_s = time.time() - t0
-    core = a["arms"] == "core"                # long sequences: the controls, two naive parallel schedules, the theta sweep
+    core = a["arms"] in ("core", "order")     # core: the controls, two naive parallel schedules, the theta sweep
     arms = [(f"fixed {N // T}/step", dict(T=T, schedule="fixed"), a["nrun"]) for T in ((N, N // 8, N // 16) if core else (N, N // 2, N // 4, N // 8))]
     arms += [("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
     pol = lambda k, th, pr="bound", mx=False: CouplingPolicy(k, th, priority=pr, mixed=mx)
-    arms += [(f"policy theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun"]) for th in THETAS]
+    if a["arms"] == "order":                  # which position next: every priority score at one threshold
+        th = a["order_theta"]
+        arms = [arms[0], ("fixed 1/step, no resampling", dict(T=N, schedule="fixed", smc=dict(ess_min=0.0)), a["nrun"])]
+        arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"])
+                 for pr in ("bound", "random", "confident", "separator", "sum", "weighted")]
+    else:
+        arms += [(f"policy theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun"]) for th in THETAS]
     if not core:
         arms += [(f"small-pilot theta={th}", dict(T=N, schedule=pol(kern_small, th)), a["nrun"]) for th in (0.01, 0.03)]
         arms += [(f"{pr} theta={th}", dict(T=N, schedule=pol(kern, th, pr)), a["nrun"]) for pr in ("confident", "random") for th in (0.01, 0.03)]
-    arms += [("random theta=0.0", dict(T=N, schedule=pol(kern, 0.0, "random")), a["nrun"])]   # same sets rule, order not chosen
+    if a["arms"] != "order":
+        arms += [("random theta=0.0", dict(T=N, schedule=pol(kern, 0.0, "random")), a["nrun"])]   # same sets rule, order not chosen
     if a["nrun_mixed"] > 0 and not core:
         arms += [(f"mixed theta={th}", dict(T=N, schedule=pol(kern, th, mx=True)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
         arms += [(f"policy-ref theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
@@ -209,7 +217,9 @@ def main():
     ap.add_argument("--models", nargs="+", default=list(MODELS)); ap.add_argument("--constraints", nargs="+", default=list(CONSTRAINTS))
     ap.add_argument("--workers", type=int, default=1); ap.add_argument("--out", default="compare.json")
     ap.add_argument("--resume", action="store_true", help="skip cells already present in --out; within a cell, skip finished arms")
-    ap.add_argument("--arms", choices=("full", "core"), default="full", help="core: 10 arms for long sequences")
+    ap.add_argument("--arms", choices=("full", "core", "order"), default="full",
+                    help="core: 10 arms for long sequences; order: the controls and every priority score at --order-theta")
+    ap.add_argument("--order-theta", dest="order_theta", type=float, default=0.0)
     a = vars(ap.parse_args())
     a["partial"] = os.path.splitext(a["out"])[0] + ".partial" if a["resume"] else None
     if a["partial"]:
