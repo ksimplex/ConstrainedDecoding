@@ -135,8 +135,8 @@ def main():
             o = chunks(go, a.audit, a.rows); r = o["r"]
             row = dict(steps=float(o["steps"].mean()), mean_r=float(r.mean()), sd_r=float(r.std()), kl=float(-r.mean()), kl_se=float(r.std() / math.sqrt(len(r))),
                        q50=float(np.quantile(-r, 0.5)), q90=float(np.quantile(-r, 0.9)), q99=float(np.quantile(-r, 0.99)), max=float((-r).max()), n=len(r), seconds=round(time.time() - t0, 1))
-            if getattr(sch, "particle_calls", 0):
-                row["load_per_path"] = sch.load_sum * sch.calls / sch.particle_calls
+            if getattr(sch, "particle_calls", 0):                       # the schedule object is shared by all batches:
+                row["load_per_path"] = sch.load_sum / len(r)                 # total admitted load over the audited paths
             res["audit"][name] = row; save()
             print(f"[{time.time() - t00:6.0f}s] audit {name:22s} steps {row['steps']:6.1f}  KL {row['kl']:8.3f} ± {row['kl_se']:.3f}  sd {row['sd_r']:.3f}  q90 {row['q90']:.3f}  q99 {row['q99']:.3f}", flush=True)
 
