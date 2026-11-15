@@ -159,7 +159,7 @@ def main():
         def window_route(pos):
             k_ok = None
             for k in range(1, len(pos)):                                  # smallest k the product twist puts below 1e-3
-                rt = TorchSubset(torch_route(C.dfa_at_least_k(2, k, A), dev), pos, N)
+                rt = TorchSubset(torch_route(C.dfa_at_least_k(2, k, A), dev), pos, N, device=dev)
                 if float(rt.logZ(lw0)[0]) <= math.log(1e-3) or k >= round(0.75 * len(pos)):
                     return rt, k
             return rt, k
