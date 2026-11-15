@@ -589,7 +589,53 @@ control 0.94, cost gain 4.7, lowest 1.08, 16 of 16 cells with a gain: the level 
 the left-most tie-break (2.1 to 2.2) and `confident` (3.4), below `separator` (14.7). `lex`: 13.7 steps, 0.56, 10.9,
 lowest 0.12: on the core constraints the constraint term is non-zero everywhere, so it behaves like `bound`.
 
-## 23. Next steps (as of 2026-11-15 early morning; superseded items are in sections 14 to 18)
+## 23. Resampling against K, and gated resampling (N = 64, local, 2026-11-15) [verified]
+
+`results/parallel_unmasking/resample_N64.json` (forbidden, copy; 6,400 particles per arm), `resample_N64_global.json`
+(counting, Dyck; 3,200 per arm), `resample_N64_summary.json`. Models `chain_0.85`, `hidden_0.85`; K = 4, 16, 64 (and
+256 for the first file) at a fixed total number of particles. Measure: relative standard error of the pooled Z_hat,
+divided by its value without resampling (below 1 = resampling helps). Median [range] over K <= 64 and both models:
+
+| Schedule | Constraint | Defensive | Plain | Systematic | Exponent 0.5 | Gated |
+|---|---|---|---|---|---|---|
+| One per step | Forbidden motif | 0.8 [0.5-1.2] | 1.2 [0.6-2.0] | 0.9 [0.6-2.2] | 0.8 [0.6-1.3] | 0.9 [0.5-1.1] |
+| One per step | Copy | 4.5 [1.2-14.3] | 6.0 [1.7-10.9] | 3.7 [1.6-14.4] | 4.7 [1.3-12.8] | 1.6 [1.4-4.2] |
+| One per step | Dyck | 1.8 [1.3-3.1] | 2.3 [1.4-3.3] | 3.2 [1.5-4.0] | 1.5 [1.0-2.2] | 1.2 [0.9-1.5] |
+| One per step | Counting | 1.4 [1.0-5.7] | 2.2 [1.0-4.2] | 3.6 [1.2-5.6] | 1.6 [1.1-4.9] | 1.1 [0.9-1.4] |
+| Separator, theta = 0 | Forbidden motif | 0.9 [0.6-1.6] | 1.0 [0.7-1.8] | 1.2 [0.6-2.1] | 0.8 [0.6-1.2] | 0.8 [0.5-1.0] |
+| Separator, theta = 0 | Copy | 1.2 [1.0-1.5] | 1.8 [1.1-3.6] | 1.7 [1.2-3.2] | 1.1 [1.0-1.6] | 1.0 [0.9-1.1] |
+| Separator, theta = 0 | Dyck | 1.0 [0.7-1.4] | 1.2 [1.0-4.4] | 1.3 [1.0-1.6] | 1.0 [0.8-1.3] | 0.9 [0.7-1.1] |
+| Separator, theta = 0 | Counting | 1.0 [0.9-1.4] | 2.0 [0.9-7.4] | 1.6 [0.9-4.5] | 1.1 [1.0-1.7] | 1.0 [0.8-1.1] |
+
+- **The harm is not a small-K effect.** On `chain_0.85` copy, one per step, defensive resampling is 12, 7, 14 and 5
+  times worse than none at K = 4, 16, 64, 256, and plain resampling 8, 8, 11 and 31 times.
+- **The parallel schedule removes most of it.** With a handful of steps there are 1 to 4 resampling events per run
+  and the twist is accurate early; defensive resampling is then within 1.6 times of none in every cell.
+- **Gated resampling is safe under the parallel schedule**: over 24 cell-by-K combinations it is never more than 1.1
+  times worse than none, and better by over 1.25 times in 5 (median 0.96). Under one per step it is within 1.5 times
+  in 20 of 24 (median 1.10, worst 4.2 on `hidden_0.85` copy at K = 16), against 11 of 24 for defensive.
+- Where resampling helps (the local constraint) the gain is modest, a factor of 1.3 to 2.5 in standard error.
+- Systematic resampling is no better than multinomial and often worse on the long-range constraints. A fixed
+  exponent of 0.5 without the gate behaves like defensive resampling.
+- The marginal error tells the same story with more noise: median ratio to no resampling 1.12 (gated, separator),
+  1.28 (defensive, separator), 1.20 and 1.35 under one per step.
+- Resampling events per run: one per step 2.8 to 12.8; separator schedule 1.2 to 4.4 (section 17).
+- Reading: the gate's criterion is a one-event, many-particle statement. It is optimistic on `hidden_0.85` copy under
+  one per step, where repeated events compound. A stricter threshold or a criterion for the remaining events is the
+  obvious refinement. [hypothesis]
+
+## 24. Thick separators at N = 1,024 (local, 2026-11-15) [verified]
+
+`results/parallel_unmasking/thick_N1024.json`; hidden chain, window, 100 runs of 4 particles, no resampling. Greedy
+rule: 10 steps (1.16), 13 (0.63), 15 (0.38), 17 (0.20), 20 (0.117), 25 (0.034), 29 (0.010), 61 at theta = 0. Best
+thick schedule at each step count against the greedy curve at the same steps: 10: 0.98 against 1.16; 12: 0.54 against
+0.77; 14: 0.41 against 0.49; 16: 0.31 against 0.27; 18: 0.13 against 0.17; 20: 0.108 against 0.114; 24: 0.057 against
+0.043. Within about 30% either way, as at N = 256; the hand-built schedule is ahead at 10 to 14 steps. Its step count
+does not grow with N but its gap does at fixed width and spacing (width 4, spacing 16: 0.27 at 256, 0.54 at 1,024),
+and its two parameters were chosen after the fact. That it can be ahead says the greedy rule is not optimal in the
+middle of the range. [verified] A separator score that values thickness is a lead. [hypothesis]
+
+## 25. Next steps (as of 2026-11-15 early morning; superseded items are in sections 14 to 18)
 
 1. Hidden-mass check at N = 512 and 1,024 (job `36c53d08`): is the policy's remaining error resampling, and which
    remedy keeps resampling (calibrated twist, 16 particles, lower trigger).
