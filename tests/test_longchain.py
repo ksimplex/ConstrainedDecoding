@@ -405,3 +405,36 @@ def test_dilated_schedule_is_coarse_to_fine():
     assert (out["steps"] == 2).all()                                      # base 4: strides 2 then 1
     with pytest.raises(ValueError):
         DilatedSchedule(1)
+
+
+@pytest.mark.parametrize("N,w,sp", [(64, 1, 16), (100, 2, 32), (256, 4, 48), (37, 3, 12)])
+def test_thick_separator_plan_covers_every_position_once(N, w, sp):
+    """Every position gets exactly one step, steps are contiguous from 0, and tokens revealed together are never
+    adjacent (so a step never reveals two neighbours at once)."""
+    from twistroute.decode import ThickSeparatorSchedule
+    plan = ThickSeparatorSchedule(w, sp).plan(N)
+    assert plan.min() == 0 and (plan >= 0).all()
+    assert set(plan.tolist()) == set(range(int(plan.max()) + 1))
+    assert (plan[1:] != plan[:-1]).all()
+    assert (plan[::sp][: N // sp] == 0).all()                     # separators start every `spacing` positions
+
+
+def test_thick_separator_width_one_is_nearly_exact_on_a_markov_chain():
+    """With width 1 every reveal is separated from the others by a revealed token or by `spacing` positions. On a
+    first-order chain a revealed token screens exactly, so the only gap left is the correlation across `spacing`
+    positions (0.6^32 here); thicker separators change the step count, not that."""
+    from twistroute.decode import ThickSeparatorSchedule
+    from twistroute.models import parallel_log_prob
+    N = 64
+    den = lazy_chain(N, 3, 0.6, seed=7, concentration=2.0); cl = den.classes()
+    d = C.dfa_exactly_k(0, 20, 3); route = torch_route(d)
+    assert ThickSeparatorSchedule(1, 32).plan(N).max() == 5      # 1 + ceil(log2(31)) steps
+    for w, steps in ((1, 6), (2, 10)):
+        out = twisted_smc(den, cl, route, N, N, nrun=100, K=2, gen=torch.Generator().manual_seed(0), ess_min=0.0,
+                          schedule=ThickSeparatorSchedule(w, 32), return_particles=True,
+                          path_stat=lambda xb, xa: parallel_log_prob(den, xb, xa))
+        assert (out["steps"] == steps).all() and out["frac_valid_finite"] == 1.0
+        r = den.log_joint(torch.tensor(out["tokens"]).view(-1, N)).numpy().reshape(out["path_stat"].shape) - out["path_stat"]
+        assert np.abs(r).max() < 1e-4
+    with pytest.raises(ValueError):
+        ThickSeparatorSchedule(4, 4)

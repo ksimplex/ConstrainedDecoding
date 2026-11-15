@@ -33,7 +33,8 @@ import torch
 
 from .schedule import NEG_INF, clamp_revealed
 
-PRIORITIES = ("bound", "confident", "random", "separator", "sum", "weighted", "least", "least_random")
+PRIORITIES = ("bound", "confident", "random", "separator", "sum", "weighted", "lex", "least", "least_random", "least_tie")
+LEX_SCALE = 1e6        # "lex": one nat of constraint distortion outranks any separator score below 1e6 nats
 
 
 # ---------------------------------------------------------------------------------------------- route queries
@@ -234,6 +235,8 @@ class CouplingPolicy:
                  "weighted"   D_i + sum_j M(i, j) D_j: the constraint's stake in i and in the positions the model
                               ties to i. The twist is exact for constraint coupling; its error is model coupling
                               among masked positions the constraint cares about, and this is what a reveal removes.
+                 "lex"        D_i first, sum_j M(i, j) to break ties (LEX_SCALE * D_i + separator score): the
+                              constraint decides where it has a stake, separation decides everywhere else
                  "least"      least-coupled-first: start from the left-most masked position, then repeatedly add
                               the position with the smallest summed coupling to the set so far (the selection
                               order of DEMASK, Ringel, Ali & Romano, arXiv:2604.02560, Alg. 2, without its
@@ -309,7 +312,7 @@ class CouplingPolicy:
             else:
                 E = self.coupling(st, masked, mu, ent)
                 E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
-            dynamic = self.priority in ("least", "least_random")
+            dynamic = self.priority in ("least", "least_random", "least_tie")
             if dynamic:                        # the order is built during selection; the score only picks the start
                 idx = torch.arange(N, device=dev).double()
                 score = -idx.expand(P, N) if self.priority == "least" else torch.rand(masked.shape, generator=gen, device=dev).double()
@@ -324,10 +327,10 @@ class CouplingPolicy:
                 if self.priority == "bound":
                     score = dist
                 else:
-                    v = cand.double() if self.priority in ("separator", "sum") else dist
+                    v = cand.double() if self.priority in ("separator", "sum", "lex") else dist
                     nb = self.kernel.apply(masked, v).to(dev) if hasattr(self.kernel, "apply") else \
                         (self.kernel.matrix(masked).to(dev) @ v[..., None]).squeeze(-1)
-                    score = nb if self.priority == "separator" else dist + nb
+                    score = nb if self.priority == "separator" else (LEX_SCALE * dist + nb if self.priority == "lex" else dist + nb)
             if self.forced_first and not dynamic:
                 sizes = (st.classes.onehot > 0).sum(0).to(dev)
                 forced = masked & (ent < 1e-9) & (sizes[mu.argmax(-1)] == 1)
@@ -340,6 +343,8 @@ class CouplingPolicy:
             spent = torch.zeros(P, dtype=torch.float64, device=dev)       # sum of the loads admitted so far
             alive = torch.ones(P, dtype=torch.bool, device=dev)           # dynamic order: still adding positions
             tie = torch.arange(N, device=dev).double() * 1e-300           # ties go to the left-most position
+            if self.priority == "least_tie":                               # or to a random one: a learned dependence
+                tie = torch.rand(masked.shape, generator=gen, device=dev).double() * 1e-300     # matrix has no exact ties
             for k in range(N):
                 if dynamic and k > 0:
                     rest = cand & ~chosen
@@ -401,3 +406,58 @@ class DilatedSchedule:
         k = int(cnt.max().clamp_min(1))
         ordr = torch.argsort(chosen.to(torch.int8), dim=-1, descending=True, stable=True)
         return ordr[:, :k], torch.arange(k, device=dev)[None] < cnt[:, None]
+
+
+class ThickSeparatorSchedule:
+    """A fixed schedule that builds separators `width` tokens thick and recurses between them, independent of the
+    model's outputs. Separators start every `spacing` positions; each is revealed one token per step, all
+    separators in parallel (`width` steps). Every stretch between two separators then gets a separator of its own
+    in the middle (another `width` steps, all stretches in parallel), and so on; a stretch of at most `width`
+    tokens is revealed one token per step. Tokens revealed together are therefore `spacing` apart at the first
+    level and have a full separator between them afterwards. width = 1 is recursive bisection.
+
+    A hand-built reference for the question whether thick separators first beat the greedy rule's single-token
+    bisection on models where one revealed token screens only partly."""
+
+    def __init__(self, width=2, spacing=32):
+        if width < 1 or spacing <= width:
+            raise ValueError("need width >= 1 and spacing > width")
+        self.width, self.spacing, self.route_passes, self.calls = int(width), int(spacing), 0.0, 0
+        self._plan = None
+
+    def plan(self, N):
+        """(N,) long tensor: the step at which each position is revealed."""
+        w, step = self.width, torch.full((N,), -1, dtype=torch.long)
+        stack = []
+        for lo in range(0, N, self.spacing):
+            hi = min(lo + self.spacing, N)
+            for k in range(min(w, hi - lo)):
+                step[lo + k] = k
+            stack.append((lo + w, hi, w))
+        while stack:
+            lo, hi, t0 = stack.pop()
+            L = hi - lo
+            if L <= 0:
+                continue
+            if L <= w:
+                step[lo:hi] = t0 + torch.arange(L)
+                continue
+            m = lo + (L - w) // 2
+            step[m:m + w] = t0 + torch.arange(w)
+            stack.append((lo, m, t0 + w)); stack.append((m + w, hi, t0 + w))
+        return step
+
+    @torch.no_grad()
+    def reveal(self, st, t, T, gen=None):
+        masked = st.x == st.mask_id
+        P, N = masked.shape
+        dev = masked.device
+        if self._plan is None or self._plan.numel() != N:
+            self._plan = self.plan(N)
+        chosen = masked if t >= T - 1 else masked & (self._plan.to(dev)[None] == t)
+        self.calls += 1
+        cnt = chosen.sum(-1)
+        k = int(cnt.max().clamp_min(1))
+        ordr = torch.argsort(chosen.to(torch.int8), dim=-1, descending=True, stable=True)
+        return ordr[:, :k], torch.arange(k, device=dev)[None] < cnt[:, None]
+

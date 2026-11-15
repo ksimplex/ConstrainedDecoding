@@ -131,3 +131,35 @@ def test_lookahead_rejects_bad_options():
                 dict(lookahead=1, lookahead_mean="median"), dict(lookahead=1, lookahead_shrink=1.5)):
         with pytest.raises(ValueError):
             twisted_smc(den, cl, route, 8, 4, 2, 4, torch.Generator().manual_seed(0), **bad)
+
+
+@pytest.mark.parametrize("alpha,eps", [(0.5, 0.0), (0.25, 0.0), (0.5, 0.25)])
+def test_partial_resampling_step_preserves_weighted_measure(alpha, eps):
+    """Ancestors drawn by wn^alpha (mixed with the defensive floor) and offspring weights wn / pi: the same
+    identity as the defensive step, so partial resampling is conditionally unbiased."""
+    rng = np.random.default_rng(5)
+    wn = torch.tensor(rng.dirichlet(np.ones(5) * 0.3, 50), dtype=torch.float32)
+    f = torch.tensor(rng.normal(size=(50, 5)), dtype=torch.float32)
+    wp = wn.double() ** alpha
+    pi = defensive_mixture((wp / wp.sum(-1, keepdim=True)).float(), eps)
+    all_idx = torch.arange(5).expand(50, 5)
+    w_off = torch.exp(offspring_logweights(wn, pi, all_idx, 1.0))
+    assert torch.allclose((pi * w_off * f).sum(-1), (wn * f).sum(-1), atol=1e-5)
+
+
+def test_partial_resampling_keeps_Z_unbiased():
+    """Z_hat has the same mean with partial resampling as with no resampling (both unbiased for p(C))."""
+    den, cl, route = _setup()
+    ref = twisted_smc(den, cl, route, 8, 8, 6000, 4, torch.Generator().manual_seed(1), ess_min=0.0)
+    par = twisted_smc(den, cl, route, 8, 8, 6000, 4, torch.Generator().manual_seed(2), ess_min=0.9, resample_power=0.5)
+    assert par["n_res"].mean() > 0.5                                      # resampling did fire
+    za, zb = np.exp(ref["logZ"]), np.exp(par["logZ"])
+    se = math.hypot(za.std() / math.sqrt(za.size), zb.std() / math.sqrt(zb.size))
+    assert abs(za.mean() - zb.mean()) < 4 * se
+
+
+@pytest.mark.parametrize("bad", [0.0, 1.5, -0.2])
+def test_invalid_resample_power_rejected(bad):
+    den, cl, route = _setup()
+    with pytest.raises(ValueError):
+        twisted_smc(den, cl, route, 8, 4, 2, 4, torch.Generator().manual_seed(0), resample_power=bad)

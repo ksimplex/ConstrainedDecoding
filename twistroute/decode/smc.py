@@ -43,7 +43,7 @@ __all__ = ["twisted_smc", "select_particles", "reveal_sets", "reveal_indices", "
 def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, return_particles=False,
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
                 lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0,
-                twist_temp=1.0, guard="warn", schedule="fixed", path_stat=None):
+                twist_temp=1.0, guard="warn", schedule="fixed", path_stat=None, resample_power=1.0):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -70,6 +70,9 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                  accepted: the number of reveals per step then varies by particle, T is a cap on the number
                  of steps, a particle that completes early takes the exact indicator as its twist from
                  that step on, and the run stops once every particle is complete.
+    resample_power  alpha in (0, 1]: ancestors are drawn in proportion to (normalised weight)^alpha, mixed with the
+                 defensive floor, and each offspring keeps weight wn / pi, so the estimate stays unbiased. alpha = 1
+                 is ordinary resampling; alpha < 1 commits only part of a weight that may still be revised.
     path_stat    optional f(x_before, x_after) -> (P,) evaluated at every step and summed along each
                  particle's ancestry; returned as 'path_stat' (nrun, K). Used for the parallel-reveal gap.
     guard        "warn" (default), "raise" or "off": support invariants checked at every step (see
@@ -83,6 +86,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     """
     if not 0.0 <= defensive < 1.0:
         raise ValueError("defensive must lie in [0, 1)")
+    if not 0.0 < resample_power <= 1.0:
+        raise ValueError("resample_power must be in (0, 1]")
     if not 0.0 < twist_power <= 1.0:
         raise ValueError("twist_power must lie in (0, 1]")
     if not 0.0 <= mix_native < 1.0:
@@ -197,7 +202,11 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         if not fire.any():
             continue
         logZ = logZ + torch.where(fire, log_mean_exp(lwr, -1), torch.zeros_like(logZ))
-        pi = defensive_mixture(wn, defensive)
+        if resample_power != 1.0:              # partial resampling: ancestors by wn^alpha, the rest stays as weight
+            wp = wn.double() ** resample_power
+            pi = defensive_mixture((wp / wp.sum(-1, keepdim=True)).to(wn.dtype), defensive)
+        else:
+            pi = defensive_mixture(wn, defensive)
         probs = torch.where(fire[:, None], pi, torch.full_like(wn, 1.0 / K)).float()
         idx = resample_indices(probs, K, resampler, gen, res_gen)
         idx = torch.where(fire[:, None], idx, torch.arange(K, device=dev)[None])
@@ -206,7 +215,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         steps = steps[flat]
         if pstat is not None:
             pstat = pstat[flat]
-        logw = torch.where(fire[:, None], offspring_logweights(wn, pi, idx, defensive), lwr).reshape(-1)
+        logw = torch.where(fire[:, None], offspring_logweights(wn, pi, idx, defensive if resample_power == 1.0 else 1.0), lwr).reshape(-1)
         n_res = n_res + fire.float()
 
     lwr = logw.view(nrun, K)
