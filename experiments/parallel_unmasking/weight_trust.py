@@ -18,7 +18,7 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compare as cp
 
-FRACS = (0.1, 0.25, 0.5, 0.75, 0.9)
+FRACS = (0.1, 0.25, 0.5, 0.75, 0.9, 1.0)      # 1.0 is the baseline: the lower half by final weight
 
 
 def spearman(a, b):

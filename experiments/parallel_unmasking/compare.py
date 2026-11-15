@@ -32,6 +32,7 @@ Guards against hidden mass (notes Sec. 6). Every arm uses defensive resampling (
 one-per-step arm with and without resampling. They estimate the same p(C); a gap is the truth-free sign that
 resampling is hiding mass. Per-run log(Z_hat / p(C)) of every arm is saved to <out>.logZ.npz.
 """
+import sys
 import argparse, json, math, os, time, zlib
 import numpy as np
 import torch
@@ -257,7 +258,9 @@ def run_cell(job):
             os.replace(part + ".tmp", part + ".json"); os.replace(part + ".tmp.npz", part + ".npz")
     order = {name: i for i, (name, _, _) in enumerate(arms)}
     rows.sort(key=lambda r: order[r["arm"]])
-    meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2),
+    import resource
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1e6 if sys.platform == "darwin" else 1e3)   # MB: bytes on macOS, kB on Linux
+    meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2), peak_rss_mb=round(rss, 1),
                 kernel_unscreened=kern.ku.tolist(), kernel_screened=kern.ks.tolist(),
                 exact_mi=[0.0] + [den.pair_mi(0, d) for d in range(1, N)], constraint_info=getattr(truth, "info", {}))
     on = next((r for r in rows if r["arm"] == "fixed 1/step"), None)
