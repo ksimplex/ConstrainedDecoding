@@ -6,6 +6,11 @@ For each cell and schedule, at fractions of the run's steps:
   slope      regression slope of the final log-weight on the log-weight so far: the share of a weight difference
              seen now that survives to the end (the natural exponent for partial resampling)
   sd_now     spread of the log-weight so far; sd_final is the spread at the end
+  var_ratio  for ancestors drawn in proportion to (weight so far)^alpha at that point, in the many-particle limit,
+             the second moment of the final weights relative to no resampling:
+             E[w_T^2 / w_t^alpha] E[w_t^alpha] / E[w_T^2]. Below 1, a resampling step there reduces the variance of
+             the final weights; above 1 it increases it. alpha = 1 is ordinary resampling. The minimising alpha
+             is the exponent partial resampling should use. Heavy-tailed: read with the particle count in mind.
   hidden_share   share of the total final weight held by particles in the lower half by weight so far: the mass
              a resampling step at that point would tend to discard
 A local constraint should give a high correlation early; a long-range one should not, if its intermediate
@@ -18,6 +23,7 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compare as cp
 
+ALPHAS = (0.25, 0.5, 0.75, 1.0)
 FRACS = (0.1, 0.25, 0.5, 0.75, 0.9, 1.0)      # 1.0 is the baseline: the lower half by final weight
 
 
@@ -34,7 +40,7 @@ def run_cell(job):
     den = cp.make_model(mname, N, S); cl, route, truth = cp.make_constraint(cname, den, N)
     kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(cp.stream_seed(a["seed"], mname, cname, N, "pilot")),
                                   count_edges=COUNT_EDGES)
-    rows = []
+    rows, keep = [], {}
     for sname, sch in (("fixed 1/step", "fixed"), ("separator theta=0.0", CouplingPolicy(kern, 0.0, priority="separator", mixed=False)),
                        ("lex theta=0.0", CouplingPolicy(kern, 0.0, priority="lex", mixed=False))):
         out = twisted_smc(den, cl, route, N, N, nrun=a["n"], K=1, gen=torch.Generator().manual_seed(cp.stream_seed(a["seed"], mname, cname, N, sname)),
@@ -50,9 +56,13 @@ def run_cell(job):
             row[f"slope_{f}"] = float(np.cov(now[m], fin[m])[0, 1] / v) if v > 1e-18 else float("nan")
             row[f"sd_now_{f}"] = float(now[m].std())
             wf = np.exp(fin[m] - fin[m].max()); low = now[m] < np.median(now[m])
+            wn = np.exp(now[m] - now[m].max())
+            for al in ALPHAS:                                            # see the module docstring: below 1 = resampling helps
+                row[f"var_ratio_{f}_{al}"] = float((wf ** 2 / wn ** al).mean() * (wn ** al).mean() / (wf ** 2).mean())
             row[f"hidden_share_{f}"] = float(wf[low].sum() / wf.sum())   # final weight held by the lower half by weight so far
         rows.append(row)
-    return rows
+        keep[f"{mname}|{cname}|{sname}"] = np.stack([tr[min(max(int(round(f * T)) - 1, 0), T - 1)] for f in FRACS]).astype(np.float32)
+    return rows, keep
 
 
 def main():
@@ -65,10 +75,11 @@ def main():
     args = ap.parse_args()
     a = dict(n=args.n, pilot=args.pilot, seed=args.seed)
     jobs = [(m, c, args.N, a) for m in args.models for c in args.constraints]
-    rows, t0 = [], time.time()
+    rows, traces, t0 = [], {}, time.time()
     with Pool(args.workers) as pool:
-        for res in pool.imap_unordered(run_cell, jobs):
-            rows += res
+        for res, keep in pool.imap_unordered(run_cell, jobs):
+            rows += res; traces.update(keep)
+            np.savez_compressed(os.path.splitext(args.out)[0] + ".traces.npz", **traces)   # log-weights at FRACS, per particle
             print(f"[{time.time() - t0:7.0f}s] done {res[0]['model']} {res[0]['constraint']}", flush=True)
             json.dump(dict(args=vars(args), rows=rows), open(args.out, "w"), indent=1)
     print("all cells done")

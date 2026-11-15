@@ -73,6 +73,9 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     resample_power  alpha in (0, 1]: ancestors are drawn in proportion to (normalised weight)^alpha, mixed with the
                  defensive floor, and each offspring keeps weight wn / pi, so the estimate stays unbiased. alpha = 1
                  is ordinary resampling; alpha < 1 commits only part of a weight that may still be revised.
+                 A function f(frac) -> alpha, with frac the (nrun,) fraction of positions revealed in each run, gates
+                 the step by progress: alpha = 0 skips resampling there (see experiments/.../weight_trust.py for
+                 the audit that produces such a curve).
     path_stat    optional f(x_before, x_after) -> (P,) evaluated at every step and summed along each
                  particle's ancestry; returned as 'path_stat' (nrun, K). Used for the parallel-reveal gap.
     guard        "warn" (default), "raise" or "off": support invariants checked at every step (see
@@ -86,8 +89,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     """
     if not 0.0 <= defensive < 1.0:
         raise ValueError("defensive must lie in [0, 1)")
-    if not 0.0 < resample_power <= 1.0:
-        raise ValueError("resample_power must be in (0, 1]")
+    if not callable(resample_power) and not 0.0 < resample_power <= 1.0:
+        raise ValueError("resample_power must be in (0, 1] or a function of the revealed fraction")
     if not 0.0 < twist_power <= 1.0:
         raise ValueError("twist_power must lie in (0, 1]")
     if not 0.0 <= mix_native < 1.0:
@@ -199,11 +202,17 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         if last or K == 1:
             continue
         fire = ess < ess_min * K
+        alpha = resample_power
+        if callable(resample_power):           # gated: the exponent depends on how much of the run is revealed
+            frac = (s.x != den.mask_id).view(nrun, K, -1).float().mean((1, 2))
+            alpha = torch.as_tensor(resample_power(frac), dtype=torch.float64, device=dev).clamp(0.0, 1.0)
+            fire = fire & (alpha > 0)          # exponent 0 = do not resample at this point
+            alpha = alpha.clamp_min(1e-6)[:, None]
         if not fire.any():
             continue
         logZ = logZ + torch.where(fire, log_mean_exp(lwr, -1), torch.zeros_like(logZ))
-        if resample_power != 1.0:              # partial resampling: ancestors by wn^alpha, the rest stays as weight
-            wp = wn.double() ** resample_power
+        if callable(resample_power) or resample_power != 1.0:      # partial resampling: ancestors by wn^alpha
+            wp = wn.double() ** alpha
             pi = defensive_mixture((wp / wp.sum(-1, keepdim=True)).to(wn.dtype), defensive)
         else:
             pi = defensive_mixture(wn, defensive)
@@ -215,7 +224,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         steps = steps[flat]
         if pstat is not None:
             pstat = pstat[flat]
-        logw = torch.where(fire[:, None], offspring_logweights(wn, pi, idx, defensive if resample_power == 1.0 else 1.0), lwr).reshape(-1)
+        logw = torch.where(fire[:, None], offspring_logweights(wn, pi, idx, defensive if (not callable(resample_power) and resample_power == 1.0) else 1.0), lwr).reshape(-1)
         n_res = n_res + fire.float()
 
     lwr = logw.view(nrun, K)

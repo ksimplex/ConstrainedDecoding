@@ -163,3 +163,17 @@ def test_invalid_resample_power_rejected(bad):
     den, cl, route = _setup()
     with pytest.raises(ValueError):
         twisted_smc(den, cl, route, 8, 4, 2, 4, torch.Generator().manual_seed(0), resample_power=bad)
+
+
+def test_gated_resampling_matches_its_constant_limits():
+    """A gate that always returns alpha equals the fixed exponent; a gate that returns 0 equals no resampling."""
+    den, cl, route = _setup()
+    run = lambda **kw: twisted_smc(den, cl, route, 8, 8, 300, 4, torch.Generator().manual_seed(3), **kw)
+    half = run(ess_min=0.9, resample_power=0.5)
+    gate = run(ess_min=0.9, resample_power=lambda frac: torch.full_like(frac, 0.5))
+    assert np.allclose(half["logZ"], gate["logZ"], atol=1e-5) and half["n_res"].mean() > 0.5
+    off = run(ess_min=0.0)
+    shut = run(ess_min=0.9, resample_power=lambda frac: torch.zeros_like(frac))
+    assert np.allclose(off["logZ"], shut["logZ"], atol=1e-6) and shut["n_res"].sum() == 0
+    late = run(ess_min=0.9, resample_power=lambda frac: (frac >= 0.5).double())      # resample only in the second half
+    assert 0 < late["n_res"].mean() < run(ess_min=0.9)["n_res"].mean()
