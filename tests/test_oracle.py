@@ -15,7 +15,7 @@ import pytest
 import torch
 from twistroute import compile as C
 from twistroute.decode import twisted_smc
-from twistroute.models import (OracleHMM, ConstrainedTruth, lazy_chain, noisy_hmm, independent,
+from twistroute.models import (OracleHMM, ConstrainedTruth, CopyTruth, lazy_chain, noisy_hmm, independent,
                                parallel_log_prob)
 from twistroute.torch_routes import torch_route
 from conftest import tv_vs_law, tv_threshold
@@ -155,3 +155,44 @@ def test_smc_matches_exact_constrained_probability(K):
     se = z.std(ddof=1) / math.sqrt(len(z))
     assert abs(z.mean() - math.exp(truth.log_pC)) < 4 * se
     assert out["frac_valid_finite"] == 1.0
+
+
+@pytest.mark.parametrize("model", ["hmm", "chain"])
+def test_pair_marginals_match_enumeration(model):
+    den, d = MODELS[model](), DFAS["forbidden"]()
+    J = joint_table(den); N, S = den.N, den.S
+    law = {y: J[y] for y in itertools.product(range(S), repeat=N) if d.accepts(y)}
+    pC = sum(law.values())
+    want = np.zeros((N - 1, S, S))
+    for y, p in law.items():
+        for i in range(N - 1):
+            want[i, y[i], y[i + 1]] += p / pC
+    assert np.allclose(ConstrainedTruth(den, den.classes(), d).pair_marginals(), want, atol=1e-10)
+
+
+@pytest.mark.parametrize("make", [lambda: random_hmm(6, 2, 3, 5), lambda: lazy_chain(6, 3, 0.6, seed=2, concentration=2.0),
+                                  lambda: lazy_chain(6, 3, 0.7, seed=4, concentration=2.0, breaks=(1, 3))])
+def test_copy_truth_matches_enumeration(make):
+    den = make(); J = joint_table(den); N, S = den.N, den.S; n = N // 2
+    law = {y: J[y] for y in itertools.product(range(S), repeat=N) if all(y[i] == y[n + i] for i in range(n))}
+    pC = sum(law.values())
+    marg = np.zeros((N, S))
+    for y, p in law.items():
+        for i, c in enumerate(y):
+            marg[i, c] += p / pC
+    tr = CopyTruth(den, den.classes())
+    assert abs(tr.log_pC - np.log(pC)) < 1e-10 and np.allclose(tr.marginals, marg, atol=1e-10)
+
+
+def test_new_automata_accept_the_right_strings():
+    from twistroute.torch_routes import build_route
+    chart = build_route(dict(kind="cfg", grammar="dyck1_unamb", A=2, N=8))
+    d = C.dfa_dyck1(8)
+    ys = list(itertools.product(range(2), repeat=8))
+    assert [d.accepts(y) for y in ys] == chart.accepts(torch.tensor(ys)).tolist()
+    assert sum(d.accepts(y) for y in ys) == 14                                  # Catalan number C_4
+    par = C.dfa_parity(0, 3)
+    seg = C.dfa_segment_counts(0, [3, 2], [1, 2], 3)
+    for y in itertools.product(range(3), repeat=5):
+        assert par.accepts(y) == (sum(v == 0 for v in y) % 2 == 0)
+        assert seg.accepts(y) == (sum(v == 0 for v in y[:3]) == 1 and sum(v == 0 for v in y[3:]) == 2)

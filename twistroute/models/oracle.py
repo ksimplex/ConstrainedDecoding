@@ -242,6 +242,28 @@ class ConstrainedTruth:
             if i < N - 1:
                 pred = self.T[i].T @ self.alpha[i]
 
+    def pair_marginals(self):
+        """(N - 1, A, A): exact joint law of the classes at positions (i, i + 1) under p(. | C)."""
+        N, A = self.N, self.A
+        out = np.zeros((N - 1, A, A))
+        pred = np.zeros((self.H, self.Q)); pred[:, self._q0] = self.pi
+        by_src = {}
+        for e, s0 in enumerate(self.src):
+            by_src.setdefault(int(s0), []).append(e)
+        for i in range(N - 1):
+            first = pred[:, self.src] * self.Ec[i][:, self.sym]                       # (H, E): edge e taken at i
+            for e in range(len(self.src)):
+                nxt = by_src.get(int(self.dst[e]), [])
+                if not nxt:
+                    continue
+                nxt = np.asarray(nxt)
+                w2 = self.Ec[i + 1][:, self.sym[nxt]] * self.beta[i + 1][:, self.dst[nxt]]   # (H', E2)
+                v = (first[:, e] @ self.T[i]) @ w2                                    # (E2,)
+                np.add.at(out[i], (self.sym[e], self.sym[nxt]), v)
+            out[i] /= out[i].sum()
+            pred = self.T[i].T @ self.alpha[i]
+        return out
+
     def sample(self, n, rng):
         """(n, N) class sequences drawn exactly from p(. | C)."""
         N, H, Q = self.N, self.H, self.Q
@@ -267,3 +289,40 @@ class ConstrainedTruth:
                     y[r, i] = self.sym[ed[ke]]
                     h[r], q[r] = hp, self.src[ed[ke]]
         return y
+
+
+class CopyTruth:
+    """Exact p(. | C) for an OracleHMM and the same-order copy constraint class(x_i) = class(x_{n + i}),
+    i < n = N / 2 (the constraint of torch_routes.TorchCopy with n pairs). Attributes: `log_pC`, and
+    `marginals` (N, A) = p(class at i | C); positions i and n + i share a row.
+
+    The hidden chain runs through positions 0..N-1, so the two halves form a pair chain (h_i, h_{n+i}) joined by
+    one extra transition from h_{n-1} to h_n. Conditioning on h_n makes the pair chain a plain forward-backward
+    over H^2 states; summing over the H values of h_n gives the result. Cost O(n H^5)."""
+
+    def __init__(self, den, classes):
+        N, H, A = den.N, den.H, classes.A
+        if N % 2:
+            raise ValueError("N must be even")
+        n = N // 2
+        onehot = classes.onehot[: den.S].double().cpu().numpy()
+        Ec = den.emit.cpu().numpy() @ onehot                                # (N, H, A)
+        T, pi = den.trans.cpu().numpy(), den.pi.cpu().numpy()
+        g = np.einsum("iac,ibc->iabc", Ec[:n], Ec[n:])                      # [i, a, b, c]: both emit class c
+        gs = g.sum(-1)                                                      # [i, a, b]
+        total, marg = 0.0, np.zeros((n, A))
+        for b0 in range(H):                                                 # condition on h_n = b0
+            F = np.zeros((n, H, H)); F[0, :, b0] = pi                       # before the factor at i
+            for i in range(1, n):
+                F[i] = np.einsum("ab,ax,by->xy", F[i - 1] * gs[i - 1], T[i - 1], T[n + i - 1])
+            B = np.zeros((n, H, H)); B[n - 1] = T[n - 1][:, b0][:, None]    # after the factor at i: link h_{n-1} -> h_n
+            for i in range(n - 2, -1, -1):
+                B[i] = np.einsum("xy,ax,by->ab", gs[i + 1] * B[i + 1], T[i], T[n + i])
+            total += (F[n - 1] * gs[n - 1] * B[n - 1]).sum()
+            marg += np.einsum("iab,iabc,iab->ic", F, g, B)
+        if total <= 0:
+            raise ValueError("the constraint has probability zero under the model")
+        self.log_pC = float(np.log(total))
+        marg = marg / marg.sum(-1, keepdims=True)
+        self.marginals = np.concatenate([marg, marg], 0)
+        self.N, self.A = N, A

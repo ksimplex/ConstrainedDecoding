@@ -14,7 +14,8 @@ versions used for decoding live in twistroute.torch_routes.
 from ._util import CompilerRefuse, NEG
 from .automata import (WDFA, build_dfa, dfa_forbidden, dfa_contains, dfa_exactly_k, dfa_fraction_band,
                        dfa_regex_a_then_no_bb, dfa_copy_positional, product_dfa, dfa_window_alldiff,
-                       dfa_dyck2_depth, dfa_prefix_class)
+                       dfa_dyck2_depth, dfa_prefix_class, dfa_dyck1, dfa_parity,
+                       dfa_segment_counts)
 from .grammars import (Inside, count_parses, random_cnf, DYCK2, DYCK1_AMBIGUOUS, DYCK1_UNAMBIGUOUS,
                        RNA_PAIRS, rna_pair_grammar)
 from .factor_graphs import CopyFG, FactorGraph, ve_logZ

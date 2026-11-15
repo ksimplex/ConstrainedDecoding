@@ -249,3 +249,38 @@ def dfa_prefix_class(cls, A, name="prefix"):
     """TWISTER's Figure 1 constraint "a.*": the first symbol is `cls`, the rest is unconstrained."""
     return build_dfa("S", lambda st, y: (None if y != cls else "ok") if st == "S" else "ok",
                      lambda st: st == "ok", A, name=name)
+
+
+def dfa_dyck1(N, name="dyck1"):
+    """Balanced brackets of length N over {0: open, 1: close} as an automaton whose state is the bracket height
+    (at most N / 2 + 1 states). The language is the one the DYCK1 grammars generate at length N; as an automaton
+    its forward pass is differentiable, which the chart's is not as it stands."""
+    def step(h, y):
+        h2 = h + 1 if y == 0 else h - 1
+        return h2 if 0 <= h2 <= N // 2 else None
+    return build_dfa(0, step, lambda h: h == 0, 2, name=name)
+
+
+def dfa_parity(cls, A, even=True, name="parity"):
+    """The number of positions in class `cls` is even (or odd)."""
+    return build_dfa(0, lambda q, y: q ^ int(y == cls), lambda q: q == (0 if even else 1), A, name=name)
+
+
+def dfa_segment_counts(cls, lengths, counts, A, name="segment_counts"):
+    """Exactly counts[k] positions of class `cls` in the k-th segment, segments of the given lengths in order.
+    The constraint is a product of one counting constraint per segment (exact blocks)."""
+    ends = []
+    tot = 0
+    for L in lengths:
+        tot += L; ends.append(tot)
+    def step(st, y):
+        i, k, c = st                              # position, segment index, count so far in this segment
+        if k >= len(lengths):
+            return None
+        c2 = c + int(y == cls)
+        if c2 > counts[k] or counts[k] - c2 > ends[k] - (i + 1):
+            return None
+        if i + 1 == ends[k]:
+            return (i + 1, k + 1, 0)
+        return (i + 1, k, c2)
+    return build_dfa((0, 0, 0), step, lambda st: st == (tot, len(lengths), 0), A, name=name)
