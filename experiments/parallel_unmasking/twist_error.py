@@ -85,10 +85,21 @@ class Twists:
         return torch.where(rev[..., None], oh, mu), rev
 
     def product(self, x):
-        mu, _ = self._marg(x)
-        f = torch.zeros(x.shape[0], self.Q, dtype=torch.float64); f[:, self.q0] = 1.0
+        return self.product_from(self._marg(x)[0])
+
+    @staticmethod
+    def _allow(clamp, i, b, B):
+        """1 where token b is allowed at position i: everywhere, except rows clamped at i to another token."""
+        if clamp is None:
+            return torch.ones(B, dtype=torch.float64)
+        pos, val = clamp
+        return ((pos != i) | (val == b)).double()
+
+    def product_from(self, mu, clamp=None):
+        B = mu.shape[0]
+        f = torch.zeros(B, self.Q, dtype=torch.float64); f[:, self.q0] = 1.0
         for i in range(self.N):
-            f = sum(self._move(f * mu[:, i, b][:, None], b, i) for b in range(self.S))
+            f = sum(self._move(f * (mu[:, i, b] * self._allow(clamp, i, b, B))[:, None], b, i) for b in range(self.S))
         return torch.log((f * self.acc[None]).sum(-1))
 
     def pair_conditionals(self, x):
@@ -124,17 +135,42 @@ class Twists:
             L[c] = (Qc / mu[:, i + 1][:, None, :].clamp_min(1e-300)).mean(0)
         return L
 
+    def stationary_kernel(self, n=20000, seed=0):
+        """K(a, b) = p(x_{i+1} = b | x_i = a) for adjacent tokens, pooled over positions, from n model samples."""
+        xs = self.den.sample(n, torch.Generator().manual_seed(seed))
+        idx = (xs[:, :-1] * self.S + xs[:, 1:]).reshape(-1)
+        J = torch.bincount(idx, minlength=self.S * self.S).double().view(self.S, self.S) + 1e-3
+        return J / J.sum(-1, keepdim=True)
+
+    def ratio_transitions(self, x, K):
+        mu, rev = self._marg(x)
+        return self.ratio_from(mu, rev, K)
+
+    def ratio_from(self, mu, rev, K):
+        """Pair conditionals from the current marginals and the stationary adjacent kernel, with no extra denoiser
+        call: Q_i(a, b) proportional to mu_{i+1}(b) K(a, b) / sum_a' mu_i(a') K(a', b). The chain then keeps the
+        current marginals (to first order) and takes its adjacent coupling from the pilot."""
+        out = torch.empty(mu.shape[0], self.N - 1, self.S, self.S, dtype=torch.float64)
+        for i in range(self.N - 1):
+            kbar = torch.einsum("ba,ac->bc", mu[:, i], K).clamp_min(1e-300)                 # (B, b)
+            q = mu[:, i + 1][:, None, :] * K[None] / kbar[:, None, :]
+            q = torch.where((rev[:, i] | rev[:, i + 1])[:, None, None], mu[:, i + 1][:, None, :].expand(-1, self.S, -1), q)
+            out[:, i] = q / q.sum(-1, keepdim=True).clamp_min(1e-300)
+        return out
+
     def chain(self, x, Qc):
         """log P(C | revealed) under a first-order chain with transitions Qc (B, N-1, S, S) and first marginal mu_0."""
-        mu, _ = self._marg(x)
-        B = x.shape[0]
+        return self.chain_from(self._marg(x)[0], Qc)
+
+    def chain_from(self, mu, Qc, clamp=None):
+        B = mu.shape[0]
         f = torch.zeros(B, self.S, self.Q, dtype=torch.float64)
         base = torch.zeros(B, self.Q, dtype=torch.float64); base[:, self.q0] = 1.0
         for a in range(self.S):
-            f[:, a] = self._move(base * mu[:, 0, a][:, None], a, 0)
+            f[:, a] = self._move(base * (mu[:, 0, a] * self._allow(clamp, 0, a, B))[:, None], a, 0)
         for i in range(self.N - 1):
             g = torch.einsum("baq,bac->bcq", f, Qc[:, i])
-            f = torch.stack([self._move(g[:, b], b, i + 1) for b in range(self.S)], 1)
+            f = torch.stack([self._move(g[:, b] * self._allow(clamp, i + 1, b, B)[:, None], b, i + 1) for b in range(self.S)], 1)
         return torch.log((f.sum(1) * self.acc[None]).sum(-1))
 
     def pilot_transitions(self, x, L):
@@ -152,14 +188,15 @@ class Twists:
 def run(mname, cname, N, n_states, seed):
     S = 2 if cname == "dyck" else 3
     den = cp.make_model(mname, N, S); d, act, truth = dfa_of(cname, den, N)
-    tw = Twists(den, d, act); L = tw.lifts(seed=seed)
+    tw = Twists(den, d, act); L = tw.lifts(seed=seed); K = tw.stationary_kernel(seed=seed)
     rng = np.random.default_rng(seed); g = torch.Generator().manual_seed(seed)
     y = torch.tensor(truth.sample(n_states, rng))
     rows = []
     for f in FRACS:
         x = y.clone(); x[torch.rand(x.shape, generator=g) >= f] = den.mask_id
         lt = tw.true(x)
-        est = dict(product=tw.product(x), chain_exact=tw.chain(x, tw.pair_conditionals(x)), chain_pilot=tw.chain(x, tw.pilot_transitions(x, L)))
+        est = dict(product=tw.product(x), chain_exact=tw.chain(x, tw.pair_conditionals(x)), chain_pilot=tw.chain(x, tw.pilot_transitions(x, L)),
+                   chain_ratio=tw.chain(x, tw.ratio_transitions(x, K)))
         row = dict(model=mname, constraint=cname, N=N, frac=f, n=n_states, log_psi_true_mean=float(lt.mean()), log_pC=truth.log_pC)
         for k, v in est.items():
             e = (v - lt); ok = torch.isfinite(e)
@@ -182,7 +219,7 @@ def main():
             rows += run(m, c, a.N, a.n, a.seed)
             json.dump(dict(args=vars(a), rows=rows), open(a.out, "w"), indent=1)
             print(f"[{time.time() - t0:6.0f}s] {m} {c}: sd of log-twist error at 25% revealed: " +
-                  ", ".join(f"{k} {next(r for r in rows[-len(FRACS):] if r['frac'] == 0.25)['sd_' + k]:.3f}" for k in ("product", "chain_exact", "chain_pilot")), flush=True)
+                  ", ".join(f"{k} {next(r for r in rows[-len(FRACS):] if r['frac'] == 0.25)['sd_' + k]:.3f}" for k in ("product", "chain_exact", "chain_pilot", "chain_ratio")), flush=True)
 
 
 if __name__ == "__main__":
