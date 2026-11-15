@@ -187,9 +187,31 @@ def resampling_gate(den, cl, route, N, schedule, n, gen, threshold=0.8):
     return gate, dict(frac=frac.round(4).tolist(), alpha=alpha.tolist(), rho=rho.round(4).tolist(), n=int(ok.sum()))
 
 
+class Footprint:
+    """Peak memory footprint of this process in MB, sampled in a thread. On macOS the footprint counts compressed
+    pages, which the peak resident size does not; without psutil it stays at -1."""
+    def __init__(self, every=0.2):
+        import threading
+        self.peak, self._stop = -1.0, False
+        try:
+            import psutil
+            self._p = psutil.Process()
+        except Exception:
+            return
+        def watch():
+            while not self._stop:
+                try:
+                    self.peak = max(self.peak, self._p.memory_full_info().uss / 1e6)
+                except Exception:
+                    return
+                time.sleep(every)
+        threading.Thread(target=watch, daemon=True).start()
+
+
 def run_cell(job):
     mname, cname, N, a = job
     torch.set_num_threads(1)
+    foot = Footprint()
     from twistroute.decode import twisted_smc, CouplingPolicy, fit_distance_kernel
     from twistroute.models import parallel_log_prob
     S = 2 if cname == "dyck" else 3
@@ -257,7 +279,8 @@ def run_cell(job):
         arms = [(f"{sn} K={K} resampling {rn}", dict(T=N, schedule=("fixed" if sn.startswith("fixed") else pol(kern_g, 0.0, "separator")),
                                                       smc={k: (gates[sn] if v == "gate" else v) for k, v in smc.items()}, K=K),
                  max(a["nrun"] * a["K"] // K, 2))
-                for K in (a.get("resample_ks") or RESAMPLE_KS) for sn in ("fixed 1/step", "separator theta=0.0") for rn, smc in modes]
+                for K in (a.get("resample_ks") or RESAMPLE_KS) for sn in ("fixed 1/step", "separator theta=0.0") for rn, smc in modes
+                if not a.get("resample_modes") or rn in a["resample_modes"]]
     else:
         arms += [(f"policy theta={th}", dict(T=N, schedule=pol(kern, th)), a["nrun"]) for th in THETAS]
     if not core:
@@ -302,7 +325,7 @@ def run_cell(job):
     rows.sort(key=lambda r: order[r["arm"]])
     import resource
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1e6 if sys.platform == "darwin" else 1e3)   # MB: bytes on macOS, kB on Linux
-    meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2), peak_rss_mb=round(rss, 1),
+    meta = dict(model=mname, constraint=cname, N=N, pilot_seconds=round(pilot_s, 2), peak_rss_mb=round(rss, 1), peak_footprint_mb=round(foot.peak, 1),
                 resampling_gate=locals().get("gate_info"),
                 kernel_unscreened=kern.ku.tolist(), kernel_screened=kern.ks.tolist(),
                 exact_mi=[0.0] + [den.pair_mi(0, d) for d in range(1, N)], constraint_info=getattr(truth, "info", {}))
@@ -332,6 +355,7 @@ def main():
                          "budget: whole-sequence budgets with graded and two-bin kernels, and dilated baselines")
     ap.add_argument("--order-theta", dest="order_theta", type=float, default=0.0)
     ap.add_argument("--resample-ks", dest="resample_ks", type=int, nargs="+", default=None)
+    ap.add_argument("--resample-modes", dest="resample_modes", nargs="+", default=None, help="subset of the resampling modes, by name")
     ap.add_argument("--only", nargs="+", default=None, help="run only the arms whose name starts with one of these prefixes")
     a = vars(ap.parse_args())
     a["partial"] = os.path.splitext(a["out"])[0] + ".partial" if a["resume"] else None
