@@ -1492,7 +1492,10 @@ call counts of the studies.
 ## 36m. How biased are the budgeted schedules against the one-token-per-step law? (2026-11-16) [verified at N = 64]
 
 **Decision (user, 2026-11-16).** The target for parallel schedules is the law of the one-token-per-step sampler
-conditioned on the constraint, taken as the denoiser's underlying joint. A budgeted parallel schedule is then an
+conditioned on the constraint, taken as the denoiser's underlying joint. On a real denoiser, which is not
+order-consistent, the reference is the average over uniformly random orders (each particle draws its own order);
+a constraint-aware order is then an approximation whose error is the model's order inconsistency (zero on oracle
+models; to be measured on MDLM). A budgeted parallel schedule is then an
 approximation, its bias counts as error, and the budget is the tolerance.
 
 From the order study (section 36i), resampling off. The sampler is exact for the model run under the same schedule,
@@ -1523,8 +1526,56 @@ together. Pooled over 3 chains and 7 orders (21 arms each), inverse-variance wei
 - In nats the bias is 0.1 to 0.5 of the budget, except on forbidden, where it is 1.3 to 1.8 times the budget.
 - Pooling hides biases of opposite sign between orders: on Dyck at B = 0.3 individual orders are off by +14% and -14%
   (section 36i), which pools to -1.6%.
-- Not established: why forbidden exceeds its budget. Candidate: the kernel measures the model's average dependence,
-  and conditioning on a rare event (p(C) of e^-8 to e^-14 here) puts the particles in atypical states. Untested.
+- Why forbidden exceeds its budget is examined below; the mechanism is not established.
+
+**Where the bias comes from (added the same day).** Each run records, per particle, the gap r = log of the true
+joint over the schedule's law. Since the sampler is exact for the schedule's law, the bias is
+log(estimate / p(C)) = -log E[exp r] over the weighted particles, which is about -(mean of r + half its variance).
+Pooled over chains and orders:
+
+| budget | constraint | mean gap | half variance | predicted log bias | measured |
+|---|---|---|---|---|---|
+| B = 0.03 | counting | -0.036 | 0.017 | +0.020 | +0.012 |
+| B = 0.03 | dyck | -0.008 | 0.016 | -0.009 | -0.008 |
+| B = 0.03 | forbidden | +0.048 | 0.006 | -0.054 | -0.051 |
+| B = 0.03 | window | -0.005 | 0.013 | -0.008 | -0.004 |
+| B = 0.03 | two_window | -0.007 | 0.014 | -0.007 | -0.005 |
+| B = 0.3 | counting | -0.270 | 0.204 | +0.066 | +0.055 |
+| B = 0.3 | dyck | -0.181 | 0.202 | -0.020 | -0.009 |
+| B = 0.3 | forbidden | +0.275 | 0.092 | -0.367 | -0.381 |
+| B = 0.3 | window | -0.100 | 0.170 | -0.070 | -0.071 |
+| B = 0.3 | two_window | -0.157 | 0.192 | -0.035 | -0.035 |
+
+- The identity closes to about 0.01 nats on the pooled values (per arm: median 0.006 to 0.065, largest 0.16).
+- With no constraint, mean and half-variance cancel exactly. On four constraints they still nearly cancel. On
+  forbidden the mean is positive: sequences that satisfy the constraint are more probable under the true joint than
+  under the schedule's law, so the parallel sampler under-produces them. The excess is a shift of the mean, not spread.
+- Constraint-induced linkage among co-revealed positions cannot bias the estimate by itself [derived]: with an
+  independent model the schedule's law equals the joint for any schedule. It costs weight variance and dead particles.
+
+**Motif test (local, `hidden_0.85`, constraint-first order, 100 runs x 16 particles, one arm per cell;
+`results/parallel_unmasking/motif_N64.json`).** The standard forbidden cell bans two motifs of length 2. Variants:
+the same kind of motif at lengths 3 and 4, and each length-2 motif alone.
+
+| motifs banned | log 1/p(C) | calls, B = 0.3 | log bias, B = 0.3 | mean gap | half variance | shift = mean + half variance | log bias, B = 0.03 | sequential (should be 0) |
+|---|---|---|---|---|---|---|---|---|
+| 00, 12 | 10.54 | 12.9 | -0.294 ± 0.055 | +0.265 | 0.076 | +0.341 | -0.071 ± 0.032 | -0.001 ± 0.031 |
+| 000, 121 | 3.67 | 11.0 | -0.150 ± 0.051 | +0.014 | 0.176 | +0.190 | -0.009 ± 0.041 | +0.089 ± 0.041 |
+| 0000, 1212 | 1.95 | 10.8 | -0.110 ± 0.030 | -0.135 | 0.191 | +0.056 | -0.025 ± 0.026 | +0.072 ± 0.031 |
+| 00 | 3.12 | 8.4 | -0.254 ± 0.028 | +0.072 | 0.170 | +0.242 | -0.024 ± 0.019 | +0.014 ± 0.021 |
+| 12 | 4.25 | 10.2 | -0.161 ± 0.019 | -0.033 | 0.203 | +0.170 | +0.004 ± 0.022 | +0.028 ± 0.021 |
+
+- The bias at B = 0.3 falls with motif length: -0.29, -0.15, -0.11. Only length 2 against length 4 is resolved
+  (2.9 standard errors).
+- Rarity is not the explanation: banning the repeat "00" alone is as biased as the standard cell (-0.25 against
+  -0.29, not resolved apart) although it is far less rare (3.1 against 10.5 nats). It is more biased than banning the
+  switch "12" alone (2.7 standard errors).
+- So the test does not support multi-position linkage as the driver (the shortest motif is worst), nor rarity alone,
+  nor the "unusually regular sequences" guess made before the test. What it shows is that the shift is largest for a
+  motif that tests agreement of adjacent tokens, the statistic on which this model's dependence is strongest.
+  The mechanism is not established.
+- Caution: two of the five sequential controls sit 2.2 and 2.3 standard errors from zero, where they must be zero, so
+  these standard errors are somewhat too small.
 
 Relative RMS error of the estimate of p(C) at equal total denoiser calls, constraint-first order, geometric mean over
 chains; lower is better. Error squared = bias squared (noise-corrected) + spread squared scaled to the number of

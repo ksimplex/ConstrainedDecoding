@@ -13,6 +13,11 @@ import math, zlib
 
 MODELS = ("chain_0.6", "chain_0.85", "hidden_0.85", "segments_0.85")
 CONSTRAINTS = ("forbidden", "counting", "copy", "dyck")
+FORBIDDEN_MOTIFS = {"forbidden": [(0, 0), (1, 2)],              # the standard cell: two motifs of length 2
+                    "forbid_len3": [(0, 0, 0), (1, 2, 1)],       # the same kind of motif, longer
+                    "forbid_len4": [(0, 0, 0, 0), (1, 2, 1, 2)],
+                    "forbid_repeat": [(0, 0)],                   # one motif at a time: a repeat, which the sticky chain favours,
+                    "forbid_switch": [(1, 2)]}                   # and a switch, which it disfavours
 GRAMMAR_CONSTRAINTS = {"dyck_chart": "dyck1_unamb",      # Dyck-1 as a grammar: the control for "dyck" (an automaton)
                        "dyck2": "dyck2",                 # two bracket types, every position constrained
                        "dyck2_atoms": "dyck2_atoms"}     # two bracket types and a free atom
@@ -101,8 +106,10 @@ def make_constraint(name, den, N):
         truth = GrammarTruth(den, cl, g)
         truth.info = dict(grammar=gname, route="chart", p_C=math.exp(truth.log_pC))
         return cl, build_route(dict(kind="cfg", A=den.S, N=N, grammar=gname)), truth
-    d = {"forbidden": lambda: C.dfa_forbidden([(0, 0), (1, 2)], 3), "counting": lambda: C.dfa_exactly_k(0, N // 3, 3),
-         "dyck": lambda: C.dfa_dyck1(N)}[name]()
+    if name in FORBIDDEN_MOTIFS:
+        d = C.dfa_forbidden(FORBIDDEN_MOTIFS[name], 3)
+    else:
+        d = {"counting": lambda: C.dfa_exactly_k(0, N // 3, 3), "dyck": lambda: C.dfa_dyck1(N)}[name]()
     truth = ConstrainedTruth(den, cl, d)
     truth.wdfa = d
     return cl, torch_route(d), truth
