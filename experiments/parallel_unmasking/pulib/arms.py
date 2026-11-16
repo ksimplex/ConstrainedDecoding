@@ -74,16 +74,19 @@ class Cell:
         kw.setdefault("mixed", False)
         return CouplingPolicy(kernel, theta, priority=priority, rate=None if B is None else B / self.N, **kw)
 
-    def chain_twist(self, eps=0.05):
+    def chain_twist(self, eps=0.05, temp=1.0):
         """The first-order chain twist for this cell's automaton (decode.chain_twist), with a pair kernel fitted on
-        --pilot model samples. Automaton constraints only."""
-        if "twist" not in self._kernels:
-            from twistroute.decode import ChainTwist, fit_pair_kernel
+        --pilot model samples. Automaton constraints only. `temp` < 1 is the calibrated version (same pair kernel)."""
+        from twistroute.decode import ChainTwist, fit_pair_kernel
+        if "pair_kernel" not in self._kernels:
             if not hasattr(self.truth, "wdfa"):
                 raise ValueError(f"no chain twist for the constraint {self.cname!r}: it is not an automaton")
-            K = fit_pair_kernel(self.den, self.cl, self.a["pilot"], torch.Generator().manual_seed(self.seed("pair_kernel")))
-            self._kernels["twist"] = ChainTwist(self.truth.wdfa, K, eps=eps, active=getattr(self.truth, "active", None))
-        return self._kernels["twist"]
+            self._kernels["pair_kernel"] = fit_pair_kernel(self.den, self.cl, self.a["pilot"], torch.Generator().manual_seed(self.seed("pair_kernel")))
+        key = ("twist", eps, temp)
+        if key not in self._kernels:
+            self._kernels[key] = ChainTwist(self.truth.wdfa, self._kernels["pair_kernel"], eps=eps, temp=temp,
+                                            active=getattr(self.truth, "active", None))
+        return self._kernels[key]
 
     def control(self):
         """One reveal per step in random order without resampling: samples the target itself and cannot hide mass."""
@@ -218,6 +221,31 @@ def twist(c):
               ("lex B=0.03 +pull", lambda: c.policy(kg, 0.0, "lex", B=0.03, pull_forced=8)))
     return [Arm(f"{sn} | {tn} twist | resampling {rn}", mk(), N, n, smc=dict(smc, **({"twist": tw} if tn == "chain" else {})))
             for sn, mk in scheds for tn in ("product", "chain") for rn, smc in TWIST_RESAMPLING]
+
+
+CALIBRATE_TEMPS = (0.7, 0.5)
+
+
+@arm_set("calibrate")
+def calibrate(c):
+    """Does calibration help resampling, under either twist? The calibrated twist flattens the model's marginals at
+    masked positions (power tau, renormalised) before they enter the twist: `twist_temp` for the product twist
+    (which also changes the proposal), `temp` for the chain twist (potential only). Controls: the product twist
+    without resampling, and each twist uncalibrated."""
+    N, n, kg = c.N, c.nrun, c.kernel("graded")
+    scheds = (("fixed 1/step", lambda: "fixed"), ("lex B=0.03 +pull", lambda: c.policy(kg, 0.0, "lex", B=0.03, pull_forced=8)))
+    res = (("defensive", dict()), ("plain", dict(defensive=0.0)))
+    arms = []
+    for sn, mk in scheds:
+        arms.append(Arm(f"{sn} | product twist | resampling off", mk(), N, n, smc=dict(OFF)))
+        for tau in (1.0,) + CALIBRATE_TEMPS:
+            tag = "" if tau == 1.0 else f" tau={tau}"
+            for rn, smc in res:
+                arms.append(Arm(f"{sn} | product twist{tag} | resampling {rn}", mk(), N, n,
+                                smc=dict(smc, **({} if tau == 1.0 else {"twist_temp": tau}))))
+                arms.append(Arm(f"{sn} | chain twist{tag} | resampling {rn}", mk(), N, n,
+                                smc=dict(smc, twist=c.chain_twist(temp=tau))))
+    return arms
 
 
 AXIS_ORDERS = ("cheapest", "estimate", "confident", "lex", "sum", "separator", "random")

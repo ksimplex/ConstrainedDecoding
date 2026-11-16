@@ -106,3 +106,32 @@ def test_in_the_sampler(cname):
         z = np.exp(out["logZ"] - truth.log_pC); se = z.std(ddof=1) / math.sqrt(len(z))
         assert out["n_res"].mean() > 5 and out["frac_valid_finite"] == 1.0
         assert abs(z.mean() - 1.0) < 4 * se
+
+
+@pytest.mark.parametrize("temp", [0.7, 0.5])
+def test_calibrated_chain_twist(temp):
+    """temp < 1 builds the chain on flattened marginals. It changes the intermediate twist, leaves a revealed
+    (one-hot) position alone, gives the same weights without resampling, and keeps Z_hat unbiased with it."""
+    N, A = 24, 3
+    den = noisy_hmm(N, A, 0.85, 0.3, seed=1, concentration=2.0); cl = den.classes()
+    d = C.dfa_forbidden([(0, 0), (1, 2)], A)
+    route, truth = torch_route(d), ConstrainedTruth(den, cl, d)
+    K = fit_pair_kernel(den, cl, 5000, torch.Generator().manual_seed(0))
+    plain, cal = ChainTwist(d, K), ChainTwist(d, K, temp=temp)
+    assert ChainTwist(d, K, temp=1.0).temp == 1.0
+    with pytest.raises(ValueError):
+        ChainTwist(d, K, temp=0.0)
+    x = torch.full((4, N), den.mask_id); lw = cl.class_logw(den.logits(x)); lp = route.logZ(lw).double()
+    assert (cal.log_psi(lw, lp) - plain.log_psi(lw, lp)).abs().min() > 1e-6          # the parameter is live
+    y = torch.tensor(truth.sample(4, np.random.default_rng(0)))                      # fully revealed: one-hot rows
+    onehot = torch.log(torch.nn.functional.one_hot(y, A).double())
+    lp1 = route.logZ(onehot.float()).double()
+    assert torch.allclose(cal.log_psi(onehot, lp1), plain.log_psi(onehot, lp1), atol=1e-9)
+    run = lambda twist, ess: twisted_smc(den, cl, route, N, N, nrun=300, K=8, gen=torch.Generator().manual_seed(7),
+                                         ess_min=ess, twist=twist, return_particles=True)
+    a, b = run(None, 0.0), run(cal, 0.0)                                   # no resampling: the same weights
+    assert np.array_equal(a["classes"], b["classes"]) and np.abs(a["logZ"] - b["logZ"]).max() < 1e-4
+    out = run(cal, 1.0)                                                    # resampling at every step: unbiased
+    z = np.exp(out["logZ"] - truth.log_pC); se = z.std(ddof=1) / math.sqrt(len(z))
+    assert out["n_res"].mean() > 5 and out["frac_valid_finite"] == 1.0
+    assert abs(z.mean() - 1.0) < 4 * se

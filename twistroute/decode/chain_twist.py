@@ -16,6 +16,8 @@ formula then returns mu_{i+1} unchanged: the denoiser has already conditioned on
 Exactness does not depend on this twist being right. It enters the weights as an intermediate potential only: the
 proposal and the terminal twist (the exact indicator) are untouched, so Z_hat stays unbiased for any positive twist.
 `log_psi` mixes in a share eps of the product twist, which keeps the twist positive wherever the product twist is.
+With `temp` < 1 the chain in `log_psi` is built on flattened marginals (the calibrated twist of the product case,
+applied to the chain); the twist is still positive wherever the product twist is, so exactness is unaffected.
 Without resampling the final weights are identical to those of the product twist (the intermediate twists
 telescope); what changes is how well the weights part-way through predict the final ones, which is what resampling
 acts on.
@@ -47,9 +49,11 @@ def fit_pair_kernel(den, classes, n, gen=None, smooth=1e-3, N=None):
 
 
 class ChainTwist:
-    def __init__(self, wdfa, kernel, eps=0.05, active=None, device="cpu"):
+    def __init__(self, wdfa, kernel, eps=0.05, active=None, device="cpu", temp=1.0):
         """wdfa: compile.WDFA; kernel: (A, A) row-stochastic with positive entries; eps in (0, 1]: share of the
-        product twist in `log_psi`; active: optional (N,) bool, the positions the automaton reads."""
+        product twist in `log_psi`; active: optional (N,) bool, the positions the automaton reads; temp in (0, 1]:
+        calibration, the chain in `log_psi` is built on the marginals raised to this power and renormalised
+        (mu_i^temp at masked positions; a revealed position is one-hot and is unchanged). 1 = no calibration."""
         e = torch.tensor(wdfa.edges, dtype=torch.long).reshape(-1, 3)
         self.src, self.sym, self.dst = (e[:, k].to(device) for k in range(3))
         self.Q, self.q0, self.A = wdfa.n, wdfa.q0, wdfa.A
@@ -61,6 +65,9 @@ class ChainTwist:
         if not 0.0 < eps <= 1.0:
             raise ValueError("eps must lie in (0, 1]")
         self.eps = float(eps)
+        if not 0.0 < temp <= 1.0:
+            raise ValueError("temp must lie in (0, 1]")
+        self.temp = float(temp)
         self.active = None if active is None else torch.as_tensor(active, dtype=torch.bool, device=device)
 
     def transitions(self, mu):
@@ -105,6 +112,8 @@ class ChainTwist:
         """The twist used in the weights: log((1 - eps) psi_chain + eps psi_product), (B,) float64."""
         if self.eps >= 1.0:
             return log_product
+        if self.temp != 1.0:                       # calibrated: flatter marginals at the masked positions
+            lwc = torch.log_softmax(self.temp * lwc.double(), -1)
         return torch.logaddexp(self.log_chain(lwc) + math.log1p(-self.eps), log_product + math.log(self.eps))
 
     def marginals(self, lwc, Qc=None):
