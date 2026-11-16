@@ -2063,6 +2063,7 @@ every sample satisfies C. Then, with s the sampler's law,
   exactly on the true model.
 - The plan from the second-order surrogate is 1.00 to 1.38 times optimal and beats the ideal greedy order, which needs the
   exact twist, in 7 of 7 cells. It also beats the best of `lex`, `sum`, `separator` in 7 of 7.
+  (their exact KL is in the table of section 36s, from `best_plan_*.json`; in cell order: 0.0321 against 0.0417, 0.2577 against 0.7671, 0.0924 against 0.1028, 0.7935 against 1.0405, 0.0291 against 0.0589, 0.0351 against 0.0502, 0.1734 against 0.1772).
 - A first-order surrogate is not enough on the hidden chain (2.0 to 3.9 times optimal on four of its five cells): the
   surrogate must carry the dependence beyond neighbours. Where the family contains the truth (Markov chain) it is 1.00.
 - A fixed order recovers the whole gain on the windows, most of it on forbidden and Dyck with the Markov chain, and
