@@ -2204,10 +2204,10 @@ proposals in five cells; total tilt + log p(C) equals the KL to six decimals in 
   the product proposal in all seven cells.
 - Under the chain proposal the best fixed orders are close to contiguous, and on the Markov chain the error is
   essentially zero: the first-order chain twist is then exact for a contiguous masked stretch.
-- Order still matters: random order is 5 to 20 times the ideal greedy KL under the chain proposal in six cells.
+- Order still matters: random order is 3 to 200 times the ideal greedy KL under the chain proposal.
 
 **Sampled, 64 positions, `hidden_0.85`, 300 particles.** KL as the sum over steps of the true error, nats, lower is better:
-product proposal -> chain proposal. The estimate from the weights agrees within its standard error (0.02 to 0.17).
+product proposal -> chain proposal. The estimate from the weights agrees to within about two of its standard errors (0.01 to 0.17).
 
 | constraint | random | left to right | lex | sum | ideal greedy |
 |---|---|---|---|---|---|
@@ -2217,9 +2217,9 @@ product proposal -> chain proposal. The estimate from the weights agrees within 
 | window | 0.389 -> 0.256 | 0.421 -> 0.254 | 0.076 -> 0.080 | 0.091 -> 0.078 | 0.050 -> 0.017 |
 | two_window | 0.730 -> 0.450 | 0.733 -> 0.365 | 0.085 -> 0.102 | 0.115 -> 0.135 | 0.278 -> 0.032 |
 
-- Forbidden and Dyck: the chain proposal lowers the KL under every order, by 2.7 to 6 times on forbidden and about 2 times on Dyck.
+- Forbidden and Dyck: the chain proposal lowers the KL under every order, by 2.7 to 6 times on forbidden and 2 to 4 times on Dyck.
 - Counting and the windows: no gain under the fixed recipes (`lex`, `sum`), which already reveal the constrained positions
-  in a good order for the product proposal; a gain of 1.5 to 2 times under random and left-to-right on the windows; none under random on counting.
+  in a good order for the product proposal; a gain of 1.5 to 2 times under random and left-to-right on the windows; none under random on counting (left-to-right there improves 3.7 times, to the level of random).
 - With the ideal greedy order the chain proposal gives the lowest KL measured on every constraint: counting 0.078 against 0.123, dyck 0.103 against 0.262, forbidden 0.096 against 0.582, window 0.017 against 0.050, two_window 0.032 against 0.085 for the best product-proposal arm.
 - Without the exact twist the best chain-proposal arm is counting 0.146 (product 0.123), dyck 0.246 (product 0.586), forbidden 0.216 (product 0.582), window 0.078 (product 0.076), two_window 0.102 (product 0.085): the gain that is
   reachable today is on forbidden and Dyck only. The rest needs an order rule that finds what the ideal greedy order finds.
