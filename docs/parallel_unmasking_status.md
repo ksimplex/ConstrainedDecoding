@@ -1526,7 +1526,8 @@ together. Pooled over 3 chains and 7 orders (21 arms each), inverse-variance wei
 - In nats the bias is 0.1 to 0.5 of the budget, except on forbidden, where it is 1.3 to 1.8 times the budget.
 - Pooling hides biases of opposite sign between orders: on Dyck at B = 0.3 individual orders are off by +14% and -14%
   (section 36i), which pools to -1.6%.
-- Why forbidden exceeds its budget is examined below; the mechanism is not established.
+- Why forbidden exceeds its budget is examined below: the conditioned sequences are unusually regular, so they
+  realise several times the model's average dependence.
 
 **Where the bias comes from (added the same day).** Each run records, per particle, the gap r = log of the true
 joint over the schedule's law. Since the sampler is exact for the schedule's law, the bias is
@@ -1570,12 +1571,42 @@ the same kind of motif at lengths 3 and 4, and each length-2 motif alone.
 - Rarity is not the explanation: banning the repeat "00" alone is as biased as the standard cell (-0.25 against
   -0.29, not resolved apart) although it is far less rare (3.1 against 10.5 nats). It is more biased than banning the
   switch "12" alone (2.7 standard errors).
-- So the test does not support multi-position linkage as the driver (the shortest motif is worst), nor rarity alone,
-  nor the "unusually regular sequences" guess made before the test. What it shows is that the shift is largest for a
-  motif that tests agreement of adjacent tokens, the statistic on which this model's dependence is strongest.
-  The mechanism is not established.
+- The length trend does not separate explanations: a longer motif links more positions but less hard (user), and it
+  is also less rare. Rarity alone is ruled out by the repeat motif. The regularity measurement below gives the
+  mechanism for the standard cell.
 - Caution: two of the five sequential controls sit 2.2 and 2.3 standard errors from zero, where they must be zero, so
   these standard errors are somewhat too small.
+
+**Are the conditioned sequences unusually regular? Yes** (`experiments/parallel_unmasking/regularity_check.py`,
+`results/parallel_unmasking/regularity_N64.json`; 40,000 exact draws from p(. | C) and from the model, `hidden_0.85`,
+64 positions, 3 symbols). "Model dependence realised" is the model's pointwise log dependence
+log p(a, b) / (p(a) p(b)) for a pair of tokens at the given distance, averaged over the conditioned sequences and
+divided by its average under the model (the mutual information: 0.0601, 0.0168, 0.0013 nats at distances 4, 8, 16).
+
+| motifs banned | log 1/p(C) | allowed set, entropy as a share of log 3 | symbol frequencies | adjacent agreement | mean run length | agreement at distance 8 | at 16 | model dependence realised, as a multiple of its average, at distance 4 | at 8 | at 16 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| none (the model) | 0.00 | 1.000 | 0.30, 0.30, 0.40 | 0.612 | 2.51 | 0.426 | 0.363 | 1.0 | 1.0 | 1.0 |
+| 00, 12 | 10.54 | 0.742 | 0.12, 0.32, 0.57 | 0.743 | 3.72 | 0.628 | 0.544 | 2.8 | 4.8 | 13.3 |
+| 000, 121 | 3.67 | 0.939 | 0.13, 0.26, 0.61 | 0.643 | 2.72 | 0.515 | 0.475 | 1.3 | 2.1 | 6.9 |
+| 0000, 1212 | 1.95 | 0.982 | 0.15, 0.36, 0.49 | 0.616 | 2.54 | 0.467 | 0.415 | 1.1 | 1.6 | 4.0 |
+| 00 | 3.12 | 0.916 | 0.09, 0.39, 0.52 | 0.629 | 2.62 | 0.517 | 0.462 | 1.6 | 2.6 | 7.5 |
+| 12 | 4.25 | 0.878 | 0.53, 0.20, 0.28 | 0.670 | 2.94 | 0.486 | 0.420 | 1.9 | 2.8 | 7.7 |
+
+- With 2 symbols and one switch banned, only n + 1 = 65 of 2^64 sequences are allowed, all of them two runs. With 3
+  symbols and 2 of 9 pairs banned the allowed set is still exponentially large (entropy 0.74 of log 3 per position).
+- The conditioned law is nevertheless far more regular than the model, because the model's weights concentrate it on
+  the run-like part of the allowed set: symbol 0 falls from 30% to 12%, adjacent agreement rises from 0.61 to 0.74
+  although one repeat is banned, the mean run lengthens from 2.5 to 3.7, and tokens 16 apart agree 54% of the time
+  against 36%.
+- On those sequences the model's dependence between tokens 4 to 16 apart is 2.8 to 13.3 times its average. The
+  schedule's kernel is that average, so its budget under-counts the dependence among positions revealed together.
+  This is the mean shift of the gap seen above.
+- The variants order the same way for motif length (standard cell most, lengths 3 and 4 least), matching their biases.
+  The two single motifs do not: the switch alone shows more excess than the repeat alone but less bias. So this
+  context-free measure (pairs with nothing revealed around them) is not the whole account.
+- Correction: an earlier version of this section said the "unusually regular sequences" explanation was not
+  supported and that banning a repeat does not make sequences more run-like. Neither had been measured; both are
+  contradicted here (banning "00" alone raises agreement at distance 8 from 0.43 to 0.52).
 
 Relative RMS error of the estimate of p(C) at equal total denoiser calls, constraint-first order, geometric mean over
 chains; lower is better. Error squared = bias squared (noise-corrected) + spread squared scaled to the number of
