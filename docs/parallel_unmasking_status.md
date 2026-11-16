@@ -1608,6 +1608,12 @@ divided by its average under the model (the mutual information: 0.0601, 0.0168, 
   supported and that banning a repeat does not make sequences more run-like. Neither had been measured; both are
   contradicted here (banning "00" alone raises agreement at distance 8 from 0.43 to 0.52).
 
+**Decision (user, 2026-11-16).** Treat this as a known failure mode and do not pursue it now: a 3-symbol alphabet with
+length-2 motifs that oppose the model's agreement pressure is not a realistic setting; realistic motifs are longer and
+alphabets larger. Warning sign to keep: a constraint that opposes the model's strongest local dependence, so that
+conditioning makes sequences much more regular than the model's own samples. Not built: a kernel measured on
+constrained samples, or a budget rescaled by the constraint's effect on long-range agreement.
+
 Relative RMS error of the estimate of p(C) at equal total denoiser calls, constraint-first order, geometric mean over
 chains; lower is better. Error squared = bias squared (noise-corrected) + spread squared scaled to the number of
 particles the budget buys. First three columns: the calls that 16 sequential particles cost; last three: 16 times that.
