@@ -941,7 +941,7 @@ increment and the exposure of the set just chosen. Var(log w_T) is in nats^2 (lo
   measured, at N = 64 on the full copy.
 - **An exact identity replaces the heuristic** [verified for one-token steps: 12 cases (4 schedules x 3
   constraints, 400 particles each), differences -0.15 to +0.17 nats against standard errors 0.12-0.34; 11 within one
-  s.e., the largest 1.13 s.e. (counting, random with forced-first). The s.e. combines the two terms as if independent;
+  s.e., the largest 1.14 s.e. (counting, random with forced-first). The s.e. combines the two terms as if independent;
   per-particle differences were not saved. Corrected 2026-11-16: an earlier version said "all within one s.e."]. With the locally optimal proposal the weight is the model's path
   probability over the proposal's, so log W_T = - sum_t log(q_t / p_t), and
       KL(sampler's law || exact constrained law) = E[ sum_t D at the revealed position ] - log(1 / p(C)).
