@@ -158,15 +158,17 @@ def _stationary(S, seed, concentration):
     return np.random.default_rng(seed).dirichlet(np.full(S, float(concentration)))
 
 
-def lazy_chain(N, S, lam, seed=0, concentration=None, breaks=(), device="cpu"):
+def lazy_chain(N, S, lam, seed=0, concentration=None, breaks=(), device="cpu", pi=None):
     """Markov chain over S tokens with transition (1 - lam) 1 pi^T + lam I: keep the token with probability
     lam, otherwise redraw from pi. The d-step transition is (1 - lam^d) 1 pi^T + lam^d I, so the correlation
     between positions at distance d is exactly lam^d (correlation length -1 / log lam). `breaks` lists gaps
     i (between positions i and i + 1) where the chain restarts from pi: independent segments.
-    pi is uniform, or Dirichlet(concentration) with the given seed."""
+    pi is uniform, or Dirichlet(concentration) with the given seed, or given explicitly."""
     if not 0.0 <= lam < 1.0:
         raise ValueError("lam must lie in [0, 1)")
-    pi = _stationary(S, seed, concentration)
+    pi = _stationary(S, seed, concentration) if pi is None else np.asarray(pi, dtype=float)
+    if pi.shape != (S,) or (pi <= 0).any() or abs(pi.sum() - 1) > 1e-9:
+        raise ValueError("pi must be a positive probability vector of length S")
     T = (1 - lam) * np.tile(pi, (S, 1)) + lam * np.eye(S)
     trans = np.tile(T, (N - 1, 1, 1))
     for g in breaks:
@@ -188,13 +190,13 @@ def repel_chain(N, S, mu, seed=0, concentration=None, device="cpu"):
     return OracleHMM(pi, np.tile(T, (N - 1, 1, 1)), np.tile(np.eye(S), (N, 1, 1)), device, name=f"repel_chain(mu={mu})")
 
 
-def noisy_hmm(N, S, lam, noise, seed=0, concentration=None, device="cpu"):
+def noisy_hmm(N, S, lam, noise, seed=0, concentration=None, device="cpu", pi=None):
     """Hidden lazy chain over S states (as in `lazy_chain`) observed through a noisy channel: the token equals
     the hidden state with probability 1 - noise, otherwise it is uniform. Token dependence decays with distance
     but a single revealed token does not screen its two sides."""
     if not 0.0 <= noise <= 1.0:
         raise ValueError("noise must lie in [0, 1]")
-    base = lazy_chain(N, S, lam, seed, concentration)
+    base = lazy_chain(N, S, lam, seed, concentration, pi=pi)
     E = (1 - noise) * np.eye(S) + noise / S
     return OracleHMM(base.pi.numpy(), base.trans.numpy(), np.tile(E, (N, 1, 1)), device,
                      name=f"noisy_hmm(lam={lam}, noise={noise})")
@@ -318,6 +320,68 @@ class ConstrainedTruth:
                     y[r, i] = sym[ed[ke]]
                     h[r], q[r] = hp, src[ed[ke]]
         return y
+
+
+class GrammarTruth:
+    """Exact p(. | C) over class sequences for an OracleHMM and a context-free constraint in Chomsky normal form:
+    `grammar` = (start, binary rules (X, Y, Z), lexical rules (X, class), A) as in compile.grammars, the constraint
+    of torch_routes.TorchChart. Attributes: `log_pC` = log p(C); `marginals` (N, A) = p(class at i | C).
+
+    Inside pass over the product of the grammar and the hidden chain. I[i, j, X][a, b] is the probability that
+    positions i..j-1 emit a class string derived from X while the chain goes from h_i = a to h_j = b:
+        I[i, i+1, X][a, b] = sum_{y : X -> y} emit_i[a, y] T_i[a, b]
+        I[i, j, X]         = sum_{X -> Y Z} sum_k I[i, k, Y] @ I[k, j, Z]
+        p(C)               = sum_{a, b} pi[a] I[0, N, start][a, b]            (T_{N-1} := identity)
+    Cost O(N^3 |R| H^3), float64, emissions rescaled per position (every derivation covers each position once, so
+    the scale factors out exactly). The marginals are the gradient of log p(C) with respect to per-position class
+    log-weights, by autograd; its graph holds every span, about 8 N^3 |R| H^2 / 6 bytes (0.2 GB at N = 64 for
+    Dyck-2 on a 4-state chain, 12 GB at N = 256), so pass with_marginals=False for long sequences.
+
+    The grammar must be unambiguous. Otherwise each string counts once per parse and `log_pC` is not a probability.
+    That is a property of the grammar, checked for the grammars used here in tests/test_grammar_truth.py."""
+
+    def __init__(self, den, classes, grammar, with_marginals=True):
+        start, binary, lexical, A = grammar[0], grammar[1], grammar[2], grammar[3]
+        N, H = den.N, den.H
+        if classes.A != A:
+            raise ValueError("the classes and the grammar must share an alphabet")
+        f8 = torch.float64
+        onehot = classes.onehot[: den.S].double().cpu()
+        Ec = den.emit.cpu().double() @ onehot                                           # (N, H, A) class emissions
+        T = torch.cat([den.trans.cpu().double(), torch.eye(H, dtype=f8)[None]])        # (N, H, H)
+        pi = den.pi.cpu().double()
+        nts = sorted({x for r in binary for x in r} | {x for x, _ in lexical} | {start})
+        ix = {x: k for k, x in enumerate(nts)}
+        rA, rB, rC = (torch.tensor([ix[r[k]] for r in binary], dtype=torch.long) for k in range(3))
+        lex = torch.zeros(len(nts), A, dtype=f8)
+        for x, y in lexical:
+            lex[ix[x], y] = 1.0
+        theta = torch.zeros(N, A, dtype=f8, requires_grad=with_marginals)
+        scale = 1.0 / Ec.mean((1, 2))                                                   # (N,)
+        with torch.set_grad_enabled(with_marginals):
+            leaf = torch.einsum("iha,xa->ixh", Ec * torch.exp(theta)[:, None, :] * scale[:, None, None], lex)
+            chart = torch.zeros(N, N + 1, len(nts), H, H, dtype=f8)
+            ar = torch.arange(N)
+            chart[ar, ar + 1] = leaf[:, :, :, None] * T[:, None, :, :]
+            for span in range(2, N + 1):
+                n = N - span + 1
+                i = torch.arange(n)[:, None]; m = torch.arange(1, span)[None]
+                left = chart[i, i + m][:, :, rB]                                        # (n, span - 1, R, H, H)
+                right = chart[i + m, i + span][:, :, rC]
+                vals = torch.einsum("nmrab,nmrbc->nrac", left, right)
+                out = torch.zeros(n, len(nts), H, H, dtype=f8).index_add(1, rA, vals)
+                chart[torch.arange(n), torch.arange(n) + span] = out
+            tot = (pi[:, None] * chart[0, N, ix[start]]).sum()
+            if not bool(tot > 0):
+                raise ValueError("the constraint has probability zero under the model")
+            logtot = torch.log(tot)
+        self.log_pC = float(logtot.detach() - torch.log(scale).sum())
+        self.N, self.H, self.A = N, H, A
+        self.marginals = None
+        if with_marginals:
+            g, = torch.autograd.grad(logtot, theta)
+            self.marginals = g.clamp_min(0.0).numpy()
+            self.marginals /= self.marginals.sum(-1, keepdims=True)
 
 
 class CopyTruth:

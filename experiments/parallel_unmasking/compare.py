@@ -35,7 +35,7 @@ resampling is hiding mass. Per-run log(Z_hat / p(C)) of every arm is saved to <o
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from pulib.cells import MODELS, CONSTRAINTS, stream_seed, make_model, make_constraint          # noqa: E402,F401
+from pulib.cells import MODELS, CONSTRAINTS, stream_seed, make_model, make_constraint, n_symbols   # noqa: E402,F401
 from pulib.metrics import metrics, Footprint                                                    # noqa: E402,F401
 from pulib.gate import GATE_ALPHAS, resampling_gate                                             # noqa: E402,F401
 from pulib.arms import (ARM_SETS, Arm, Cell, THETAS, BUDGETS, THICK_SMALL_BUDGETS, THICK_WIDTHS, THICK_SPACINGS,    # noqa: E402,F401

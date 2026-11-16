@@ -985,6 +985,30 @@ The policy needs one thing from a route: exact constrained marginals, obtained b
   grammar, and for a factor graph. Not covered at all: the spanning-tree route (excluded by decision). On an
   ambiguous grammar the marginals are derivation-weighted, like the twist; the schedule stays legal.
 
+## 36d. Exact answers for grammar constraints (2026-11-16) [verified]
+
+- **`models.GrammarTruth`**: exact log p(C) and per-position marginals for a chain model (Markov or hidden) under a
+  grammar in Chomsky normal form, by an inside pass over the product of the grammar and the hidden chain
+  (O(N^3 |R| H^3); marginals by autograd, practical to N of about 128).
+- **Checked** (`tests/test_grammar_truth.py`): Dyck-1 as a grammar equals Dyck-1 as an automaton; Dyck-2 equals the
+  bounded-depth Dyck-2 automaton at N = 12; Dyck-2 with atoms equals a bounded-depth automaton at N = 14 and
+  brute-force enumeration at N = 7 (all to 1e-9, Markov and hidden chain); the three grammars are unambiguous (one
+  parse per accepted string, by enumeration); the sampler through the chart is unbiased for the new p(C).
+- **New constraints** in `pulib/cells.py`: `dyck_chart` (Dyck-1 through the chart, the control for `dyck`), `dyck2`
+  (two bracket types, every position constrained: the stress case), `dyck2_atoms` (two bracket types and a free atom:
+  the indicative case; grammar `compile.DYCK2_ATOMS`). **New models** `chain_0.85_atoms`, `hidden_0.85_atoms`: 5 symbols,
+  60% atoms, 10% each bracket. **New suites** `grammar32`, `atoms32` (local), `grammar64`, `atoms64` (cluster).
+- **log p(C) in nats** (closer to 0 = less constraining), at N = 32 | 64 | 128
+  (`results/parallel_unmasking/grammar_exact_answers.json`):
+  - `dyck` = `dyck_chart`: `chain_0.85` -4.93 | -5.85 | -6.84; `hidden_0.85` -4.90 | -5.82 | -6.80.
+  - `dyck2`: `chain_0.85` -7.44 | -10.66 | -16.49; `hidden_0.85` -12.01 | -19.85 | -34.90.
+  - `dyck2_atoms`: `chain_0.85_atoms` -2.39 | -4.28 | -7.75; `hidden_0.85_atoms` -7.23 | -11.90 | -20.21
+    (on the generic 5-symbol chains, where atoms are 20%: -5.29 | -8.80 | -14.21 and -9.69 | -15.85 | -27.16).
+- **Smoke run** (N = 32, 24 runs x 8, pilot 300; not a result): Z-hat / p(C) within its s.e. of 1 in every arm; Dyck-1
+  through the automaton and through the chart agree within the intervals (`lex` sequential: spread 0.25 and 0.24;
+  `lex` B = 0.03: 0.32 and 0.34 at 10.8 and 10.9 calls). The chart cell took 115 s against 3 s for the automaton.
+- Still without an exact truth: factor graphs under a chain.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
@@ -996,8 +1020,7 @@ job scripts and arm names keep working.
    as the end measure on `hidden256`; then a scale-free score (`sum` fails on MDLM, `lex` costs steps on Dyck),
    held-out constraints, ablations of order, guard, pull-in, forced-first and tie-break.
 1a. A real grammar through the chart route (requested 2026-11-16). Prerequisites: constrained marginals from the chart
-   (done, section 36c), and an exact truth for a chain model under a grammar (chain x grammar
-   product; check against a bounded-depth automaton at 16-24 positions). Then: Dyck-1 through the chart in the same
+   (done, section 36c) and an exact truth for a chain model under a grammar (done, section 36d). Then: Dyck-1 through the chart in the same
    cells as through the automaton (should agree within noise); pure Dyck-2 as the stress case; Dyck-2 with a free
    atom symbol (the nesting skeleton of JSON) as the indicative case. Chart cost and the cost of the chain twist on
    a chart (up to the cube of the number of classes) measured separately. Before the 1,024-position cluster job.

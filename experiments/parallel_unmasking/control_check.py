@@ -16,9 +16,9 @@ def run(job):
     m, c, N, arm, seed, nrun, K = job
     torch.set_num_threads(1)
     import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from compare import make_model, make_constraint
+    from compare import make_model, make_constraint, n_symbols
     from twistroute.decode import twisted_smc
-    den = make_model(m, N, 2 if c == "dyck" else 3)
+    den = make_model(m, N, n_symbols(c))
     cl, route, truth = make_constraint(c, den, N)
     t0 = time.time()
     out = twisted_smc(den, cl, route, N, N, nrun=nrun, K=K, gen=torch.Generator().manual_seed(seed),

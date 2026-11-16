@@ -160,6 +160,18 @@ DYCK2 = ("S",
          [("LP", 0), ("RP", 1), ("LS", 2), ("RS", 3)], 4)
 
 
+# Dyck-2 with a free atom: non-empty sequences of elements, an element being the atom 4='x', '(' sequence? ')' or
+# '[' sequence? ']' (symbols 0-3 as in DYCK2). The nesting skeleton of a structured format: content is free, brackets
+# must match. Unambiguous (a sequence splits uniquely into its first element and the rest). No automaton recognises
+# it at unbounded depth.
+DYCK2_ATOMS = ("S",
+               [("S", "E", "S"),
+                ("S", "LP", "RP"), ("S", "LP", "P1"), ("S", "LS", "RS"), ("S", "LS", "Q1"),
+                ("E", "LP", "RP"), ("E", "LP", "P1"), ("E", "LS", "RS"), ("E", "LS", "Q1"),
+                ("P1", "S", "RP"), ("Q1", "S", "RS")],
+               [("LP", 0), ("RP", 1), ("LS", 2), ("RS", 3), ("S", 4), ("E", 4)], 5)
+
+
 # Dyck-1 over {0='(', 1=')'}; the same language under an ambiguous and an unambiguous grammar.
 DYCK1_AMBIGUOUS = ("S", [("S", "S", "S"), ("S", "A", "B"), ("S", "A", "C"), ("C", "S", "B")],
                    [("A", 0), ("B", 1)], 2)

@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from .arms import ARM_SETS, Cell
-from .cells import MODELS, CONSTRAINTS, make_model, make_constraint
+from .cells import MODELS, CONSTRAINTS, make_model, make_constraint, n_symbols
 from .metrics import metrics, Footprint
 from .suites import SUITES
 from .summary import provenance
@@ -17,7 +17,7 @@ def run_cell(job):
     foot = Footprint()
     from twistroute.decode import twisted_smc
     from twistroute.models import parallel_log_prob
-    S = 2 if cname == "dyck" else 3
+    S = n_symbols(cname)
     den = make_model(mname, N, S)
     cl, route, truth = make_constraint(cname, den, N)
     pair_truth = truth.pair_marginals() if hasattr(truth, "pair_marginals") else None

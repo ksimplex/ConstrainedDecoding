@@ -23,7 +23,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pulib.arms import Cell                                                                       # noqa: E402
-from pulib.cells import make_model, make_constraint                                               # noqa: E402
+from pulib.cells import make_model, make_constraint, n_symbols                                    # noqa: E402
 from pulib.summary import provenance                                                              # noqa: E402
 
 PRED = ("exposure", "coupling", "stake", "linear", "exposure_pos")
@@ -92,7 +92,7 @@ def run_cell(job):
     mname, cname, N, a = job
     torch.set_num_threads(1)
     from twistroute.decode import twisted_smc
-    S = 2 if cname == "dyck" else 3
+    S = n_symbols(cname)
     den = make_model(mname, N, S)
     cl, route, truth = make_constraint(cname, den, N)
     c = Cell(mname, cname, N, dict(a, nrun=a["n"], pilot_small=0), den, cl, route, truth)

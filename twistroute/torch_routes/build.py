@@ -2,7 +2,7 @@
 
 spec keys: "kind" in {"forbidden", "exactly_k", "prefix", "copy", "cfg", "factor_graph", "and"}, "A" (alphabet size), "N"
 (length), plus kind parameters: patterns | cls, count | cls | pairs (first `pairs` positions copied to N/2 + i)
-| grammar in {"dyck1_unamb", "dyck1_amb", "dyck2", "rna_pair"} with optional span_limits {nonterminal: W} |
+| grammar in {"dyck1_unamb", "dyck1_amb", "dyck2", "dyck2_atoms", "rna_pair"} with optional span_limits {nonterminal: W} |
 parts (a list of specs, all with the same A and N).
 
 "and" compiles a conjunction to one route: automata are combined by the product construction, and an
@@ -15,7 +15,7 @@ from .routes import TorchChain, TorchChart, TorchCopy
 from .factor_graph import TorchFactorGraph, TorchLifted
 from .wrappers import TorchMasked
 
-GRAMMARS = {"dyck1_unamb": C.DYCK1_UNAMBIGUOUS, "dyck1_amb": C.DYCK1_AMBIGUOUS, "dyck2": C.DYCK2}
+GRAMMARS = {"dyck1_unamb": C.DYCK1_UNAMBIGUOUS, "dyck1_amb": C.DYCK1_AMBIGUOUS, "dyck2": C.DYCK2, "dyck2_atoms": C.DYCK2_ATOMS}
 
 
 def cpu_route(spec):

@@ -36,7 +36,7 @@ def run_cell(job):
     mname, cname, N, a = job
     torch.set_num_threads(1)
     from twistroute.decode import twisted_smc, CouplingPolicy, fit_distance_kernel, COUNT_EDGES
-    S = 2 if cname == "dyck" else 3
+    S = cp.n_symbols(cname)
     den = cp.make_model(mname, N, S); cl, route, truth = cp.make_constraint(cname, den, N)
     kern, _ = fit_distance_kernel(den, N, a["pilot"], torch.Generator().manual_seed(cp.stream_seed(a["seed"], mname, cname, N, "pilot")),
                                   count_edges=COUNT_EDGES)

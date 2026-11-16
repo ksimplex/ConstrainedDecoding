@@ -1,16 +1,27 @@
 """Cells of the comparison: named oracle models and constraints, and the random stream of each (cell, arm).
 
-A cell is (model, constraint, N). Tokens are classes: 3 symbols, or 2 for Dyck-1.
+A cell is (model, constraint, N). Tokens are classes: 3 symbols, 2 for Dyck-1, 4 for Dyck-2, 5 with atoms.
     models       chain_0.6, chain_0.85 (Markov: a revealed position separates its two sides exactly),
                  hidden_0.85 and hidden_0.85_n<noise> (hidden chain: dependence decays, nothing separates),
-                 segments_0.85 (independent segments), repel_0.8 (anticorrelated neighbours)
+                 segments_0.85 (independent segments), repel_0.8 (anticorrelated neighbours),
+                 chain_0.85_atoms, hidden_0.85_atoms (5 symbols, 60% atoms: for dyck2_atoms)
     constraints  forbidden, counting, copy, dyck (whole sequence); window, two_window, copy_spread, copy_block
-                 (about a tenth of the positions, for long sequences)
+                 (about a tenth of the positions, for long sequences); dyck_chart, dyck2, dyck2_atoms (grammars
+                 through the chart route, exact answers from models.GrammarTruth)
 """
 import math, zlib
 
 MODELS = ("chain_0.6", "chain_0.85", "hidden_0.85", "segments_0.85")
 CONSTRAINTS = ("forbidden", "counting", "copy", "dyck")
+GRAMMAR_CONSTRAINTS = {"dyck_chart": "dyck1_unamb",      # Dyck-1 as a grammar: the control for "dyck" (an automaton)
+                       "dyck2": "dyck2",                 # two bracket types, every position constrained
+                       "dyck2_atoms": "dyck2_atoms"}     # two bracket types and a free atom
+ATOM_PI = (0.1, 0.1, 0.1, 0.1, 0.6)
+SYMBOLS = {"dyck": 2, "dyck_chart": 2, "dyck2": 4, "dyck2_atoms": 5}       # alphabet size per constraint; 3 otherwise
+
+
+def n_symbols(constraint):
+    return SYMBOLS.get(constraint, 3)
 
 
 def stream_seed(base, *parts):
@@ -24,6 +35,14 @@ def make_model(name, N, S):
     if name == "repel_0.8":                               # neighbours anticorrelated, at 80% of the admissible strength
         pi = lazy_chain(2, S, 0.0, seed=1, concentration=2.0).pi.numpy()
         return repel_chain(N, S, 0.8 * pi.min() / (1 - pi.min()), seed=1, concentration=2.0)
+    if name.endswith("_atoms"):                           # content-heavy law for the grammars with a free atom:
+        if S != 5:                                        # 60% atoms, 10% each bracket (symbols as in compile.DYCK2_ATOMS)
+            raise ValueError("the _atoms models have 5 symbols")
+        if name == "chain_0.85_atoms":
+            return lazy_chain(N, S, 0.85, pi=ATOM_PI)
+        if name == "hidden_0.85_atoms":
+            return noisy_hmm(N, S, 0.85, 0.3, pi=ATOM_PI)
+        raise ValueError(name)
     if name == "chain_0.6":
         return lazy_chain(N, S, 0.6, seed=1, concentration=2.0)
     if name == "chain_0.85":
@@ -74,6 +93,13 @@ def make_constraint(name, den, N):
         truth.info = dict(window=[pos[0], pos[-1] + 1], positions=len(pos), k=b, p_C=math.exp(truth.log_pC),
                           expected_count=float(w * (den.pi @ den.emit[0])[0]), constrained_fraction=w / N)
         return cl, TorchSubset(TorchChain(d), pos, N), truth
+    if name in GRAMMAR_CONSTRAINTS:                       # context-free constraints through the chart route
+        from twistroute.models import GrammarTruth
+        gname = GRAMMAR_CONSTRAINTS[name]
+        g = {"dyck1_unamb": C.DYCK1_UNAMBIGUOUS, "dyck2": C.DYCK2, "dyck2_atoms": C.DYCK2_ATOMS}[gname]
+        truth = GrammarTruth(den, cl, g)
+        truth.info = dict(grammar=gname, route="chart", p_C=math.exp(truth.log_pC))
+        return cl, build_route(dict(kind="cfg", A=den.S, N=N, grammar=gname)), truth
     d = {"forbidden": lambda: C.dfa_forbidden([(0, 0), (1, 2)], 3), "counting": lambda: C.dfa_exactly_k(0, N // 3, 3),
          "dyck": lambda: C.dfa_dyck1(N)}[name]()
     return cl, torch_route(d), ConstrainedTruth(den, cl, d)

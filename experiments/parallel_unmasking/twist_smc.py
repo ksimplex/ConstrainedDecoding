@@ -95,7 +95,7 @@ def rho(trace, fracs=(0.1, 0.25, 0.5, 0.75)):
 def run_cell(job):
     mname, cname, N, a = job
     torch.set_num_threads(1)
-    S = 2 if cname == "dyck" else 3
+    S = cp.n_symbols(cname)
     den = cp.make_model(mname, N, S); d, act, truth = te.dfa_of(cname, den, N)
     tw = te.Twists(den, d, act); Kst = tw.stationary_kernel(seed=a["seed"])
     rows = []

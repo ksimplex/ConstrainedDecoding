@@ -186,7 +186,7 @@ class Twists:
 
 
 def run(mname, cname, N, n_states, seed):
-    S = 2 if cname == "dyck" else 3
+    S = cp.n_symbols(cname)
     den = cp.make_model(mname, N, S); d, act, truth = dfa_of(cname, den, N)
     tw = Twists(den, d, act); L = tw.lifts(seed=seed); K = tw.stationary_kernel(seed=seed)
     rng = np.random.default_rng(seed); g = torch.Generator().manual_seed(seed)

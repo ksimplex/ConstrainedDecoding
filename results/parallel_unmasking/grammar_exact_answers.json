@@ -1,0 +1,242 @@
+[
+ {
+  "constraint": "dyck",
+  "model": "chain_0.85",
+  "N": 32,
+  "log_pC": -4.93444052547126,
+  "seconds": 0.22,
+  "marginal_entropy_mean": 0.290788882747006
+ },
+ {
+  "constraint": "dyck",
+  "model": "chain_0.85",
+  "N": 64,
+  "log_pC": -5.848272254278626,
+  "seconds": 0.0,
+  "marginal_entropy_mean": 0.4368860640201224
+ },
+ {
+  "constraint": "dyck",
+  "model": "chain_0.85",
+  "N": 128,
+  "log_pC": -6.834655923816726,
+  "seconds": 0.01,
+  "marginal_entropy_mean": 0.5336765292157354
+ },
+ {
+  "constraint": "dyck",
+  "model": "hidden_0.85",
+  "N": 32,
+  "log_pC": -4.900868269688772,
+  "seconds": 0.0,
+  "marginal_entropy_mean": 0.5036115051223
+ },
+ {
+  "constraint": "dyck",
+  "model": "hidden_0.85",
+  "N": 64,
+  "log_pC": -5.8162729034157055,
+  "seconds": 0.0,
+  "marginal_entropy_mean": 0.5648900581514446
+ },
+ {
+  "constraint": "dyck",
+  "model": "hidden_0.85",
+  "N": 128,
+  "log_pC": -6.80357338875509,
+  "seconds": 0.01,
+  "marginal_entropy_mean": 0.6118319955064386
+ },
+ {
+  "constraint": "dyck_chart",
+  "model": "chain_0.85",
+  "N": 32,
+  "log_pC": -4.93444052547126,
+  "seconds": 0.05,
+  "marginal_entropy_mean": 0.290788882747006
+ },
+ {
+  "constraint": "dyck_chart",
+  "model": "chain_0.85",
+  "N": 64,
+  "log_pC": -5.848272254278626,
+  "seconds": 0.1,
+  "marginal_entropy_mean": 0.4368860640201224
+ },
+ {
+  "constraint": "dyck_chart",
+  "model": "chain_0.85",
+  "N": 128,
+  "log_pC": -6.834655923816726,
+  "seconds": 0.68,
+  "marginal_entropy_mean": 0.5336765292157355
+ },
+ {
+  "constraint": "dyck_chart",
+  "model": "hidden_0.85",
+  "N": 32,
+  "log_pC": -4.900868269688772,
+  "seconds": 0.03,
+  "marginal_entropy_mean": 0.5036115051223
+ },
+ {
+  "constraint": "dyck_chart",
+  "model": "hidden_0.85",
+  "N": 64,
+  "log_pC": -5.816272903415708,
+  "seconds": 0.12,
+  "marginal_entropy_mean": 0.5648900581514446
+ },
+ {
+  "constraint": "dyck_chart",
+  "model": "hidden_0.85",
+  "N": 128,
+  "log_pC": -6.8035733887550975,
+  "seconds": 0.69,
+  "marginal_entropy_mean": 0.6118319955064385
+ },
+ {
+  "constraint": "dyck2",
+  "model": "chain_0.85",
+  "N": 32,
+  "log_pC": -7.439359949580677,
+  "seconds": 0.1,
+  "marginal_entropy_mean": 0.8296058920947087
+ },
+ {
+  "constraint": "dyck2",
+  "model": "chain_0.85",
+  "N": 64,
+  "log_pC": -10.655290866504743,
+  "seconds": 0.48,
+  "marginal_entropy_mean": 0.9662797806980516
+ },
+ {
+  "constraint": "dyck2",
+  "model": "chain_0.85",
+  "N": 128,
+  "log_pC": -16.490084893768568,
+  "seconds": 3.64,
+  "marginal_entropy_mean": 1.066410493183154
+ },
+ {
+  "constraint": "dyck2",
+  "model": "hidden_0.85",
+  "N": 32,
+  "log_pC": -12.009237754025477,
+  "seconds": 0.11,
+  "marginal_entropy_mean": 1.083515324959913
+ },
+ {
+  "constraint": "dyck2",
+  "model": "hidden_0.85",
+  "N": 64,
+  "log_pC": -19.85309317586693,
+  "seconds": 0.5,
+  "marginal_entropy_mean": 1.1447526958160328
+ },
+ {
+  "constraint": "dyck2",
+  "model": "hidden_0.85",
+  "N": 128,
+  "log_pC": -34.903316958186736,
+  "seconds": 3.57,
+  "marginal_entropy_mean": 1.1966329375235736
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "chain_0.85_atoms",
+  "N": 32,
+  "log_pC": -2.390701461748762,
+  "seconds": 0.11,
+  "marginal_entropy_mean": 0.07025773307574798
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "chain_0.85_atoms",
+  "N": 64,
+  "log_pC": -4.278477163899751,
+  "seconds": 0.51,
+  "marginal_entropy_mean": 0.1404560275969993
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "chain_0.85_atoms",
+  "N": 128,
+  "log_pC": -7.75079276581306,
+  "seconds": 3.51,
+  "marginal_entropy_mean": 0.35829715731999534
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "hidden_0.85_atoms",
+  "N": 32,
+  "log_pC": -7.2335835468168455,
+  "seconds": 0.14,
+  "marginal_entropy_mean": 0.7268957983119595
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "hidden_0.85_atoms",
+  "N": 64,
+  "log_pC": -11.897662798784594,
+  "seconds": 0.53,
+  "marginal_entropy_mean": 0.8134764984870171
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "hidden_0.85_atoms",
+  "N": 128,
+  "log_pC": -20.208345406571425,
+  "seconds": 3.51,
+  "marginal_entropy_mean": 0.8731751743599944
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "chain_0.85",
+  "N": 32,
+  "log_pC": -5.293621174270349,
+  "seconds": 0.13,
+  "marginal_entropy_mean": 0.5024820685548698
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "chain_0.85",
+  "N": 64,
+  "log_pC": -8.803231999384565,
+  "seconds": 0.52,
+  "marginal_entropy_mean": 0.9149534412060728
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "chain_0.85",
+  "N": 128,
+  "log_pC": -14.211506712320528,
+  "seconds": 3.39,
+  "marginal_entropy_mean": 1.291865610724087
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "hidden_0.85",
+  "N": 32,
+  "log_pC": -9.686522850388677,
+  "seconds": 0.1,
+  "marginal_entropy_mean": 1.0695355340039385
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "hidden_0.85",
+  "N": 64,
+  "log_pC": -15.851937616456922,
+  "seconds": 0.49,
+  "marginal_entropy_mean": 1.1956170309239618
+ },
+ {
+  "constraint": "dyck2_atoms",
+  "model": "hidden_0.85",
+  "N": 128,
+  "log_pC": -27.16309310019392,
+  "seconds": 3.54,
+  "marginal_entropy_mean": 1.2770340750897522
+ }
+]

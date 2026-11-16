@@ -18,6 +18,16 @@ SUITES = {
                       nrun=100, K=16, pilot=2000),
     "long1024": dict(N=[1024], models=["chain_0.85", "hidden_0.85"], constraints=["copy_spread", "two_window"],
                      nrun=50, K=16, pilot=300),
+    # grammars through the chart route, exact answers from models.GrammarTruth. `dyck` (automaton) and `dyck_chart`
+    # are the same language: the control for the route. 32 runs locally; 64 is for the cluster.
+    "grammar32": dict(N=[32], models=["chain_0.85", "hidden_0.85"], constraints=["dyck", "dyck_chart", "dyck2"],
+                      nrun=100, K=16, pilot=2000),
+    "atoms32": dict(N=[32], models=["chain_0.85_atoms", "hidden_0.85_atoms"], constraints=["dyck2_atoms"],
+                    nrun=100, K=16, pilot=2000),
+    "grammar64": dict(N=[64], models=["chain_0.85", "hidden_0.85"], constraints=["dyck", "dyck_chart", "dyck2"],
+                      nrun=100, K=16, pilot=2000),
+    "atoms64": dict(N=[64], models=["chain_0.85_atoms", "hidden_0.85_atoms"], constraints=["dyck2_atoms"],
+                    nrun=100, K=16, pilot=2000),
     # seconds, for checking that a command line works
     "smoke": dict(N=[32], models=["hidden_0.85"], constraints=["copy", "counting"], nrun=8, K=4, pilot=60),
 }
