@@ -1095,7 +1095,7 @@ pair conditionals.
   constrained marginal (the old `confident` order) does about as well on three constraints without any chain twist;
   its earlier weakness was steps (29.7 against 7-14), not accuracy. (3) Highest stake is worse than random at one
   step on four of five, yet constraint-first did well in full runs on the windows: one-step error is not the whole
-  story, and "cheapest first" needs a full-run test. (4) The ideal pick is 4-70 times better than any practical rule.
+  story, and "cheapest first" needs a full-run test. (4) The ideal pick is far better than the best practical rule on every constraint: by a factor of 15 (counting), 68 (dyck), 4 (forbidden), 947 (window), 32 (two_window). On `window` the ideal error is essentially zero (3e-7 nats; the table shows it as 0.00). (Corrected 2026-11-16: an earlier version said "4-70 times", which left out `window`.)
 - **Why counting is the hard case** [rough calculation, not measured]: a first-order chain fitted on adjacent
   tokens predicts dependence decaying as the adjacent correlation to the power of the distance; with a hidden state
   the true decay is slower, and at noise 0.3 the chain captures about a quarter of the covariance summed over all
