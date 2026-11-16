@@ -1786,9 +1786,10 @@ Windows by distance from the window (inside, within 6, farther), mean cost in na
 
 - The conditioned ratio fixes forbidden: rank 0.83 to 0.95, size 0.28 to 0.75, tenfold underestimates 11% to 0%.
 - It does not fix the overestimate inside the window, so that explanation was wrong (see the collective term below).
-- With the screened pilot kernel and no denoiser call, mean costs near and far from the window are within about 15%
-  of the truth at every fraction; the next pick is at the ideal on the window and close to it on two windows and
-  forbidden. The median ratio is still large late in a decode, where the true costs are below 1e-3 nats.
+- With the screened pilot kernel and no denoiser call, mean costs near the window are 0.84 to 1.13 of the truth at
+  10 to 50% revealed (up to 1.6 at 75%, where the costs are about 1e-3 nats). The next pick costs 0.00 on the window
+  (ideal 0.00), 0.59 on two windows (ideal 0.12, random 15.2) and 2.48 on forbidden (ideal 0.90, random 36.2).
+  The median ratio is still large late in a decode, where the true costs are below 1e-3 nats.
 - Counting and Dyck are unchanged.
 - Is the cost a common over- or under-reaction of the twist? Fitted slope of the true log tilt on the product twist's
   (1 = the twist's tilt is right), median [quartiles]; interquartile range within a state:
@@ -1801,7 +1802,7 @@ Windows by distance from the window (inside, within 6, farther), mean cost in na
 | window | 1.30 [1.16, 1.39]; 0.21 | 1.25 [1.09, 1.41]; 0.22 | 1.24 [1.08, 1.42]; 0.22 | 1.08 [1.01, 1.21]; 0.20 |
 | two_window | 1.20 [1.01, 1.41]; 0.36 | 1.20 [0.91, 1.44]; 0.52 | 1.17 [0.97, 1.40]; 0.32 | 1.05 [1.00, 1.17]; 0.12 |
 
-  On the windows the factor is consistent (about 1.2 to 1.3 with a narrow range: the twist under-reacts). On counting
+  On the windows the factor is consistent (1.05 to 1.3 with a narrow range: the twist under-reacts). On counting
   it varies widely between positions of one state, so no single factor explains the cost there.
 
 ## 36o. The missing term on a sum constraint: mean shift and spread together (2026-11-16) [verified on counting at N = 64]
@@ -1830,7 +1831,7 @@ the inflated variance; `closed form` is 1/2 q_i(0)(1 - q_i(0)) (slope x (influen
   in the middle of a decode. Early (10% revealed) the account is still weak.
 - The mean shift alone is 23 times too large early: this is the overshoot of the lookahead estimate in section 36n,
   and of the pair estimate inside a window.
-- The next pick under the closed form is 2 to 4 times cheaper than a random one at every fraction, and still 3 to 20
+- The next pick under the closed form is 2 to 4 times cheaper than a random one at every fraction, and still 4 to 20
   times dearer than the ideal.
 - Reading for the two mechanisms: on a sum constraint the dominant saving from revealing well-connected positions
   early is that it lowers the spread ratio for every later reveal. That fits the order study (section 36i), where
@@ -1857,7 +1858,8 @@ of the model's one-token conditionals along order sigma. All in nats per sequenc
   order, about one nat per token. Averaged over samples, that difference is the KL divergence from the law of one
   order to the law of another. It is two orders of magnitude above the errors optimised elsewhere in this document.
 - Among orders that did not generate the sequence, log p varies with a standard deviation of 10 to 16 nats.
-- Left-to-right is level with a random order; right-to-left is lower by 10 to 20 nats at 64 and 128 tokens.
+- Left-to-right is level with a random order at 64 and 128 tokens and 4 nats higher at 32; right-to-left is lower by
+  10 to 20 nats at 64 and 128 tokens.
 - Caveats that could change the size: the sequences are unconditional samples at 32 to 128 tokens from a checkpoint
   trained at 1,024; they were not saved, so it is not known whether they are degenerate; the mean entropy along the
   generating order (about 2.1 nats per token) is low. No real text was scored.
