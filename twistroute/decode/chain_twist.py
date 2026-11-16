@@ -30,14 +30,16 @@ import math
 import torch
 
 
-def fit_pair_kernel(den, classes, n, gen=None, smooth=1e-3):
+def fit_pair_kernel(den, classes, n, gen=None, smooth=1e-3, N=None):
     """K (A, A), row-stochastic: the class at position i + 1 given the class at position i, pooled over positions,
-    from n sequences drawn from the model (den.sample when the model has an exact sampler, else one token per step)."""
+    from n sequences drawn from the model (den.sample when the model has an exact sampler, else one token per step,
+    which costs N denoiser calls on a batch of n; N defaults to den.N)."""
     if hasattr(den, "sample"):
         x = den.sample(n, gen)
     else:
         from .native import native_sample
-        x = native_sample(den, classes, den.N, den.N, n, gen)
+        N = den.N if N is None else N
+        x = native_sample(den, classes, N, N, n, gen)
     y = classes.token_class[x]
     A = classes.A
     J = torch.bincount((y[:, :-1] * A + y[:, 1:]).reshape(-1), minlength=A * A).double().view(A, A) + smooth
