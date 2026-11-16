@@ -33,7 +33,8 @@ def provenance():
         import torch; tv = torch.__version__
     except Exception:
         tv = None
-    return dict(commit=git("rev-parse", "--short", "HEAD"), dirty=bool(git("status", "--porcelain", "--untracked-files=no")),
+    # outside a git checkout (a code tarball on a cluster) the submitting side passes the commit in PU_COMMIT
+    return dict(commit=git("rev-parse", "--short", "HEAD") or os.environ.get("PU_COMMIT"), dirty=bool(git("status", "--porcelain", "--untracked-files=no")),
                 torch=tv, platform=f"{platform.system()}-{platform.machine()}", started=time.strftime("%Y-%m-%d %H:%M"))
 
 
