@@ -1119,6 +1119,31 @@ pair conditionals.
   (same marginal matching) is the natural richer stand-in; not built.
 - Files: `results/parallel_unmasking/error_estimate_N64.json`, `error_estimate_N64_summary.json`.
 
+## 36h. Second-order chain twist: error against cost (2026-11-16) [verified, reference implementation only]
+
+`twist_order.py`: product, first-order and second-order chain stand-ins against the exact twist, in the pooled-table
+version (`ratio`: pairs K, triples K2 from 20,000 model samples, marginal-matched, no denoiser call) and with the
+model's own conditionals (`exact`). Three hidden chains x five automaton constraints at N = 64 (120 states per cell,
+four reveal fractions); `hidden_0.85` x forbidden / window / two_window at N = 256 (60 states). Not in the sampler.
+
+- **Sanity**: on the Markov chain both exact chains have zero error (5e-15 nats whole-state).
+- **Spread of the whole-state log-twist error** (nats, lower is better; what moves the weights), N = 64,
+  product | order 1 pooled | order 2 pooled | order 1 exact | order 2 exact:
+  counting 0.62 | 0.14 | 0.10 | 0.22 | 0.10; dyck 0.80 | 0.23 | 0.14 | 0.32 | 0.15; forbidden 0.65 | 0.39 | 0.17 | 0.47 | 0.19;
+  window 0.69 | 0.16 | 0.10 | 0.22 | 0.09; two_window 0.41 | 0.13 | 0.11 | 0.09 | 0.02.
+  At N = 256: forbidden 1.42 | 0.96 | 0.37 | 1.12 | 0.48; window 1.65 | 0.45 | 0.15 | 0.61 | 0.24; two_window 1.29 | 0.33 | 0.14 | 0.42 | 0.16.
+  Order 2 over order 1 (pooled): 1.1-2.3 times lower at 64, 2.4-3.0 times lower at 256.
+- **Mean KL per position** (nats x 1000; the error a proposal built on the stand-in would add at a reveal; costlier half
+  of positions), N = 64, same order of columns: counting 6.0 | 6.6 | 4.7 | 1.6 | 0.5; dyck 24.5 | 8.6 | 3.7 | 6.5 | 1.9;
+  forbidden 53.7 | 12.1 | 5.4 | 6.2 | 2.6; window 36.2 | 8.1 | 4.4 | 6.4 | 2.0; two_window 59.0 | 10.5 | 3.8 | 9.9 | 1.5.
+  Order 1 pooled cuts the product's by 2.8-5.6 times except on counting (no gain); order 2 pooled cuts a further
+  1.4-2.7 times; exact conditionals reach 12-39 times below the product at order 2.
+- The median position gains less than the mean (per-position root-KL relative to the product, median: order 1 pooled
+  0.58-1.02, order 2 pooled 0.39-0.85): the chains remove the largest errors first.
+- **Cost** (ms per state, one CPU thread, three classes): N = 64: product 0.04, order 1 0.09, order 2 0.19;
+  N = 256: 0.14, 0.43, 0.77. Order 2 costs about twice order 1 here; in general a factor of the class count.
+- Files: `results/parallel_unmasking/twist_order_N64.json`, `twist_order_N256.json`, `twist_order_summary.json`.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
