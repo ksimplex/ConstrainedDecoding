@@ -1327,9 +1327,13 @@ columns are in denoiser calls at the same batch size.
   positions. Component times predict 38 + 8 x 32 = 294 ms at N = 128 on the whole-sequence constraint against 320 to
   324 measured. This is a prediction, not a stage measurement.
 - This run did not record how many positions a parallel reveal admits, so its cost per revealed position is unknown.
-- Rerun with per-stage timers, a no-pull-in variant and the admitted count (commit `7395e53`): the second submission
-  hung in the GPU check on node4204 and was cancelled at its 45-minute limit without running any timing code; the
-  third (job `0ef5c662`) is in the queue.
+- The run used rate 1/N for the parallel reveal, which is a whole-sequence budget of B = 1, looser than the studies'
+  0.03 and 0.3.
+- Rerun with per-stage timers, a no-pull-in variant and the admitted count (commit `7395e53`): the second and third
+  submissions (nodes node4204 and node3403) hung at Python start-up or `import torch` before any timing code ran and
+  were cancelled at their time limits; a 5-minute `timeout` did not end the third. Cause not established. A fresh
+  Python from the same environment started in 2.7 s on the login node afterwards (user's check). A fourth submission
+  with staged start-up diagnostics (job `48847543`) is in the queue. Section 36l has the stage split on CPU.
 
 ## 36k. A resampling pressure case: 256 positions, whole-sequence constraints (cluster job `a16667c2`, 2026-11-16) [verified; small samples]
 
@@ -1401,13 +1405,63 @@ Against the criterion:
   off because a budgeted schedule is not exact.
 - Limits: one chain, 12 runs at 64 particles, and no arm with the chain twist in the proposal.
 
+## 36l. Where the schedule's own time goes over a whole decode (local CPU, 2026-11-16) [verified on oracle cells; GPU split pending]
+
+`experiments/parallel_unmasking/reveal_stages.py`; file `results/parallel_unmasking/reveal_stages_local.json`.
+`hidden_0.85`, 16 particles, pilot 2,000, constraint-first order, the study's arm settings (B is the whole-sequence
+budget). Each policy is run from the fully masked state to completion and every reveal is timed by stage. The denoiser
+is not timed: these are the schedule's own costs. Times are milliseconds per decode of the batch on 2 CPU threads,
+lower is better. `steps` counts reveal steps until the last particle finishes, so it is a little above the per-particle
+call counts of the studies.
+
+| N | constraint | arm | steps | positions per step | pull-in passes per step | context | scoring | admission loop | pull-in | total | per step | pull-in share |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 64 | window | sequential lex | 64.0 | 1.00 | 0.00 | 115 | 146 | 17 | 0 | 279 | 4.4 | 0% |
+| 64 | window | lex B=0.03 | 13.0 | 5.04 | 0.00 | 20 | 29 | 63 | 0 | 112 | 8.6 | 0% |
+| 64 | window | lex B=0.03 +pull | 13.0 | 5.04 | 6.05 | 22 | 30 | 77 | 114 | 244 | 18.7 | 47% |
+| 64 | window | lex B=0.3 | 8.3 | 7.82 | 0.00 | 14 | 19 | 43 | 0 | 76 | 9.1 | 0% |
+| 64 | window | lex B=0.3 +pull | 8.3 | 7.82 | 5.68 | 14 | 19 | 50 | 73 | 156 | 18.8 | 47% |
+| 64 | counting | sequential lex | 64.0 | 1.00 | 0.00 | 642 | 149 | 18 | 0 | 808 | 12.6 | 0% |
+| 64 | counting | lex B=0.03 | 14.7 | 4.48 | 0.00 | 143 | 34 | 71 | 0 | 248 | 16.9 | 0% |
+| 64 | counting | lex B=0.03 +pull | 14.7 | 4.48 | 6.57 | 145 | 34 | 85 | 857 | 1121 | 76.5 | 76% |
+| 64 | counting | lex B=0.3 | 9.7 | 6.80 | 0.00 | 94 | 23 | 49 | 0 | 166 | 17.2 | 0% |
+| 64 | counting | lex B=0.3 +pull | 9.7 | 6.80 | 6.48 | 97 | 23 | 59 | 583 | 761 | 78.8 | 77% |
+| 64 | forbidden | sequential lex | 64.0 | 1.00 | 0.00 | 560 | 149 | 17 | 0 | 725 | 11.3 | 0% |
+| 64 | forbidden | lex B=0.03 | 24.7 | 2.64 | 0.00 | 217 | 58 | 99 | 0 | 374 | 15.2 | 0% |
+| 64 | forbidden | lex B=0.03 +pull | 24.7 | 2.64 | 5.73 | 222 | 60 | 127 | 1207 | 1616 | 65.5 | 75% |
+| 64 | forbidden | lex B=0.3 | 14.0 | 4.66 | 0.00 | 119 | 32 | 61 | 0 | 213 | 15.2 | 0% |
+| 64 | forbidden | lex B=0.3 +pull | 14.0 | 4.66 | 5.90 | 121 | 33 | 75 | 707 | 935 | 66.8 | 76% |
+| 256 | window | sequential lex | 256.0 | 1.00 | 0.00 | 1243 | 2217 | 168 | 0 | 3628 | 14.2 | 0% |
+| 256 | window | lex B=0.03 | 18.5 | 14.04 | 0.00 | 72 | 137 | 300 | 0 | 509 | 27.5 | 0% |
+| 256 | window | lex B=0.03 +pull | 18.5 | 14.04 | 5.73 | 72 | 136 | 333 | 345 | 885 | 47.8 | 39% |
+| 256 | counting | sequential lex | 256.0 | 1.00 | 0.00 | 20554 | 1975 | 144 | 0 | 22674 | 88.6 | 0% |
+| 256 | counting | lex B=0.03 | 19.0 | 13.60 | 0.00 | 1586 | 156 | 353 | 0 | 2095 | 110.2 | 0% |
+| 256 | counting | lex B=0.03 +pull | 19.0 | 13.60 | 7.13 | 1464 | 143 | 372 | 6491 | 8470 | 445.8 | 77% |
+
+- A sequential step is one constrained-marginals pass (context) plus one kernel sum (scoring).
+- A parallel step without pull-in costs 1.2 to 2.1 times a sequential step; the extra is the admission loop, which
+  visits every position. Over a whole decode its schedule time is 1.9 to 10.8 times lower than sequential, because
+  there are fewer steps.
+- The pull-in runs 5.7 to 7.1 extra constrained-marginals passes per step and takes 39 to 77% of the schedule's
+  time. With it, a decode's schedule time is 1.7 to 4.6 times that without it.
+- On these constraints (window, counting, forbidden) the pull-in admitted nothing: in all 8 pairs the number of steps
+  and the positions per step are identical with and without it. The pull-in was built for constraints with forced
+  partners (the block copy, section 31), where it lowered the spread from 0.40 to 0.12. Here there are none to find.
+- With the pull-in, the parallel schedule's own time exceeds the sequential schedule's at 64 positions on counting and
+  forbidden, and is below it at 256.
+- This explains the GPU measurement of section 36j in kind (the parallel reveal is several times dearer per step and
+  the candidate was the pull-in). The GPU run used a looser budget (rate 1/N, i.e. B = 1) and a small pilot, so its
+  ratios are not the same quantity; the per-stage GPU rerun (job `48847543`) is pending.
+- Not done: a pull-in that skips constraints or steps with nothing to pull. That is a design choice for the selection
+  rule.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
 of section 34: the studies are registered functions behind one command line, not separate scripts, so the existing
 job scripts and arm names keep working.
 
-0. Timing on the real model (section 36j): read the per-stage split of the parallel reveal when job `0ef5c662`
+0. Timing on the real model (section 36j): read the per-stage split of the parallel reveal when job `48847543`
    returns, and decide whether the pull-in needs a cheaper form. The order study (section 36i) is input to the
    selection rule; the user has thoughts on that rule and asked to be flagged before the work starts.
 1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the

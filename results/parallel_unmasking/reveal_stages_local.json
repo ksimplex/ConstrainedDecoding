@@ -1,0 +1,355 @@
+{
+ "note": "Schedule costs over a whole decode, local CPU (2 threads), hidden_0.85, 16 particles, pilot 2000; denoiser not timed. Times are ms per decode of the batch, averaged over repetitions (3 at N=64, 2 at N=256). steps = reveal steps until the last particle finishes.",
+ "runs": [
+  {
+   "args": {
+    "N": [
+     64
+    ],
+    "model": "hidden_0.85",
+    "constraints": [
+     "window",
+     "counting",
+     "forbidden"
+    ],
+    "P": 16,
+    "pilot": 2000,
+    "reps": 3,
+    "B": [
+     0.03,
+     0.3
+    ],
+    "out": "/tmp/reveal_stages_N64.json"
+   },
+   "provenance": {
+    "commit": "5875ca3",
+    "dirty": false,
+    "torch": "2.14.1",
+    "platform": "Darwin-arm64",
+    "started": "2026-11-16 04:38"
+   }
+  },
+  {
+   "args": {
+    "N": [
+     256
+    ],
+    "model": "hidden_0.85",
+    "constraints": [
+     "window",
+     "counting"
+    ],
+    "P": 16,
+    "pilot": 2000,
+    "reps": 2,
+    "B": [
+     0.03
+    ],
+    "out": "/tmp/reveal_stages_N256.json"
+   },
+   "provenance": {
+    "commit": "5875ca3",
+    "dirty": false,
+    "torch": "2.14.1",
+    "platform": "Darwin-arm64",
+    "started": "2026-11-16 04:39"
+   }
+  }
+ ],
+ "rows": [
+  {
+   "N": 64,
+   "constraint": "window",
+   "arm": "sequential lex",
+   "steps": 64.0,
+   "admitted_per_step": 1.0,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 115.46421019981305,
+   "score_ms": 146.34598578171185,
+   "admit_other_ms": 17.093237411851685,
+   "pull_ms": 0.0,
+   "schedule_ms": 278.9034333933766,
+   "schedule_ms_per_step": 4.357866146771509
+  },
+  {
+   "N": 64,
+   "constraint": "window",
+   "arm": "lex B=0.03",
+   "steps": 13.0,
+   "admitted_per_step": 5.035643060643061,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 19.91538901347667,
+   "score_ms": 29.434611399968464,
+   "admit_other_ms": 62.96005515226474,
+   "pull_ms": 0.0,
+   "schedule_ms": 112.31005556570987,
+   "schedule_ms_per_step": 8.639235043516145
+  },
+  {
+   "N": 64,
+   "constraint": "window",
+   "arm": "lex B=0.03 +pull",
+   "steps": 13.0,
+   "admitted_per_step": 5.035643060643061,
+   "pull_passes_per_step": 6.051282051282051,
+   "context_ms": 21.937444612073403,
+   "score_ms": 30.195346761805315,
+   "admit_other_ms": 77.40213772437225,
+   "pull_ms": 113.98891794184844,
+   "schedule_ms": 243.5238470400994,
+   "schedule_ms_per_step": 18.732603618469184
+  },
+  {
+   "N": 64,
+   "constraint": "window",
+   "arm": "lex B=0.3",
+   "steps": 8.333333333333334,
+   "admitted_per_step": 7.82,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 13.548041383425394,
+   "score_ms": 19.4481946916009,
+   "admit_other_ms": 42.951569271584354,
+   "pull_ms": 0.0,
+   "schedule_ms": 75.94780534661065,
+   "schedule_ms_per_step": 9.113736641593277
+  },
+  {
+   "N": 64,
+   "constraint": "window",
+   "arm": "lex B=0.3 +pull",
+   "steps": 8.333333333333334,
+   "admitted_per_step": 7.82,
+   "pull_passes_per_step": 5.68,
+   "context_ms": 13.74515266312907,
+   "score_ms": 19.372889267591137,
+   "admit_other_ms": 50.19448748013625,
+   "pull_ms": 73.08341489018251,
+   "schedule_ms": 156.39594430103898,
+   "schedule_ms_per_step": 18.767513316124678
+  },
+  {
+   "N": 64,
+   "constraint": "counting",
+   "arm": "sequential lex",
+   "steps": 64.0,
+   "admitted_per_step": 1.0,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 641.8692244915292,
+   "score_ms": 148.90224719420075,
+   "admit_other_ms": 17.62241517038395,
+   "pull_ms": 0.0,
+   "schedule_ms": 808.3938868561139,
+   "schedule_ms_per_step": 12.63115448212678
+  },
+  {
+   "N": 64,
+   "constraint": "counting",
+   "arm": "lex B=0.03",
+   "steps": 14.666666666666666,
+   "admitted_per_step": 4.484832875457875,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 142.85379101056606,
+   "score_ms": 34.10200033492098,
+   "admit_other_ms": 70.82240364979953,
+   "pull_ms": 0.0,
+   "schedule_ms": 247.77819499528655,
+   "schedule_ms_per_step": 16.89396784058772
+  },
+  {
+   "N": 64,
+   "constraint": "counting",
+   "arm": "lex B=0.03 +pull",
+   "steps": 14.666666666666666,
+   "admitted_per_step": 4.484832875457875,
+   "pull_passes_per_step": 6.568181818181818,
+   "context_ms": 144.90659694032124,
+   "score_ms": 34.28108411996315,
+   "admit_other_ms": 84.79427713124703,
+   "pull_ms": 857.4390562328821,
+   "schedule_ms": 1121.4210144244134,
+   "schedule_ms_per_step": 76.46052371075547
+  },
+  {
+   "N": 64,
+   "constraint": "counting",
+   "arm": "lex B=0.3",
+   "steps": 9.666666666666666,
+   "admitted_per_step": 6.79840848806366,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 94.17105567020674,
+   "score_ms": 22.588123722622793,
+   "admit_other_ms": 49.30748728414377,
+   "pull_ms": 0.0,
+   "schedule_ms": 166.0666666769733,
+   "schedule_ms_per_step": 17.179310345893793
+  },
+  {
+   "N": 64,
+   "constraint": "counting",
+   "arm": "lex B=0.3 +pull",
+   "steps": 9.666666666666666,
+   "admitted_per_step": 6.79840848806366,
+   "pull_passes_per_step": 6.482758620689655,
+   "context_ms": 96.57133261983593,
+   "score_ms": 22.656542132608593,
+   "admit_other_ms": 58.94088535569608,
+   "pull_ms": 583.3234892925248,
+   "schedule_ms": 761.4922494006654,
+   "schedule_ms_per_step": 78.77506028282745
+  },
+  {
+   "N": 64,
+   "constraint": "forbidden",
+   "arm": "sequential lex",
+   "steps": 64.0,
+   "admitted_per_step": 1.0,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 559.770404555214,
+   "score_ms": 148.79513958779475,
+   "admit_other_ms": 16.856387490406632,
+   "pull_ms": 0.0,
+   "schedule_ms": 725.4219316334153,
+   "schedule_ms_per_step": 11.334717681772114
+  },
+  {
+   "N": 64,
+   "constraint": "forbidden",
+   "arm": "lex B=0.03",
+   "steps": 24.666666666666668,
+   "admitted_per_step": 2.6411599099099097,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 217.347207517984,
+   "score_ms": 57.80568074745437,
+   "admit_other_ms": 99.232985987328,
+   "pull_ms": 0.0,
+   "schedule_ms": 374.38587425276637,
+   "schedule_ms_per_step": 15.177805712949988
+  },
+  {
+   "N": 64,
+   "constraint": "forbidden",
+   "arm": "lex B=0.03 +pull",
+   "steps": 24.666666666666668,
+   "admitted_per_step": 2.6411599099099097,
+   "pull_passes_per_step": 5.72972972972973,
+   "context_ms": 221.94336083096763,
+   "score_ms": 60.01719428847233,
+   "admit_other_ms": 127.11040722206235,
+   "pull_ms": 1206.9304532293852,
+   "schedule_ms": 1616.0014155708875,
+   "schedule_ms_per_step": 65.51357090152246
+  },
+  {
+   "N": 64,
+   "constraint": "forbidden",
+   "arm": "lex B=0.3",
+   "steps": 14.0,
+   "admitted_per_step": 4.66226234083377,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 119.23841491807252,
+   "score_ms": 32.2251683101058,
+   "admit_other_ms": 61.374763414884605,
+   "pull_ms": 0.0,
+   "schedule_ms": 212.83834664306292,
+   "schedule_ms_per_step": 15.202739045933066
+  },
+  {
+   "N": 64,
+   "constraint": "forbidden",
+   "arm": "lex B=0.3 +pull",
+   "steps": 14.0,
+   "admitted_per_step": 4.66226234083377,
+   "pull_passes_per_step": 5.904761904761905,
+   "context_ms": 120.75934745371342,
+   "score_ms": 32.59686004215231,
+   "admit_other_ms": 74.92771248022716,
+   "pull_ms": 706.5983997890726,
+   "schedule_ms": 934.8823197651654,
+   "schedule_ms_per_step": 66.77730855465468
+  },
+  {
+   "N": 256,
+   "constraint": "window",
+   "arm": "sequential lex",
+   "steps": 256.0,
+   "admitted_per_step": 1.0,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 1243.24462673394,
+   "score_ms": 2217.0513158198446,
+   "admit_other_ms": 167.55929647479206,
+   "pull_ms": 0.0,
+   "schedule_ms": 3627.8552390285768,
+   "schedule_ms_per_step": 14.171309527455378
+  },
+  {
+   "N": 256,
+   "constraint": "window",
+   "arm": "lex B=0.03",
+   "steps": 18.5,
+   "admitted_per_step": 14.041361003861004,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 72.27162615163252,
+   "score_ms": 136.71102025546134,
+   "admit_other_ms": 299.83906185952947,
+   "pull_ms": 0.0,
+   "schedule_ms": 508.8217082666233,
+   "schedule_ms_per_step": 27.50387612252018
+  },
+  {
+   "N": 256,
+   "constraint": "window",
+   "arm": "lex B=0.03 +pull",
+   "steps": 18.5,
+   "admitted_per_step": 14.041361003861004,
+   "pull_passes_per_step": 5.72972972972973,
+   "context_ms": 71.9500221312046,
+   "score_ms": 135.80054155318066,
+   "admit_other_ms": 332.56533392705023,
+   "pull_ms": 344.770269584842,
+   "schedule_ms": 885.0861671962775,
+   "schedule_ms_per_step": 47.84249552412311
+  },
+  {
+   "N": 256,
+   "constraint": "counting",
+   "arm": "sequential lex",
+   "steps": 256.0,
+   "admitted_per_step": 1.0,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 20554.198228695896,
+   "score_ms": 1975.0688737258315,
+   "admit_other_ms": 144.4017783505842,
+   "pull_ms": 0.0,
+   "schedule_ms": 22673.66888077231,
+   "schedule_ms_per_step": 88.56901906551684
+  },
+  {
+   "N": 256,
+   "constraint": "counting",
+   "arm": "lex B=0.03",
+   "steps": 19.0,
+   "admitted_per_step": 13.60467273954116,
+   "pull_passes_per_step": 0.0,
+   "context_ms": 1586.1143555375747,
+   "score_ms": 155.7527290424332,
+   "admit_other_ms": 352.7021669433452,
+   "pull_ms": 0.0,
+   "schedule_ms": 2094.569251523353,
+   "schedule_ms_per_step": 110.24048692228175
+  },
+  {
+   "N": 256,
+   "constraint": "counting",
+   "arm": "lex B=0.03 +pull",
+   "steps": 19.0,
+   "admitted_per_step": 13.60467273954116,
+   "pull_passes_per_step": 7.131578947368421,
+   "context_ms": 1463.5823759599589,
+   "score_ms": 142.61406112927943,
+   "admit_other_ms": 372.29050282621756,
+   "pull_ms": 6491.112039133441,
+   "schedule_ms": 8469.598979048897,
+   "schedule_ms_per_step": 445.768367318363
+  }
+ ]
+}
