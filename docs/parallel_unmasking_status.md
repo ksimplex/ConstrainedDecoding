@@ -1331,6 +1331,76 @@ columns are in denoiser calls at the same batch size.
   hung in the GPU check on node4204 and was cancelled at its 45-minute limit without running any timing code; the
   third (job `0ef5c662`) is in the queue.
 
+## 36k. A resampling pressure case: 256 positions, whole-sequence constraints (cluster job `a16667c2`, 2026-11-16) [verified; small samples]
+
+Setting: `hidden_0.85`, 256 positions, forbidden, counting and Dyck; the native random order one token per step
+(exact, 256 calls) and constraint-first under B = 0.03 with pull-in (15 to 26 calls); product against chain twist;
+resampling off, defensive, plain. 50 runs of 16 particles and 12 runs of 64 particles. Code commit `5c12f04`.
+Files: `results/parallel_unmasking/pressure_K16.json`, `pressure_K64.json`, `pressure_N256_summary.json`; logged.
+Exact log p(C): forbidden -42.4, counting -3.98, Dyck -7.82.
+
+Criterion stated before the run: poor accuracy without resampling under both twists, unreliable resampling under the
+product twist, and a clear gain from resampling under the chain twist.
+
+**Which statistic.** The usual spread (sd/mean of the estimate of p(C)) is not usable on forbidden: 19 of its 24
+arms are flagged heavy-tailed (21 of 72 overall), and the two resampling-off arms, which are the same sampler under
+different seeds, give spreads of 2.53 and 0.88 on one schedule. The table therefore reports the root-mean-square over
+runs of log(estimate / p(C)) in nats, lower is better, with the mean ± its standard error in brackets (0 is ideal; an
+unbiased estimator has mean at most 0). On this statistic the two replicate off arms agree.
+
+16 particles, 50 runs:
+
+| constraint | schedule | calls | twist | off | defensive | plain | resampling events (defensive) | ESS, off |
+|---|---|---|---|---|---|---|---|---|
+| forbidden | fixed 1/step | 256 | product | 3.32 (-2.29 ± 0.34) | 2.18 (-1.31 ± 0.25) | 2.68 (-1.78 ± 0.29) | 20.8 | 0.064 |
+| forbidden | fixed 1/step | 256 | chain | 3.59 (-2.45 ± 0.37) | 1.39 (-0.71 ± 0.17) | 1.98 (-1.31 ± 0.21) | 17.4 | 0.065 |
+| forbidden | lex B=0.03 +pull | 26 | product | 1.39 (-0.85 ± 0.16) | 1.20 (-0.79 ± 0.13) | 1.34 (-1.00 ± 0.13) | 6.5 | 0.095 |
+| forbidden | lex B=0.03 +pull | 26 | chain | 1.35 (-1.00 ± 0.13) | 0.98 (-0.45 ± 0.12) | 1.03 (-0.41 ± 0.14) | 5.5 | 0.099 |
+| counting | fixed 1/step | 256 | product | 0.16 (-0.00 ± 0.02) | 0.15 (-0.01 ± 0.02) | 0.15 (+0.01 ± 0.02) | 0.1 | 0.640 |
+| counting | fixed 1/step | 256 | chain | 0.14 (-0.04 ± 0.02) | 0.14 (+0.01 ± 0.02) | 0.15 (-0.01 ± 0.02) | 0.0 | 0.759 |
+| counting | lex B=0.03 +pull | 17 | product | 0.17 (-0.03 ± 0.02) | 0.19 (+0.02 ± 0.03) | 0.17 (+0.02 ± 0.02) | 0.2 | 0.583 |
+| counting | lex B=0.03 +pull | 17 | chain | 0.17 (-0.03 ± 0.02) | 0.20 (-0.01 ± 0.03) | 0.21 (-0.01 ± 0.03) | 0.1 | 0.652 |
+| dyck | fixed 1/step | 256 | product | 0.48 (-0.11 ± 0.07) | 0.68 (-0.16 ± 0.09) | 0.88 (-0.57 ± 0.09) | 6.4 | 0.174 |
+| dyck | fixed 1/step | 256 | chain | 0.44 (-0.09 ± 0.06) | 0.39 (-0.02 ± 0.06) | 0.42 (-0.06 ± 0.06) | 2.3 | 0.292 |
+| dyck | lex B=0.03 +pull | 16 | product | 0.39 (-0.03 ± 0.06) | 0.38 (-0.18 ± 0.05) | 0.59 (-0.28 ± 0.07) | 2.7 | 0.297 |
+| dyck | lex B=0.03 +pull | 16 | chain | 0.37 (-0.07 ± 0.05) | 0.39 (-0.09 ± 0.05) | 0.33 (-0.08 ± 0.05) | 1.2 | 0.348 |
+
+64 particles, 12 runs:
+
+| constraint | schedule | calls | twist | off | defensive | plain | resampling events (defensive) | ESS, off |
+|---|---|---|---|---|---|---|---|---|
+| forbidden | fixed 1/step | 256 | product | 2.13 (-1.45 ± 0.47) | 1.35 (-0.93 ± 0.29) | 1.00 (-0.64 ± 0.23) | 24.8 | 0.019 |
+| forbidden | fixed 1/step | 256 | chain | 2.38 (-0.69 ± 0.69) | 0.66 (-0.13 ± 0.20) | 1.05 (-0.58 ± 0.26) | 20.2 | 0.018 |
+| forbidden | lex B=0.03 +pull | 26 | product | 0.84 (-0.38 ± 0.22) | 0.60 (-0.25 ± 0.16) | 0.79 (-0.51 ± 0.18) | 7.9 | 0.037 |
+| forbidden | lex B=0.03 +pull | 26 | chain | 0.94 (-0.32 ± 0.27) | 0.37 (-0.08 ± 0.11) | 0.55 (-0.35 ± 0.13) | 6.4 | 0.040 |
+| counting | fixed 1/step | 256 | product | 0.07 (-0.03 ± 0.02) | 0.10 (+0.00 ± 0.03) | 0.07 (+0.02 ± 0.02) | 0.0 | 0.657 |
+| counting | fixed 1/step | 256 | chain | 0.08 (+0.02 ± 0.02) | 0.08 (+0.01 ± 0.02) | 0.07 (-0.02 ± 0.02) | 0.0 | 0.690 |
+| counting | lex B=0.03 +pull | 17 | product | 0.08 (+0.02 ± 0.02) | 0.08 (-0.02 ± 0.02) | 0.14 (-0.08 ± 0.03) | 0.0 | 0.602 |
+| counting | lex B=0.03 +pull | 17 | chain | 0.13 (+0.03 ± 0.04) | 0.10 (+0.00 ± 0.03) | 0.11 (-0.01 ± 0.03) | 0.0 | 0.595 |
+| dyck | fixed 1/step | 256 | product | 0.21 (-0.00 ± 0.06) | 0.42 (-0.22 ± 0.11) | 0.95 (+0.26 ± 0.28) | 7.7 | 0.171 |
+| dyck | fixed 1/step | 256 | chain | 0.18 (+0.01 ± 0.06) | 0.23 (+0.07 ± 0.07) | 0.14 (+0.03 ± 0.04) | 2.8 | 0.267 |
+| dyck | lex B=0.03 +pull | 16 | product | 0.20 (-0.11 ± 0.05) | 0.23 (-0.09 ± 0.06) | 0.26 (-0.04 ± 0.08) | 3.6 | 0.298 |
+| dyck | lex B=0.03 +pull | 16 | chain | 0.16 (-0.02 ± 0.05) | 0.18 (+0.01 ± 0.06) | 0.23 (-0.03 ± 0.07) | 1.3 | 0.333 |
+
+Against the criterion:
+- Pressure exists on forbidden only. Without resampling its effective sample size is 2 to 6% and the log error is
+  2.1 to 3.6 nats at 256 calls. Counting is not a pressure case at this length (resampling almost never fires) and
+  Dyck is mild (0.18 to 0.48 nats).
+- Forbidden, one token per step: chain twist with defensive resampling has the lowest log error at both particle
+  counts, 1.39 against 3.32 and 3.59 without resampling (16 particles) and 0.66 against 2.13 and 2.38 (64 particles).
+  The product twist also gains there (2.18 and 1.35 with defensive resampling), so the chain's margin over the product
+  is 1.6 to 2.0 times with defensive resampling. With plain resampling the two twists are level at 64 particles
+  (1.05 and 1.00).
+- Dyck: resampling under the product twist is harmful (0.68 and 0.88 against 0.44 to 0.48 at 16 particles; 0.42 and
+  0.95 against 0.18 to 0.21 at 64). Under the chain twist it is neutral (0.39 and 0.42; 0.23 and 0.14).
+- So the criterion is met in part: a pressure case exists, chain-twist resampling gives a 2.4 to 3.6-fold gain in it,
+  and product-twist resampling is unsafe on Dyck. It is not met in the stronger sense that only the chain twist
+  gains: on forbidden the product twist gains as well.
+- The constraint-first parallel schedule at 26 calls has a lower log error on forbidden than the random order at 256
+  calls even without resampling (1.35 to 1.39 against 3.32 to 3.59 at 16 particles). Its reference p(C) is slightly
+  off because a budgeted schedule is not exact.
+- Limits: one chain, 12 runs at 64 particles, and no arm with the chain twist in the proposal.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
