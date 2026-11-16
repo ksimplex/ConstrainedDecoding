@@ -100,6 +100,11 @@ def run_cell(job):
             row[f"bound_holds_{tag}"] = float(np.mean(np.abs(np.sqrt(e) - np.sqrt(h)) <= 1.1 * np.sqrt(c) + 1e-6))
             big = e > np.quantile(e, 0.5)
             row[f"ratio_est_over_eps_median_{tag}"] = float(np.median(h[big] / e[big]))
+            row[f"under_10x_{tag}"] = float(np.mean(h[big] < e[big] / 10))      # share underestimated more than tenfold
+            row[f"under_100x_{tag}"] = float(np.mean(h[big] < e[big] / 100))
+            row[f"over_10x_{tag}"] = float(np.mean(h[big] > e[big] * 10))
+            top = e > np.quantile(e, 0.9)                                    # the costliest tenth of positions:
+            row[f"top_decile_flagged_{tag}"] = float(np.mean(h[top] > np.median(h)))    # does the estimate rank them above its median?
             row[f"chain_error_over_product_error_{tag}"] = float(np.median(np.sqrt(c[big] / e[big])))
         scores = dict(cheapest=-eps, estimate_ratio=-est_r, estimate_exact=-est_x, stake=D, separator=sep, entropy=-ent,
                       random=torch.rand(eps.shape, generator=g).double())
