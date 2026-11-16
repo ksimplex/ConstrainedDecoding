@@ -12,9 +12,17 @@ position i is revealed as class a.
               log twist, summed over j before the variance is taken (keeps covariances between the j)
     lookahead KL(q_i || p_i(a) Z(successor) / norm): the product twist re-evaluated at the successor state
     chain     KL(q_i || chain twist's constrained marginal): the earlier estimate (section 36g), for reference
-Each of the first three in two versions: `exact`, with m_j(. | a) from the model itself (one denoiser call per
-position and class: tests the derivation), and `kernel`, with m_j(. | a) proportional to m_j times the model's
-unconditional pair ratio at that distance (no denoiser call; ignores the screening by revealed tokens).
+Each of the first three in versions: `exact`, with m_j(. | a) from the model itself (one denoiser call per
+position and class: tests the derivation); `kernel`, with m_j(. | a) proportional to m_j times the model's
+unconditional pair ratio at that distance (no denoiser call; ignores the screening by revealed tokens); `screen`, the
+same with the log ratio scaled by sqrt(kernel given what is revealed in between / unscreened kernel), from the pilot.
+    pairc, tiltc   the same as pair and tilt with rho_j taken after position i is fixed at a (the constrained marginal
+              at j given x_i = a, over m_j): what the constraint asks of j once i is known. One route pass per (i, a).
+    stake     D_i = KL(q_i || p_i): how far the constraint moves position i (a ranking, not a size)
+    self_oracle    NOT an estimator: the cost if the exact tilt at i were the product twist's tilt scaled by one factor
+              c per state (the median over the state's positions of the fitted slope of the true log tilt on the
+              product twist's). Measures how much of the cost is a common over- or under-reaction of the twist.
+    self_plus_pairc   self_oracle + pairc_exact
 
 States are drawn from the exact constrained law and revealed at random at several fractions; every masked position
 with a finite true cost is scored.
@@ -33,7 +41,8 @@ from pulib.orders import kl, exact_conditionals                                 
 from pulib.summary import provenance                                                               # noqa: E402
 
 FRACS = (0.1, 0.25, 0.5, 0.75)
-EST = ("pair_exact", "tilt_exact", "lookahead_exact", "pair_kernel", "tilt_kernel", "lookahead_kernel", "chain")
+EST = ("pair_exact", "tilt_exact", "lookahead_exact", "pairc_exact", "tiltc_exact", "pair_kernel", "tilt_kernel", "lookahead_kernel",
+       "pair_screen", "pairc_screen", "tiltc_screen", "lookahead_screen", "chain", "stake", "self_oracle", "self_plus_pairc")
 
 
 def pair_ratios(den):
@@ -60,7 +69,8 @@ def run_cell(job):
     den = make_model(mname, N, n_symbols(cname)); S = den.S
     cl, route, truth = make_constraint(cname, den, N)
     cell = Cell(mname, cname, N, dict(a, nrun=1, pilot_small=0), den, cl, route, truth)
-    twist = cell.chain_twist()
+    twist = cell.chain_twist(); kern = cell.kernel("graded")
+    ku = kern.table[:, 0].clamp_min(1e-300)
     ref = te.Twists(den, truth.wdfa, truth.active)
     R = pair_ratios(den)
     rng = np.random.default_rng(cell.seed("pair_cost")); g = torch.Generator().manual_seed(cell.seed("pair_cost"))
@@ -91,22 +101,57 @@ def run_cell(job):
         est = {}
         Rk = R[ii, :, aa, :]                                                            # (V, N, S): ratio for (i = a, j = .)
         mk = m[bb] * Rk; mk = mk / mk.sum(-1, keepdim=True).clamp_min(1e-300)
-        for tag, mv in (("exact", torch.exp(den.log_cond(xv))), ("kernel", mk)):
-            L = (rho[bb] * mv).sum(-1)                                                  # E[rho_j | x_i = a] (V, N)
-            L = torch.where(others, L, torch.ones_like(L)).view(P, S, N)
-            mean = (qi[:, :, None] * L).sum(1, keepdim=True)
-            est["pair_" + tag] = 0.5 * (qi[:, :, None] * (L - mean) ** 2).sum(1).sum(-1)
-            D = (L - 1.0).sum(-1)                                                       # (P, S)
-            lt = torch.log(qi.clamp_min(1e-300)) + D; lt = torch.where(qi > 0, lt, torch.full_like(lt, -float("inf")))
-            est["tilt_" + tag] = kl(qi, torch.softmax(lt, -1))
+        Mscr = kern.matrix(masked)                                                      # (B, N, N) kernel given what is revealed in between
+        dd = (torch.arange(N)[None] - ii[:, None]).abs()                                # (V, N)
+        gam = torch.sqrt((Mscr[bb, ii] / ku[dd]).clamp(0.0, 1.0))                       # share of the log ratio that survives screening
+        ms = m[bb] * torch.exp(gam[..., None] * torch.log(Rk.clamp_min(1e-300))); ms = ms / ms.sum(-1, keepdim=True).clamp_min(1e-300)
+        mu_c = constrained_marginals(route, clamp_revealed(lw[bb], xv, yv, den.mask_id))  # constrained marginals with i fixed at a
+        rho_c = torch.where(m[bb] > 0, mu_c / m[bb].clamp_min(1e-300), torch.zeros_like(mu_c))
+        for tag, mv in (("exact", torch.exp(den.log_cond(xv))), ("kernel", mk), ("screen", ms)):
+            for rtag, rr in (("", rho[bb]), ("c", rho_c)):
+                if tag == "kernel" and rtag == "c":
+                    continue
+                L = (rr * mv).sum(-1)                                                   # E[rho_j | x_i = a] (V, N)
+                base = (rr * m[bb]).sum(-1)                                             # its value before the update (1 where the ratio is defined)
+                L = torch.where(others, L - base, torch.zeros_like(L)).view(P, S, N)    # change of the expected ratio
+                mean = (qi[:, :, None] * L).sum(1, keepdim=True)
+                est[f"pair{rtag}_{tag}"] = 0.5 * (qi[:, :, None] * (L - mean) ** 2).sum(1).sum(-1)
+                D = L.sum(-1)                                                           # (P, S)
+                lt = torch.log(qi.clamp_min(1e-300)) + D; lt = torch.where(qi > 0, lt, torch.full_like(lt, -float("inf")))
+                est[f"tilt{rtag}_{tag}"] = kl(qi, torch.softmax(lt, -1))
             lwv = clamp_revealed(torch.log(mv.clamp_min(1e-300)), xv, yv, den.mask_id)
             z = route.logZ(lwv).double().view(P, S)                                     # product twist at the successor
             la = lmi + torch.nan_to_num(z, nan=-float("inf"))
             est["lookahead_" + tag] = kl(qi, torch.softmax(la, -1))
+        est = {k: v for k, v in est.items() if k in EST}
         est["chain"] = kl(q, twist.marginals(lwc))[b, i]
+        est["stake"] = kl(q, m)[b, i]
         e = eps[b, i]; ok = torch.isfinite(e); free = ok & (ent[b, i] > 1e-6)
+        # is the cost a common over- or under-reaction of the twist? fit the true log tilt on the product twist's
+        mi_, pii = m[b, i], pi[b, i]
+        sup = (qi > 1e-12) & (pii > 1e-300) & (mi_ > 0)
+        t = torch.where(sup, torch.log(qi.clamp_min(1e-300)) - torch.log(mi_.clamp_min(1e-300)), torch.zeros_like(qi))
+        ts = torch.where(sup, torch.log(pii.clamp_min(1e-300)) - torch.log(mi_.clamp_min(1e-300)), torch.zeros_like(qi))
+        wq = torch.where(sup, qi, torch.zeros_like(qi)); wq = wq / wq.sum(-1, keepdim=True).clamp_min(1e-300)
+        tm, tsm = (wq * t).sum(-1, keepdim=True), (wq * ts).sum(-1, keepdim=True)
+        vt = (wq * (t - tm) ** 2).sum(-1)
+        slope = (wq * (t - tm) * (ts - tsm)).sum(-1) / vt.clamp_min(1e-300)             # c_i: 1 = the twist's tilt is right
+        good = free & (vt > 1e-8)
+        cs = torch.ones(len(x), dtype=torch.float64)
+        for st_ in range(len(x)):
+            sel_ = good & (b == st_)
+            if int(sel_.sum()) >= 3:
+                cs[st_] = slope[sel_].median()
+        lts = torch.log(mi_.clamp_min(1e-300)) + cs[b][:, None] * t
+        lts = torch.where(qi > 0, lts, torch.full_like(lts, -float("inf")))
+        est["self_oracle"] = kl(qi, torch.softmax(lts, -1))
+        est["self_plus_pairc"] = est["self_oracle"] + est["pairc_exact"]
         row = dict(model=mname, constraint=cname, N=N, frac=f, states=int(a["states"]), positions=int(ok.sum()), unforced=int(free.sum()),
                    mean_eps=float(e[ok].mean()), sum_eps_per_state=float(e[ok].sum() / len(x)))
+        row.update(slope_median=float(slope[good].median()), slope_q25=float(slope[good].quantile(0.25)), slope_q75=float(slope[good].quantile(0.75)),
+                   slope_state_median=float(cs.median()), slope_state_q25=float(cs.quantile(0.25)), slope_state_q75=float(cs.quantile(0.75)),
+                   slope_within_state_iqr=float(np.median([float(slope[good & (b == s_)].quantile(0.75) - slope[good & (b == s_)].quantile(0.25))
+                                                           for s_ in range(len(x)) if int((good & (b == s_)).sum()) >= 4] or [float("nan")])))
         en = e[free].numpy(); big = en > np.quantile(en, 0.5); top = en > np.quantile(en, 0.9)
         grp = dict(inside=dist[i] == 0, near=(dist[i] > 0) & (dist[i] <= 6), far=dist[i] > 6)
         for k in EST:

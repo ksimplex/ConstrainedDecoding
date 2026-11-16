@@ -1,0 +1,88 @@
+{
+ "args": {
+  "N": [
+   32,
+   64,
+   128
+  ],
+  "n": 32,
+  "orders": 18,
+  "chunk": 64,
+  "synthetic": false,
+  "oracle": false,
+  "seed": 0,
+  "out": "mdlm_order_consistency.json"
+ },
+ "provenance": {
+  "commit": "cc24eb5",
+  "dirty": false,
+  "torch": "2.5.1+cu124",
+  "platform": "Linux-x86_64",
+  "started": "2026-11-16 06:36"
+ },
+ "rows": [
+  {
+   "N": 32,
+   "sequences": 32,
+   "random_orders": 16,
+   "mean_neg_logp_per_token": 3.1572456662162542,
+   "sd_over_orders": 9.654019941738195,
+   "sd_over_orders_se": 0.962916804584666,
+   "sd_over_orders_per_token": 0.3016881231793186,
+   "gap_to_mixture": 13.31765831086052,
+   "gap_to_mixture_se": 1.4787135728702285,
+   "left_to_right_shift": 4.0541581277206,
+   "left_to_right_shift_se": 1.4348939096519244,
+   "right_to_left_shift": 1.3395686008101984,
+   "right_to_left_shift_se": 1.8460089162447455,
+   "own_order_shift": 38.146752890205846,
+   "own_order_shift_se": 4.100224781749285,
+   "max_abs_spread": 72.85915619507432,
+   "seconds": 4.3
+  },
+  {
+   "N": 64,
+   "sequences": 32,
+   "random_orders": 16,
+   "mean_neg_logp_per_token": 3.1630151522010497,
+   "sd_over_orders": 14.407012321234923,
+   "sd_over_orders_se": 1.4438304815774627,
+   "sd_over_orders_per_token": 0.22510956751929567,
+   "gap_to_mixture": 19.27773533159177,
+   "gap_to_mixture_se": 2.0313977886553465,
+   "left_to_right_shift": -0.1234695959561467,
+   "left_to_right_shift_se": 2.5572610018867308,
+   "right_to_left_shift": -10.413456309029408,
+   "right_to_left_shift_se": 3.085392967780177,
+   "own_order_shift": 66.97111530337398,
+   "own_order_shift_se": 6.796009234128127,
+   "max_abs_spread": 97.75166829756927,
+   "seconds": 9.7
+  },
+  {
+   "N": 128,
+   "sequences": 32,
+   "random_orders": 16,
+   "mean_neg_logp_per_token": 3.7362531098025062,
+   "sd_over_orders": 16.222776639824627,
+   "sd_over_orders_se": 1.2691325478317983,
+   "sd_over_orders_per_token": 0.1267404424986299,
+   "gap_to_mixture": 23.15405888592553,
+   "gap_to_mixture_se": 1.9151289995366354,
+   "left_to_right_shift": 0.6881375233133724,
+   "left_to_right_shift_se": 3.720992778455062,
+   "right_to_left_shift": -19.883948576917057,
+   "right_to_left_shift_se": 4.270710511979432,
+   "own_order_shift": 102.10345270261172,
+   "own_order_shift_se": 6.880048828694294,
+   "max_abs_spread": 102.52954002527895,
+   "seconds": 36.6
+  }
+ ],
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "gpu": "NVIDIA L40S"
+}

@@ -1736,6 +1736,135 @@ Median of the kernel-update pair estimate over the true cost, by fraction reveal
   that conditions on what lies between is needed before this can run without the model's exact update.
 - Open: on counting the ideal pick is about 30 times cheaper than a random one and no estimator finds it.
 
+**Two fixes and a diagnostic (later the same day; `results/parallel_unmasking/pair_cost2_N64.json`).** The constraint
+ratio at j is now also taken after position i is fixed at the candidate class ("conditioned ratio"; one route pass per
+position and class), and the kernel update is screened: the log pair ratio is scaled by
+sqrt(kernel given what is revealed in between / unscreened kernel), from the pilot kernel.
+
+Rank correlation with the true cost within a state:
+
+| constraint | pair, exact update | pair with conditioned ratio, exact update | pair with conditioned ratio, screened kernel | lookahead, exact update | chain twist |
+|---|---|---|---|---|---|
+| counting | 0.21 | 0.20 | 0.18 | 0.22 | 0.06 |
+| dyck | 0.42 | 0.43 | 0.40 | 0.37 | 0.46 |
+| forbidden | 0.83 | 0.95 | 0.90 | 0.94 | 0.80 |
+| window | 0.92 | 0.92 | 0.89 | 0.98 | 0.28 |
+| two_window | 0.86 | 0.86 | 0.81 | 0.93 | 0.27 |
+
+Median of estimate over true cost on the costlier half of positions:
+
+| constraint | pair, exact update | pair with conditioned ratio, exact update | pair with conditioned ratio, screened kernel | lookahead, exact update | chain twist |
+|---|---|---|---|---|---|
+| counting | 1.31 | 1.30 | 1.90 | 12.48 | 0.45 |
+| dyck | 0.40 | 0.44 | 0.66 | 2.94 | 0.23 |
+| forbidden | 0.28 | 0.75 | 2.08 | 2.74 | 1.88 |
+| window | 0.72 | 0.77 | 12.50 | 3.69 | 0.72 |
+| two_window | 0.75 | 0.77 | 3.23 | 2.09 | 0.20 |
+
+True cost at the next pick, nats x 1000:
+
+| constraint | ideal | pair, exact update | conditioned ratio, exact update | conditioned ratio, screened kernel | chain twist | lowest entropy | random |
+|---|---|---|---|---|---|---|---|
+| counting | 0.10 | 4.40 | 4.54 | 4.06 | 3.08 | 2.72 | 3.28 |
+| dyck | 0.06 | 10.03 | 11.09 | 11.37 | 5.92 | 9.26 | 16.15 |
+| forbidden | 0.90 | 2.01 | 2.56 | 2.48 | 6.04 | 4.55 | 36.24 |
+| window | 0.00 | 0.00 | 0.00 | 0.00 | 0.26 | 3.81 | 8.28 |
+| two_window | 0.12 | 0.56 | 0.56 | 0.59 | 3.02 | 5.26 | 15.22 |
+
+Windows by distance from the window (inside, within 6, farther), mean cost in nats x 1000:
+
+| constraint | revealed | true: inside, near, far | conditioned ratio, exact update | conditioned ratio, screened kernel |
+|---|---|---|---|---|
+| window | 10% | 20.2, 68.7, 2.2 | 164.7, 65.9, 2.0 | 192.7, 75.8, 2.3 |
+| window | 25% | 14.1, 27.2, 0.4 | 74.1, 22.7, 0.3 | 104.7, 30.5, 0.3 |
+| window | 50% | 5.8, 3.9, 0.0 | 9.7, 2.8, 0.0 | 13.4, 4.4, 0.0 |
+| window | 75% | 1.3, 1.0, 0.0 | 0.9, 1.1, 0.0 | 1.6, 1.2, 0.0 |
+| two_window | 10% | 21.9, 62.8, 6.1 | 93.7, 49.8, 4.1 | 107.1, 56.3, 4.4 |
+| two_window | 25% | 19.6, 34.8, 1.7 | 47.2, 23.8, 1.0 | 65.3, 30.1, 1.4 |
+| two_window | 50% | 10.1, 7.4, 0.2 | 10.7, 5.2, 0.1 | 17.3, 6.2, 0.1 |
+| two_window | 75% | 2.3, 0.6, 0.0 | 2.3, 0.5, 0.0 | 14.5, 0.9, 0.0 |
+
+- The conditioned ratio fixes forbidden: rank 0.83 to 0.95, size 0.28 to 0.75, tenfold underestimates 11% to 0%.
+- It does not fix the overestimate inside the window, so that explanation was wrong (see the collective term below).
+- With the screened pilot kernel and no denoiser call, mean costs near and far from the window are within about 15%
+  of the truth at every fraction; the next pick is at the ideal on the window and close to it on two windows and
+  forbidden. The median ratio is still large late in a decode, where the true costs are below 1e-3 nats.
+- Counting and Dyck are unchanged.
+- Is the cost a common over- or under-reaction of the twist? Fitted slope of the true log tilt on the product twist's
+  (1 = the twist's tilt is right), median [quartiles]; interquartile range within a state:
+
+| constraint | 10% revealed | 25% | 50% | 75% |
+|---|---|---|---|---|
+| counting | 0.97 [0.62, 1.34]; 0.67 | 0.90 [0.55, 1.33]; 0.69 | 0.86 [0.66, 1.22]; 0.49 | 0.95 [0.83, 1.14]; 0.28 |
+| dyck | 1.65 [0.43, 2.40]; 1.68 | 1.23 [0.44, 1.82]; 1.30 | 1.01 [0.73, 1.44]; 0.62 | 0.98 [0.82, 1.19]; 0.29 |
+| forbidden | 1.45 [1.04, 2.08]; 1.02 | 1.17 [0.75, 1.51]; 0.75 | 1.03 [0.39, 1.14]; 0.69 | 1.01 [0.49, 1.08]; 0.84 |
+| window | 1.30 [1.16, 1.39]; 0.21 | 1.25 [1.09, 1.41]; 0.22 | 1.24 [1.08, 1.42]; 0.22 | 1.08 [1.01, 1.21]; 0.20 |
+| two_window | 1.20 [1.01, 1.41]; 0.36 | 1.20 [0.91, 1.44]; 0.52 | 1.17 [0.97, 1.40]; 0.32 | 1.05 [1.00, 1.17]; 0.12 |
+
+  On the windows the factor is consistent (about 1.2 to 1.3 with a narrow range: the twist under-reacts). On counting
+  it varies widely between positions of one state, so no single factor explains the cost there.
+
+## 36o. The missing term on a sum constraint: mean shift and spread together (2026-11-16) [verified on counting at N = 64]
+
+`experiments/parallel_unmasking/collective_check.py`, `results/parallel_unmasking/collective_N64.json`; counting
+(exactly k of 64 positions are class 0), `hidden_0.85`, 60 states, exact one-step updates.
+
+**Derivation.** Revealing i as class a leaves the other masked positions to supply k_a zeros. The exact conditional is
+pi_i(a) proportional to p_i(a) P(S = k_a | x_i = a), S the number of zeros among the others. The product twist uses an
+independent sum at the current marginals, which is wrong in two ways with opposite signs: the mean (a zero at i raises
+the others' expected count, by position i's influence) and the spread (the true count is more dispersed; the ratio of
+variances, VIF, minus 1 is the variance-weighted average influence over positions). To leading order the error in the
+log odds at i is proportional to (influence of i - average influence): positions with typical coupling are cheap, and
+both weakly and strongly coupled ones are dear. `both` predicts pi_i with a normal count using the shifted mean and
+the inflated variance; `closed form` is 1/2 q_i(0)(1 - q_i(0)) (slope x (influence_i - (VIF - 1)))^2.
+
+| revealed | spread ratio (VIF) | influence, median [10%, 90%] | rank: mean only | spread only | both | closed form | size, both | next pick x1000: ideal | both | closed form | random |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10% | 4.21 | 3.10 [1.35, 4.56] | 0.17 | 0.09 | 0.23 | 0.35 | 0.61 | 0.05 | 2.18 | 1.03 | 2.06 |
+| 25% | 2.74 | 1.55 [0.41, 3.11] | 0.32 | 0.22 | 0.57 | 0.43 | 0.61 | 0.21 | 1.34 | 1.26 | 4.59 |
+| 50% | 1.64 | 0.48 [0.05, 1.44] | 0.32 | 0.24 | 0.68 | 0.51 | 0.72 | 0.17 | 0.65 | 0.70 | 2.78 |
+| 75% | 1.18 | 0.10 [0.00, 0.48] | 0.32 | 0.25 | 0.45 | 0.53 | 0.70 | 0.15 | 0.81 | 0.60 | 2.59 |
+
+- The independent sum understates the count's variance by a factor of 4.2 when 10% is revealed and 1.2 at 75%.
+- Neither error alone ranks positions (0.09 to 0.32, like the pair account's 0.21); together they reach 0.57 to 0.68
+  in the middle of a decode. Early (10% revealed) the account is still weak.
+- The mean shift alone is 23 times too large early: this is the overshoot of the lookahead estimate in section 36n,
+  and of the pair estimate inside a window.
+- The next pick under the closed form is 2 to 4 times cheaper than a random one at every fraction, and still 3 to 20
+  times dearer than the ideal.
+- Reading for the two mechanisms: on a sum constraint the dominant saving from revealing well-connected positions
+  early is that it lowers the spread ratio for every later reveal. That fits the order study (section 36i), where
+  `sum` and `separator` were the best orders on counting and lowest entropy the worst.
+- General form this points to: the cost of revealing i is KL(q_i || the tilt under a twist that is right to second
+  order, in mean and in spread, evaluated at the successor). The pair term is its mean part.
+- Not done: the same with kernel inputs; Dyck (a running-sum constraint); a general second-order twist for automata.
+
+## 36p. Order consistency of MDLM (cluster job `b1ffcca2`, one L40S on node3203, 2026-11-16) [measured; samples not inspected]
+
+`experiments/parallel_unmasking/mdlm_order_consistency.py` at `cc24eb5`,
+`results/parallel_unmasking/mdlm_order_consistency.json`. 32 sequences drawn from the model one token per step in a
+random order; each scored under 16 further random orders, left-to-right and right-to-left. p_sigma(x) is the product
+of the model's one-token conditionals along order sigma. All in nats per sequence, mean ± s.e. over sequences.
+
+| tokens | -log p per token, other orders | sd of log p over random orders | gap to the random-order mixture | own order minus other orders | left-to-right minus random | right-to-left minus random |
+|---|---|---|---|---|---|---|
+| 32 | 3.16 | 9.7 ± 1.0 | 13.3 ± 1.5 | +38.1 ± 4.1 | +4.1 ± 1.4 | +1.3 ± 1.8 |
+| 64 | 3.16 | 14.4 ± 1.4 | 19.3 ± 2.0 | +67.0 ± 6.8 | -0.1 ± 2.6 | -10.4 ± 3.1 |
+| 128 | 3.74 | 16.2 ± 1.3 | 23.2 ± 1.9 | +102.1 ± 6.9 | +0.7 ± 3.7 | -19.9 ± 4.3 |
+
+- Check of the script: on the exact hidden-chain model every quantity is zero (spread 1e-7 on the cluster).
+- A sequence is 38, 67 and 102 nats more probable under the order that generated it than under another random
+  order, about one nat per token. Averaged over samples, that difference is the KL divergence from the law of one
+  order to the law of another. It is two orders of magnitude above the errors optimised elsewhere in this document.
+- Among orders that did not generate the sequence, log p varies with a standard deviation of 10 to 16 nats.
+- Left-to-right is level with a random order; right-to-left is lower by 10 to 20 nats at 64 and 128 tokens.
+- Caveats that could change the size: the sequences are unconditional samples at 32 to 128 tokens from a checkpoint
+  trained at 1,024; they were not saved, so it is not known whether they are degenerate; the mean entropy along the
+  generating order (about 2.1 nats per token) is low. No real text was scored.
+- If it holds on realistic text, the choice of order matters far more on this model than any schedule error
+  measured so far, and a constraint-aware order samples a law far from the random-order reference (section 36m).
+- Next (needs a GPU): save the samples and per-step entropies, score real text and prompted samples, lengths to 1,024.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
