@@ -12,6 +12,9 @@ import torch
 from .routes import _gumbel_argmax, onehot_log
 
 
+from .numerics import logsumexp_safe                      # noqa: E402
+
+
 class TorchFactorGraph:
     def __init__(self, fg, device="cpu", order=None):
         self.L, self.A, self.name, self.device = fg.L, fg.A, getattr(fg, "name", "fg"), device
@@ -51,7 +54,7 @@ class TorchFactorGraph:
         kept = []
         for v, scope, ins, out in self.buckets:
             acc = sum(self._expand(vals[k], self.scopes[k], scope) for k in ins)
-            vals[out] = torch.logsumexp(acc, dim=1 + scope.index(v))
+            vals[out] = logsumexp_safe(acc, 1 + scope.index(v))
             if keep:
                 kept.append(acc)
             for k in ins:

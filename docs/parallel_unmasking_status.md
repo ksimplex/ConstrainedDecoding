@@ -964,6 +964,27 @@ increment and the exposure of the set just chosen. Var(log w_T) is in nats^2 (lo
   taken hours. Rerun with the pilot noise floor cut (entries below 1e-6), on the `hidden256` suite.
 - Files: `results/parallel_unmasking/exposure_N64.json`, `exposure_N64_summary.json`, `exposure_identity_N64.json`.
 
+## 36c. The schedule on every route family (2026-11-16) [verified]
+
+The policy needs one thing from a route: exact constrained marginals, obtained by differentiating `logZ`
+(`constrained_marginals`); the pull-in and the mixed term use the same query with clamps.
+
+- **Survey against enumeration** (`tests/test_route_marginals.py`, nothing revealed and two positions revealed).
+  Before the fix the query was right on automata, automaton products, the closed-form copy, the subset wrapper and
+  factor graphs, and returned NaN on charts (Dyck-1, Dyck-2, automaton x grammar) and on the lifted
+  automaton x factor-graph product.
+- **Cause and fix.** `torch.logsumexp` has a NaN gradient where every input is -inf, which charts and padded factor
+  tables contain by construction. `torch_routes/numerics.logsumexp_safe` gives gradient 0 there; without autograd it
+  is `torch.logsumexp` itself, so sampling and weights are unchanged (frozen reference reproduced).
+- **After the fix** all ten route types match enumeration to 1e-5 (masked wrapper included).
+- **The policy through a chart.** Dyck-1 at N = 12 on a Markov chain, `lex`, theta = 0, 1,500 runs x 2: automaton
+  Z-hat / p(C) = 0.992 +- 0.016, 8.12 calls; chart 0.997 +- 0.016, 8.13 calls.
+- **Cost of the chart query** (2 CPU threads, per particle): N = 32: 3.8 ms (Dyck-1), 20 ms (Dyck-2); N = 64: 56 ms,
+  57 ms. A 64-position grammar suite goes to the cluster; 32 runs locally.
+- **Still missing for a grammar study** (experiments, not the method): an exact truth for a chain model under a
+  grammar, and for a factor graph. Not covered at all: the spanning-tree route (excluded by decision). On an
+  ambiguous grammar the marginals are derivation-weighted, like the twist; the schedule stays legal.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
@@ -975,7 +996,7 @@ job scripts and arm names keep working.
    as the end measure on `hidden256`; then a scale-free score (`sum` fails on MDLM, `lex` costs steps on Dyck),
    held-out constraints, ablations of order, guard, pull-in, forced-first and tie-break.
 1a. A real grammar through the chart route (requested 2026-11-16). Prerequisites: constrained marginals from the chart
-   (it is not differentiable as it stands), and an exact truth for a chain model under a grammar (chain x grammar
+   (done, section 36c), and an exact truth for a chain model under a grammar (chain x grammar
    product; check against a bounded-depth automaton at 16-24 positions). Then: Dyck-1 through the chart in the same
    cells as through the automaton (should agree within noise); pure Dyck-2 as the stress case; Dyck-2 with a free
    atom symbol (the nesting skeleton of JSON) as the indicative case. Chart cost and the cost of the chain twist on

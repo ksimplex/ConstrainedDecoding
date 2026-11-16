@@ -25,8 +25,8 @@ on a Markov chain, where several adjacent positions become forced together once 
 
 The constrained marginals are exact: they are the gradient of route.logZ with respect to the class log-weights
 (one backward pass). Pairwise terms come from the same pass with one position clamped, N * A clamps per
-particle. This needs a route whose logZ is differentiable (TorchChain and TorchCopy are; TorchChart is not as
-it stands).
+particle. This needs a route whose logZ is differentiable: every batched route is (automata, copy, factor graphs,
+lifted products, charts and the wrappers; tests/test_route_marginals.py), the spanning-tree route excepted.
 """
 import math
 from types import SimpleNamespace

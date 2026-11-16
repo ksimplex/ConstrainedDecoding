@@ -100,8 +100,11 @@ def implied_span_limits(names, binary, lexical, declared):
             return [U[a] for a in names]
 
 
+from .numerics import logsumexp_safe                      # noqa: E402
+
+
 def _reduce(x, dim, semiring):
-    return torch.logsumexp(x, dim=dim) if semiring == "sum" else x.max(dim=dim).values
+    return logsumexp_safe(x, dim) if semiring == "sum" else x.max(dim=dim).values
 
 
 def inside_log(g, logW, semiring="sum"):
