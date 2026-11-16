@@ -86,6 +86,12 @@ def append_log(rows, path=LOG):
     return len(new)
 
 
+LEGEND = ("calls: denoiser calls per particle (lower is better) | spread: sd / mean of Z_hat over runs, a relative error "
+          "(0.12 = 12%; lower is better), with its 90% bootstrap interval | Z/p(C): mean Z_hat over the exact value, "
+          "+- s.e. (1 = unbiased) | TV %: marginal error in percentage points (lower is better) | sd r: spread of the "
+          "co-reveal gap in nats (0 = exact schedule) | cost: calls x spread^2 (lower is better; compare ratios only)")
+
+
 def by_cell(rows):
     out = {}
     for r in rows:
@@ -100,7 +106,7 @@ def fmt(x, nd=2):
 def table(rows, baseline=None):
     """Text table, one block per cell. With `baseline` (an arm name) each arm also gets its spread and cost
     relative to that arm in the same cell."""
-    lines = []
+    lines = [LEGEND]
     for (m, c, N), rs in by_cell(rows).items():
         base = next((r for r in rs if r["arm"] == baseline), None)
         lines.append(f"\n{m} | {c} | N={N}" + (f"   (relative to: {baseline})" if base else ""))
