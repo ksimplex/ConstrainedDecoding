@@ -1036,6 +1036,73 @@ Profiled on `hidden_0.85` x `window`, N = 256, 400 particles, one CPU thread, an
   - Vectorising the chart's per-nonterminal reduction loop: a real rewrite of a core route; only if GPU runs show it
     matters.
 
+## 36f. Chain twist in the main sampler (2026-11-16) [verified for automaton constraints; study in progress]
+
+- **`decode/chain_twist.py`**: `ChainTwist(wdfa, K, eps, active)`, the first-order chain twist of section 29 for automaton
+  constraints (whole sequence or a subset of positions), with `log_chain`, `log_psi` (mixture with a share eps of the
+  product twist) and `marginals` (constrained marginals under the chain law, by autograd). `fit_pair_kernel` fits K
+  on model samples. `twisted_smc(..., twist=...)` uses it as the intermediate twist in the weights; the proposal and
+  the terminal twist are unchanged, so without resampling the weights are those of the product twist.
+- **Tests** (`tests/test_chain_twist.py`, 6): value and marginals equal brute-force enumeration of the chain law
+  (also on a subset of positions, and for states that already break the constraint); equal to the reference of
+  `twist_error.py` to 1e-6; eps = 1 is the product twist; in the sampler the classes are identical and log Z-hat
+  agrees to 1e-4 without resampling, and Z-hat is unbiased with resampling at every step. Frozen reference
+  unchanged with the option off.
+- **Not done**: the chain-twisted proposal (the proposal is still the product twist's); grammars and copy; the
+  no-regression benchmark at 256 and 1,024.
+- **Study `--arms twist`** (`hidden_0.85`, N = 64, 200 runs x 16; running, 1 of 5 cells complete). Spread of Z-hat
+  (sd / mean, lower is better), random one token per step:
+  - `dyck`: product twist 0.31 off, 0.43 defensive resampling, 0.91 plain resampling; chain twist 0.32 off, 0.28
+    defensive, 0.30 plain. Resampling events per run 3.1-3.4 against 1.1-1.2. The harm of resampling is gone.
+  - `counting`: resampling never fires at K = 16 (0.15-0.17 in all six arms): no information.
+  - `forbidden`: no resampling harm under either twist; differences between arms are within heavy-tail noise (the
+    two "off" arms, which have the same law, read 0.67 and 0.52).
+
+## 36g. Is the chain-product disagreement an estimate of the product twist's error? (2026-11-16) [verified at N = 64]
+
+`error_estimate_check.py`: three hidden chains (noise 0.15, 0.3, 0.5), N = 64, counting / dyck / forbidden / window /
+two_window, 60 states per cell from the exact constrained law at reveal fractions 0.1-0.75. Per masked position:
+true error eps = KL(product twist's constrained marginal || exact conditional) and the estimate
+est = KL(product's || chain twist's). All in nats; `ratio` = pilot chain as in the sampler, `exact` = the model's own
+pair conditionals.
+
+- **Identity** [derived]: eps = est + KL(chain || exact) + sum (q0 - q1) log(q1 / pi); to leading order
+  |sqrt(eps) - sqrt(est)| <= sqrt(chain's own error). At the level of unconstrained joints the errors add exactly
+  (Pythagoras for nested exponential families), so there the disagreement is a lower bound; not so for constrained
+  per-position marginals.
+- **Sanity**: on the Markov chain the exact-pair chain's error is zero (ratio 6e-8).
+- **The chain twist is only moderately better per position** (root-KL error relative to the product's, median over the
+  costlier half): counting 0.85, dyck 0.58, forbidden 0.63, window 0.48, two_window 0.44 (`exact`: 0.53, 0.54, 0.32,
+  0.30, 0.33). The whole-state figures of section 29 (0.2-0.3) were more favourable.
+- **Calibration** (median est / eps): 0.48, 0.25, 1.62, 1.09, 0.68. **Tail**, share of the costlier half
+  underestimated more than tenfold: 0.23, 0.34, 0.08, 0.09, 0.12 (more than a hundredfold: 0.04-0.08);
+  overestimated more than tenfold: 0.02, 0.01, 0.17, 0.09, 0.05.
+- **Ranking within a state** (Spearman): 0.12, 0.47, 0.72, 0.58, 0.60 (`exact`: 0.55-0.86). The costliest tenth of
+  positions is ranked above the estimate's median in 77%, 94%, 91%, 98%, 97% of cases.
+- **True error at the position each rule would reveal next**, positions that are not forced, nats x 1000:
+
+  | Constraint | Ideal | Lowest estimate | Lowest entropy | Highest stake | Separator | Random |
+  |---|---|---|---|---|---|---|
+  | counting | 0.13 | 2.57 | 2.02 | 5.80 | 9.11 | 3.21 |
+  | dyck | 0.08 | 5.87 | 5.32 | 29.5 | 23.7 | 13.8 |
+  | forbidden | 0.84 | 3.45 | 3.95 | 13.3 | 59.7 | 28.6 |
+  | window | 0.00 | 0.29 | 2.10 | 16.3 | 9.89 | 4.67 |
+  | two_window | 0.06 | 1.92 | 4.70 | 23.3 | 30.3 | 13.2 |
+
+- **Reading.** (1) The estimate is one-sided: a high value marks a costly position, a low value certifies nothing;
+  on the global constraint (counting) both twists miss the long-range dependence and it carries little information.
+  Unsafe as an admission test against an absolute budget; usable as a ranking signal. (2) Lowest entropy of the
+  constrained marginal (the old `confident` order) does about as well on three constraints without any chain twist;
+  its earlier weakness was steps (29.7 against 7-14), not accuracy. (3) Highest stake is worse than random at one
+  step on four of five, yet constraint-first did well in full runs on the windows: one-step error is not the whole
+  story, and "cheapest first" needs a full-run test. (4) The ideal pick is 4-70 times better than any practical rule.
+- **Why counting is the hard case** [rough calculation, not measured]: a first-order chain fitted on adjacent
+  tokens predicts dependence decaying as the adjacent correlation to the power of the distance; with a hidden state
+  the true decay is slower, and at noise 0.3 the chain captures about a quarter of the covariance summed over all
+  distances. A constraint that sums over all positions feels all of the shortfall. A chain over a small latent state
+  (same marginal matching) is the natural richer stand-in; not built.
+- Files: `results/parallel_unmasking/error_estimate_N64.json`, `error_estimate_N64_summary.json`.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
