@@ -1519,7 +1519,7 @@ together. Pooled over 3 chains and 7 orders (21 arms each), inverse-variance wei
 
 - The sequential arms are unbiased within noise, as they must be.
 - At B = 0.03 the bias is at most 1.6% on four constraints and 5.3% on forbidden, at 13 to 16 calls instead of 64.
-- At B = 0.3 it is 2 to 7% on four constraints and 39% (in log) on forbidden, at 8 to 10 calls.
+- At B = 0.3 it is 2 to 7% on four constraints and 0.39 nats on forbidden (the estimate is 0.68 of p(C)), at 8 to 10 calls.
 - In nats the bias is 0.1 to 0.5 of the budget, except on forbidden, where it is 1.3 to 1.8 times the budget.
 - Pooling hides biases of opposite sign between orders: on Dyck at B = 0.3 individual orders are off by +14% and -14%
   (section 36i), which pools to -1.6%.
