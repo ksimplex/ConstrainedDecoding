@@ -56,6 +56,7 @@ def run_cell(job):
             json.dump(rows, open(part + ".tmp", "w"))                 # cell resumed arm by arm equals an uninterrupted one
             np.savez_compressed(part + ".tmp.npz", **zlog)
             os.replace(part + ".tmp", part + ".json"); os.replace(part + ".tmp.npz", part + ".npz")
+    foot.stop()
     order = {arm.name: i for i, arm in enumerate(arms)}
     rows.sort(key=lambda r: order[r["arm"]])
     import resource

@@ -859,6 +859,26 @@ a diffusion language model is the standard benchmark) with overall numbers. Proo
 - A real language model's dependence is long-range early on; plan for a modest parallel gain there.
 - Remote runs need approval; the 1,024-position job waits for the selection fix.
 
+## 35. Refactor (2026-11-16) [verified]
+
+- **Reference frozen first.** `tests/test_pu_regression.py` runs every arm set on small cells (296 arms, 15 cells,
+  about 95 s) and compares each field with `tests/golden/pu_compare.json`, made from the code before any change.
+- **Policy.** `CouplingPolicy.reveal` is now `step_context` -> `score` -> `admit`. Scoring only orders candidates;
+  admission holds the threshold / budget / rate rule (`_fits`), the guard (`_guard_load`) and the pull-in (`_pull`).
+  `priority` may be a function of the step context, so a new order needs no change to the class.
+- **Comparison.** `compare.py` is the command line only. The library is `experiments/parallel_unmasking/pulib/`:
+  `cells` (models, constraints, seeds), `arms` (one registered function per study), `runner`, `metrics`, `gate`.
+  Command lines, arm names and random streams are unchanged; the other scripts import through `compare` as before.
+- **Checks.** Frozen reference reproduced exactly after each of the two steps. Two full-scale arms of `fix_N256`
+  (`lex B=0.03 +pull`, `+pull+guard`; `copy_block`, 100 runs x 16) reproduced bit for bit, 32 numeric fields each.
+  All 14 non-biology test files pass (363 tests), 25 of them new (`tests/test_policy_split.py`).
+- **Found on the way.** The memory watcher started one thread per cell and never stopped it; it now stops with the
+  cell. The full test suite with torch's default threads drove the laptop's load average above 60; run it with
+  `OMP_NUM_THREADS=2` (README).
+- **Not done here.** `twist_error.py` and `twist_smc.py` are unchanged; they become the test oracle of the chain-twist
+  route wrapper when that is written.
+- `forced_first` is on by default, so the `random sequential` arm of section 27 reveals forced partners first.
+
 ## 34. Next steps (2026-11-15, evening)
 
 1. Selection: read `fix_N256.json`; check exposure against measured log-weight variance; settle a scale-free score;

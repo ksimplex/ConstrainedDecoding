@@ -63,3 +63,7 @@ class Footprint:
                     return
                 time.sleep(every)
         threading.Thread(target=watch, daemon=True).start()
+
+    def stop(self):
+        """End the sampling thread (one is started per cell; without this they accumulate in a long-lived process)."""
+        self._stop = True

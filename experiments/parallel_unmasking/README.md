@@ -71,3 +71,7 @@ A change to the sampler, the policy or a twist goes in under this protocol:
 The reference is regenerated only when a change in behaviour is intended (`python tests/test_pu_regression.py`),
 and the commit says so. It is tied to the platform and torch version it was made on; elsewhere the comparison is
 skipped, because multinomial draws can flip on last-bit floating-point differences.
+
+On a shared machine run the suite with `OMP_NUM_THREADS=2`: with torch's default thread count the full suite
+drove the load average of an 8-core laptop above 60. With the cap, the 14 non-biology test files (363 tests) pass
+in about 18 minutes, `tests/test_smc.py` taking 8 of them.
