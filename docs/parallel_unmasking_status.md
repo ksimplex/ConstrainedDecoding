@@ -1295,7 +1295,7 @@ Cost = calls x spread^2, lower is better, where spread is the sd/mean of the est
 
 Neutral at this length except on forbidden, where resampling fires most. Consistent with section 36f.
 
-## 36j. Where the time of a step goes on MDLM (cluster job `1fc965f6`, one L40S, 2026-11-16) [partial: 10 of 12 cells; GPU stage split not measured]
+## 36j. Where the time of a step goes on MDLM (cluster job `1fc965f6`, one L40S, 2026-11-16) [verified: 12 cells, per-stage split; small pilot]
 
 `experiments/parallel_unmasking/mdlm_timing.py`, commit `5c12f04`; file `results/parallel_unmasking/mdlm_timing_run1.json`.
 Half-revealed state, three token classes, two constraints: a count on a window of a tenth of the positions and a count
@@ -1336,8 +1336,38 @@ columns are in denoiser calls at the same batch size.
   diagnostics (job `48847543`, node3502) located the problem: a plain `ls` of a file under `~/orcd/pool` did not
   return in 120 s and was hard-killed, while the job's working directory under the home filesystem worked. So the
   pooled storage, which holds the environment and the model cache, was unreachable from three GPU nodes between 02:01
-  and at least 04:47. No timing code ran in attempts 2 to 4. The GPU stage split is not measured. Section 36l has the
+  and at least 05:03 (four GPU nodes in all; node-specific, see the cluster notes). No timing code ran in attempts 2
+  to 5. The sixth, pinned to a node that passed a storage probe, completed; its results follow. Section 36l has the
   stage split on CPU.
+
+**Per-stage rerun (job `b41c1480`, node3203, commit `7395e53`, all 12 cells; file `results/parallel_unmasking/mdlm_timing_stages.json`).**
+Same settings as the first run, with the reveal timed by stage, a variant without the pull-in, and the positions admitted.
+Milliseconds for the whole batch, lower is better; the last three columns are one sampler step in denoiser calls at the
+same batch size.
+
+| N | particles | constraint | denoiser | reveal, sequential | reveal, parallel | reveal, parallel, no pull-in | pull-in | pull-in passes | positions per step (with, without pull-in) | step, sequential (calls) | step, parallel (calls) | step, parallel, no pull-in (calls) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 8 | window | 9.1 | 10.6 | 48.1 | 25.1 | 15.5 | 4 | 2.0, 2.0 | 2.64 | 6.77 | 4.23 |
+| 128 | 8 | whole_sequence | 9.1 | 38.3 | 188.6 | 52.8 | 127.5 | 4 | 2.0, 2.0 | 8.68 | 25.23 | 10.28 |
+| 128 | 64 | window | 30.2 | 10.7 | 59.6 | 28.0 | 30.6 | 8 | 2.0, 2.0 | 1.71 | 3.33 | 2.29 |
+| 128 | 64 | whole_sequence | 30.2 | 38.3 | 315.4 | 55.9 | 257.3 | 8 | 2.0, 2.0 | 3.53 | 12.70 | 4.11 |
+| 128 | 256 | window | 155.7 | 10.7 | 62.0 | 30.5 | 30.5 | 8 | 2.0, 2.0 | 1.28 | 1.61 | 1.41 |
+| 128 | 256 | whole_sequence | 155.7 | 38.3 | 317.9 | 58.3 | 257.6 | 8 | 2.0, 2.0 | 1.64 | 3.43 | 1.76 |
+| 256 | 8 | window | 10.7 | 19.5 | 106.2 | 48.0 | 55.8 | 8 | 2.6, 2.6 | 3.60 | 11.70 | 6.26 |
+| 256 | 8 | whole_sequence | 10.7 | 75.4 | 615.8 | 104.0 | 509.2 | 8 | 2.6, 2.6 | 13.89 | 64.36 | 16.56 |
+| 256 | 64 | window | 65.4 | 19.5 | 110.3 | 52.3 | 56.3 | 8 | 2.6, 2.6 | 1.63 | 3.01 | 2.13 |
+| 256 | 64 | whole_sequence | 65.4 | 75.5 | 623.6 | 108.6 | 513.5 | 8 | 2.6, 2.6 | 3.32 | 11.69 | 3.82 |
+| 256 | 256 | window | 315.1 | 19.2 | 115.9 | 58.4 | 56.7 | 8 | 2.5, 2.5 | 1.27 | 1.58 | 1.39 |
+| 256 | 256 | whole_sequence | 315.1 | 75.3 | 628.3 | 114.5 | 513.0 | 8 | 2.5, 2.5 | 1.62 | 3.38 | 1.75 |
+
+- The pull-in is 32 to 83% of the parallel reveal's time. It runs up to 8 extra constrained-marginals passes per step.
+- It admitted nothing in this state: positions per step are identical with and without it in all 12 cells.
+- Without the pull-in the parallel reveal costs 1.4 to 3.0 times the sequential reveal; with it, 4.5 to 8.3 times.
+- Limits of this measurement: one half-revealed state per cell, a pilot of only 8 traces, and rate 1/N (B = 1). The
+  schedule admits 2.0 to 2.6 positions per step here, far fewer than a properly piloted schedule would, so the
+  per-step costs are measured but the cost per revealed position is not representative.
+- The N = 256, 256-particle cell that ran out of memory in the first run fits once nothing large is held while the
+  denoiser is timed.
 
 ## 36k. A resampling pressure case: 256 positions, whole-sequence constraints (cluster job `a16667c2`, 2026-11-16) [verified; small samples]
 
@@ -1409,7 +1439,7 @@ Against the criterion:
   off because a budgeted schedule is not exact.
 - Limits: one chain, 12 runs at 64 particles, and no arm with the chain twist in the proposal.
 
-## 36l. Where the schedule's own time goes over a whole decode (local CPU, 2026-11-16) [verified on oracle cells; GPU split not measured]
+## 36l. Where the schedule's own time goes over a whole decode (local CPU, 2026-11-16) [verified on oracle cells; GPU split in section 36j]
 
 `experiments/parallel_unmasking/reveal_stages.py`; file `results/parallel_unmasking/reveal_stages_local.json`.
 `hidden_0.85`, 16 particles, pilot 2,000, constraint-first order, the study's arm settings (B is the whole-sequence
@@ -1455,7 +1485,7 @@ call counts of the studies.
   forbidden, and is below it at 256.
 - This explains the GPU measurement of section 36j in kind (the parallel reveal is several times dearer per step and
   the candidate was the pull-in). The GPU run used a looser budget (rate 1/N, i.e. B = 1) and a small pilot, so its
-  ratios are not the same quantity. The per-stage GPU rerun did not run (storage unreachable from GPU nodes, section 36j).
+  ratios are not the same quantity. The per-stage GPU rerun (end of section 36j) agrees in kind: the pull-in dominates and admits nothing.
 - Not done: a pull-in that skips constraints or steps with nothing to pull. That is a design choice for the selection
   rule.
 
@@ -1465,10 +1495,10 @@ Done since section 34: the selection-fix run (section 31) and the refactor (sect
 of section 34: the studies are registered functions behind one command line, not separate scripts, so the existing
 job scripts and arm names keep working.
 
-0. Timing on the real model (section 36j): the per-stage split of the parallel reveal on the GPU is blocked until
-   the pooled storage is reachable from GPU nodes again (probe first, then rerun `mdlm_timing.py` at commit `7395e53`).
-   The CPU split (section 36l) shows the pull-in is the extra cost and admits nothing on window, counting and
-   forbidden; decide whether it needs a cheaper form. The order study (section 36i) is input to the
+0. Pull-in (sections 36j, 36l): it is the extra cost of the parallel reveal on CPU and GPU and admits nothing on
+   window, counting and forbidden; decide when it should run (with the selection rule). Add calibrated arms
+   (`twist_temp`) to the pressure case for both twists; the chain twist needs tempering of its masked marginals first.
+   Until the pool mount is fixed, pin GPU jobs to a node that passes the storage probe. The order study (section 36i) is input to the
    selection rule; the user has thoughts on that rule and asked to be flagged before the work starts.
 1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the
    stake paid beyond log(1 / p(C)), i.e. reveals where the proposal's marginal is accurate; measure KL = -E[log(W / p(C))]
