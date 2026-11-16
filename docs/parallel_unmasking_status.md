@@ -859,6 +859,21 @@ a diffusion language model is the standard benchmark) with overall numbers. Proo
 - A real language model's dependence is long-range early on; plan for a modest parallel gain there.
 - Remote runs need approval; the 1,024-position job waits for the selection fix.
 
+## 34. Next steps (2026-11-15, evening)
+
+1. Selection: read `fix_N256.json`; check exposure against measured log-weight variance; settle a scale-free score;
+   held-out constraints; ablations.
+2. Refactor before the wrapper: split `compare.py` into a small library and per-study scripts; separate scoring from
+   admission in `CouplingPolicy`; exact-regression and unbiasedness tests for every option; a README for the folder.
+3. Chain twist in the main sampler: pair-lift wrapper for automata, positivity mix, no-regression benchmark at 64, 256
+   and 1,024 with and without the gate; then grammars with a measured cost; then the partial lift for copy.
+4. Kernel keyed on how much is revealed; pooling by maximum; the stress oracle with a persistent global latent.
+5. Real model: budgets down to 16 calls; the chain twist; then an instruction-following model for structured JSON.
+6. Cluster (after 1): interaction study and sequential control at 1,024 on the hidden chains
+   (`jobs/interact_N1024.sbatch`, drafted). Finish the two interrupted hidden chains of section 27.
+7. Proofs: unbiasedness with a state-dependent order; the closure proposition for the lift; the exposure bound; the
+   three owed earlier. Notes and plan document.
+
 ## 35. Refactor (2026-11-16) [verified]
 
 - **Reference frozen first.** `tests/test_pu_regression.py` runs every arm set on small cells (296 arms, 15 cells,
@@ -879,17 +894,23 @@ a diffusion language model is the standard benchmark) with overall numbers. Proo
   route wrapper when that is written.
 - `forced_first` is on by default, so the `random sequential` arm of section 27 reveals forced partners first.
 
-## 34. Next steps (2026-11-15, evening)
+## 36. Next steps (2026-11-16; replaces section 34)
 
-1. Selection: read `fix_N256.json`; check exposure against measured log-weight variance; settle a scale-free score;
-   held-out constraints; ablations.
-2. Refactor before the wrapper: split `compare.py` into a small library and per-study scripts; separate scoring from
-   admission in `CouplingPolicy`; exact-regression and unbiasedness tests for every option; a README for the folder.
-3. Chain twist in the main sampler: pair-lift wrapper for automata, positivity mix, no-regression benchmark at 64, 256
-   and 1,024 with and without the gate; then grammars with a measured cost; then the partial lift for copy.
-4. Kernel keyed on how much is revealed; pooling by maximum; the stress oracle with a persistent global latent.
-5. Real model: budgets down to 16 calls; the chain twist; then an instruction-following model for structured JSON.
-6. Cluster (after 1): interaction study and sequential control at 1,024 on the hidden chains
+Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
+of section 34: the studies are registered functions behind one command line, not separate scripts, so the existing
+job scripts and arm names keep working.
+
+1. Selection: check exposure against measured log-weight variance; settle a scale-free score (`sum` fails on MDLM,
+   `lex` costs steps on Dyck); held-out constraints; ablations of order, guard, pull-in and tie-break. The pull-in
+   needs its own justification: exposure does not derive it.
+2. Chain twist in the main sampler: pair-lift wrapper for automata, positivity mix, no-regression benchmark at 64, 256
+   and 1,024 with and without the gate; then grammars with a measured cost; then the partial lift for copy. With many
+   classes: full class by default, likely classes kept exactly and the rest merged, loss reported against the number
+   of groups.
+3. Kernel keyed on how much is revealed; pooling by maximum; the stress oracle with a persistent global latent.
+4. Real model: budgets down to 16 calls; the chain twist; then an instruction-following model for structured JSON
+   (character-level automaton lifted to tokens; count the classes of one realistic schema first).
+5. Cluster (needs approval): interaction study and sequential control at 1,024 on the hidden chains
    (`jobs/interact_N1024.sbatch`, drafted). Finish the two interrupted hidden chains of section 27.
-7. Proofs: unbiasedness with a state-dependent order; the closure proposition for the lift; the exposure bound; the
-   three owed earlier. Notes and plan document.
+6. Proofs: unbiasedness with a state-dependent order; the closure proposition for the lift; the exposure bound; that a
+   coarse-memory chain with exact conditionals is never further in KL than the product; the three owed earlier.
