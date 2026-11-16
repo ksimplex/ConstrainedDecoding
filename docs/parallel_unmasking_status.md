@@ -930,7 +930,7 @@ increment and the exposure of the set just chosen. Var(log w_T) is in nats^2 (lo
   On copy the constraint-first orders have the higher exposure (18.7 against 14.1) and the lower variance
   (1.8-2.0 against 4.5-5.1).
 - **Why the step-to-run argument fails: increments of different steps cancel.** Sum over steps of Var(increment)
-  divided by Var(log w_T): forbidden 1.1-3.4, copy 1.3-3.3, dyck 4.7-7.4, counting 9.4-19.7. For the global
+  divided by Var(log w_T): forbidden 1.1-3.6, copy 1.3-3.3, dyck 4.7-7.4, counting 9.4-19.7. For the global
   constraints almost all step-level fluctuation is undone later. This is the same fact as section 22 (intermediate
   weights do not predict final ones) seen from the other side.
 - **Where the order matters, and by how much** (one token per step, Var(log w_T)): forbidden: `bound` 1.4, `lex` 1.5,
