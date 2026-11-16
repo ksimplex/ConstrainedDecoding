@@ -1867,6 +1867,223 @@ of the model's one-token conditionals along order sigma. All in nats per sequenc
   measured so far, and a constraint-aware order samples a law far from the random-order reference (section 36m).
 - Next (needs a GPU): save the samples and per-step entropies, score real text and prompted samples, lengths to 1,024.
 
+## 36q. Where along a decode each order pays: counting and Dyck (local, 2026-11-16) [verified at N = 64, one hidden chain]
+
+Script `experiments/parallel_unmasking/counting_orders.py`; results `results/parallel_unmasking/order_study/{counting,dyck}_orders_N64.json`.
+`hidden_0.85`, 64 positions, 300 particles, one token per step. KL is the divergence of the sampler's law from the exact
+constrained law in nats (lower is better), as the sum over steps of the true error at the revealed position. The spread
+ratio is Var(number of class-0 tokens still to come) / (the same variance if the masked positions were independent);
+1 means the product twist's picture of the remaining count is right.
+
+**counting** (log p(C) = -3.24)
+
+| order | KL | paid in quarter 1 | 2 | 3 | 4 | spread ratio at step 0 | 8 | 16 | 32 | 48 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| random | 0.180 | 0.041 | 0.063 | 0.052 | 0.025 | 5.85 | 3.81 | 2.77 | 1.71 | 1.24 |
+| lex | 0.204 | 0.040 | 0.110 | 0.050 | 0.003 | 5.85 | 4.25 | 3.39 | 2.04 | 1.14 |
+| separator | 0.136 | 0.043 | 0.065 | 0.026 | 0.002 | 5.85 | 3.36 | 2.29 | 1.37 | 1.05 |
+| sum | 0.123 | 0.042 | 0.057 | 0.023 | 0.001 | 5.85 | 3.35 | 2.28 | 1.37 | 1.05 |
+| cheapest | 0.191 | 0.003 | 0.023 | 0.054 | 0.111 | 5.85 | 4.11 | 3.47 | 2.75 | 2.09 |
+| centred | 0.255 | 0.016 | 0.042 | 0.081 | 0.117 | 5.85 | 3.87 | 2.86 | 2.01 | 1.61 |
+
+**dyck** (log p(C) = -5.82)
+
+| order | KL | paid in quarter 1 | 2 | 3 | 4 | spread ratio at step 0 | 8 | 16 | 32 | 48 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| random | 0.642 | 0.342 | 0.181 | 0.085 | 0.033 | 5.97 | 4.12 | 2.93 | 1.82 | 1.28 |
+| lex | 0.586 | 0.218 | 0.146 | 0.129 | 0.094 | 5.97 | 5.52 | 5.17 | 4.04 | 2.12 |
+| separator | 0.594 | 0.399 | 0.151 | 0.040 | 0.003 | 5.97 | 3.68 | 2.47 | 1.45 | 1.07 |
+| sum | 0.599 | 0.403 | 0.152 | 0.040 | 0.004 | 5.97 | 3.74 | 2.56 | 1.55 | 1.12 |
+| cheapest | 0.262 | 0.018 | 0.034 | 0.081 | 0.129 | 5.97 | 4.68 | 4.18 | 3.40 | 2.42 |
+
+- `cheapest` is the ideal greedy order (lowest true error now, needs the exact twist); `centred` is greedy on the closed form of section 36o.
+- Counting: `sum` and `separator` pay as much as random early and almost nothing in the last quarter, and they bring the
+  spread ratio down fastest. The ideal greedy order pays almost nothing early and most of its error in the last quarter:
+  it never lowers the spread ratio. On this constraint the whole gain is investing early.
+- Dyck: the ideal greedy order has less than half the KL of every other order. `separator` and `sum` again shift the
+  error to the first quarter, but the total is no lower than left-to-right (`lex`).
+- So the two whole-sequence constraints disagree about greedy, and neither is explained by one fixed recipe.
+
+## 36r. One step of planning on the present cost estimates (local, 2026-11-16) [verified at N = 32; 64 particles, noisy]
+
+Script `experiments/parallel_unmasking/plan_check.py`; results `results/parallel_unmasking/order_study/plan_*_N32.json`.
+An estimate c_j(x) of the cost of revealing j is used greedily (lowest c_i now) or with one step of planning (lowest
+c_i(x) + E_a sum_j c_j(x with i = a)). Estimates: the closed form of section 36o on counting, the pair cost of section 36n
+elsewhere; both use the model's exact one-step update. KL in nats, lower is better; 64 particles, so differences under
+about 20% are not resolved.
+
+| constraint | random | lex | separator | sum | ideal greedy | greedy on estimate | plan on estimate |
+|---|---|---|---|---|---|---|---|
+| counting | 0.200 | 0.188 | 0.115 | 0.103 | 0.124 | 0.134 | 0.159 |
+| window | 0.410 | 0.078 | 0.373 | 0.095 | 0.044 | 0.675 | 0.077 |
+| two_window | 0.801 | 0.090 | 0.582 | 0.115 | 0.229 | 1.286 | 0.146 |
+| forbidden | 1.420 | 0.378 | 2.259 | 0.589 | 0.368 | 0.491 | 0.366 |
+
+- Windows and forbidden: greedy use of the pair estimate is poor on the windows (9 and 14 times `lex`). One step of
+  planning on the same estimate brings it level with `lex` on window and forbidden and to 1.6 times `lex` on two_window.
+- Counting: planning on the closed form is no better than its greedy use, and both lose to `sum`.
+
+## 36s. The ideal order, exactly (local, 2026-11-16) [verified against brute-force enumeration; 10 to 12 positions]
+
+Script `experiments/parallel_unmasking/best_plan_exact.py`; results `results/parallel_unmasking/order_study/best_plan_*.json`.
+At 10 positions with 3 symbols (12 with 2) every partially revealed state can be tabulated (about one million states).
+With the true error eps_i(x) at every state, the best state-dependent order solves
+V(x) = min_i [ eps_i(x) + sum_a q_i(a | x) V(x with i = a) ] in one backward pass, and the same pass gives the exact KL
+of any other rule: no sampling noise. Check: the pass reproduces the KL of the left-to-right sampler computed by
+enumerating all sequences, to six decimals, on counting, Dyck, window and forbidden at 6 to 8 positions.
+`window_small`: at least 3 of the 4 middle positions are class 0; `two_window_small`: the same over two pairs.
+
+Exact KL of the sampler from the constrained law, nats, lower is better.
+
+| rule | counting, hidden_0.85, N=10 | counting, chain_0.85, N=10 | dyck, hidden_0.85, N=12 | dyck, chain_0.85, N=12 | window_small, hidden_0.85, N=10 | two_window_small, hidden_0.85, N=10 | forbidden, hidden_0.85, N=10 |
+|---|---|---|---|---|---|---|---|
+| best state-dependent order | 0.0232 | 0.2572 | 0.0748 | 0.7932 | 0.0239 | 0.0261 | 0.1630 |
+| error now + exact cost of finishing greedily | 0.0299 | 0.2845 | 0.0844 | 0.9674 | 0.0240 | 0.0349 | 0.1691 |
+| error now + exact cost of finishing in random order | 0.0269 | 0.3045 | 0.0848 | 0.9554 | 0.0240 | 0.0609 | 0.1814 |
+| lookahead on true error, depth 1 | 0.0344 | 0.6946 | 0.0776 | 1.2104 | 0.0250 | 0.0305 | 0.1698 |
+| lookahead on true error, depth 4 | 0.0255 | 0.5659 | 0.0748 | 1.1008 | 0.0239 | 0.0261 | 0.1642 |
+| ideal greedy (lowest true error now) | 0.0422 | 0.9095 | 0.0996 | 1.2935 | 0.0301 | 0.0391 | 0.1800 |
+| lex | 0.0498 | 0.9262 | 0.1028 | 1.4388 | 0.0645 | 0.0502 | 0.1772 |
+| sum | 0.0417 | 0.8378 | 0.1362 | 1.0639 | 0.0589 | 0.0620 | 0.2039 |
+| separator | 0.0449 | 0.7671 | 0.1614 | 1.0405 | 0.1338 | 0.3890 | 0.4041 |
+| greedy on the estimate | 0.0403 | 0.8801 | 0.1759 | 1.8300 | 0.6368 | 0.0514 | 0.1992 |
+| one-step plan on the estimate | 0.0537 | 1.0622 | 0.1188 | 1.4208 | 0.0293 | 0.0682 | 0.1933 |
+| full-depth plan on the estimate | 0.0442 | 1.0237 | 0.1508 | 1.6320 | 0.0257 | 0.0306 | 0.1859 |
+| most tilted first | 0.0491 | 1.0157 | 0.1028 | 1.4388 | 0.0645 | 0.0502 | 0.1772 |
+| least tilted first | 0.0926 | 1.0606 | 0.5937 | 2.8824 | 0.9095 | 1.1655 | 0.6959 |
+| random | 0.0653 | 0.9423 | 0.3447 | 2.8171 | 0.4315 | 0.5776 | 0.3942 |
+| left to right | 0.1015 | 1.3631 | 0.4651 | 3.2454 | 0.4495 | 0.4890 | 0.1792 |
+| worst | 0.1834 | 2.2601 | 0.7837 | 6.4061 | 0.9681 | 1.1897 | 0.7713 |
+
+As a multiple of the optimal KL:
+
+| rule | counting, hidden_0.85, N=10 | counting, chain_0.85, N=10 | dyck, hidden_0.85, N=12 | dyck, chain_0.85, N=12 | window_small, hidden_0.85, N=10 | two_window_small, hidden_0.85, N=10 | forbidden, hidden_0.85, N=10 |
+|---|---|---|---|---|---|---|---|
+| error now + exact cost of finishing greedily | 1.29 | 1.11 | 1.13 | 1.22 | 1.00 | 1.34 | 1.04 |
+| error now + exact cost of finishing in random order | 1.16 | 1.18 | 1.13 | 1.20 | 1.00 | 2.33 | 1.11 |
+| lookahead on true error, depth 1 | 1.48 | 2.70 | 1.04 | 1.53 | 1.04 | 1.17 | 1.04 |
+| lookahead on true error, depth 4 | 1.10 | 2.20 | 1.00 | 1.39 | 1.00 | 1.00 | 1.01 |
+| ideal greedy (lowest true error now) | 1.82 | 3.54 | 1.33 | 1.63 | 1.26 | 1.50 | 1.10 |
+| lex | 2.15 | 3.60 | 1.37 | 1.81 | 2.70 | 1.92 | 1.09 |
+| sum | 1.80 | 3.26 | 1.82 | 1.34 | 2.46 | 2.38 | 1.25 |
+| separator | 1.93 | 2.98 | 2.16 | 1.31 | 5.59 | 14.90 | 2.48 |
+| greedy on the estimate | 1.73 | 3.42 | 2.35 | 2.31 | 26.60 | 1.97 | 1.22 |
+| one-step plan on the estimate | 2.31 | 4.13 | 1.59 | 1.79 | 1.22 | 2.61 | 1.19 |
+| full-depth plan on the estimate | 1.90 | 3.98 | 2.02 | 2.06 | 1.07 | 1.17 | 1.14 |
+| most tilted first | 2.11 | 3.95 | 1.37 | 1.81 | 2.70 | 1.92 | 1.09 |
+| least tilted first | 3.99 | 4.12 | 7.94 | 3.63 | 37.99 | 44.65 | 4.27 |
+| random | 2.81 | 3.66 | 4.61 | 3.55 | 18.02 | 22.13 | 2.42 |
+| left to right | 4.37 | 5.30 | 6.22 | 4.09 | 18.77 | 18.74 | 1.10 |
+| worst | 7.90 | 8.79 | 10.48 | 8.08 | 40.43 | 45.58 | 4.73 |
+
+The estimate is the closed form on counting and the pair cost elsewhere (exact one-step update).
+
+What the optimal order does, by step (expectation under its own sampler). First line: the share of steps where its pick is
+also the cheapest now. Second: error it pays at each step. Third: error the ideal greedy order pays at each step.
+
+```
+counting, hidden_0.85
+  cheapest now   1.00 0.00 0.30 0.34 0.33 0.46 0.77 0.91 1.00 1.00
+  optimal pays   0.0002 0.0026 0.0035 0.0046 0.0057 0.0030 0.0015 0.0016 0.0005 0.0000
+  greedy pays    0.0002 0.0008 0.0016 0.0033 0.0069 0.0053 0.0107 0.0121 0.0013 0.0000
+counting, chain_0.85
+  cheapest now   0.00 0.70 0.02 0.64 0.11 0.32 0.76 0.97 1.00 1.00
+  optimal pays   0.1016 0.0061 0.0230 0.0126 0.0955 0.0052 0.0129 0.0002 0.0000 0.0000
+  greedy pays    0.0214 0.0049 0.0174 0.0300 0.0462 0.0781 0.2021 0.1147 0.3949 0.0000
+dyck, hidden_0.85
+  cheapest now   1.00 1.00 0.00 0.00 0.59 0.55 0.21 0.62 0.26 0.89 1.00 1.00
+  optimal pays   0.0000 0.0000 0.0110 0.0180 0.0090 0.0101 0.0116 0.0068 0.0054 0.0018 0.0012 0.0000
+  greedy pays    0.0000 0.0000 0.0110 0.0087 0.0223 0.0118 0.0135 0.0116 0.0134 0.0064 0.0009 0.0000
+dyck, chain_0.85
+  cheapest now   1.00 0.00 0.56 0.56 0.75 0.26 0.08 0.11 0.38 1.00 1.00 1.00
+  optimal pays   0.0000 0.6200 0.0005 0.0288 0.0395 0.0647 0.0345 0.0038 0.0014 0.0000 0.0000 0.0000
+  greedy pays    0.0000 0.0000 0.1225 0.0864 0.1131 0.0712 0.1114 0.0738 0.2000 0.1041 0.4112 0.0000
+window_small, hidden_0.85
+  cheapest now   1.00 1.00 0.38 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+  optimal pays   0.0109 0.0096 0.0035 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
+  greedy pays    0.0109 0.0096 0.0002 0.0002 0.0004 0.0032 0.0030 0.0024 0.0002 0.0000
+two_window_small, hidden_0.85
+  cheapest now   1.00 1.00 0.35 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+  optimal pays   0.0087 0.0007 0.0166 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
+  greedy pays    0.0087 0.0007 0.0002 0.0049 0.0098 0.0068 0.0052 0.0028 0.0000 0.0000
+forbidden, hidden_0.85
+  cheapest now   0.00 0.26 0.42 0.22 0.35 0.33 0.35 0.54 1.00 1.00
+  optimal pays   0.0887 0.0139 0.0052 0.0226 0.0078 0.0108 0.0081 0.0041 0.0019 0.0000
+  greedy pays    0.0657 0.0181 0.0271 0.0144 0.0165 0.0128 0.0131 0.0080 0.0044 0.0000
+```
+
+- The room: random order is 2.8, 3.7, 4.6, 3.6, 18.0, 22.1, 2.4 times the optimal KL in the seven cells.
+- The optimal order is not greedy. It pays more than the cheapest available reveal in the early and middle steps and
+  less than the greedy order late. On counting with the Markov chain its first reveal is the dearest position on offer
+  (0.102 nats; the cheapest is 0.021), and the greedy order later pays 0.39 nats in a single step.
+- The horizon is long. Lookahead on the true error to depth 4 is still 2.2 and 1.4 times optimal on the two Markov-chain
+  cells. Scoring a reveal by its error now plus the exact cost of *finishing* from the state it leaves (greedily or in
+  random order) is within 1.34 times optimal in every cell when the continuation is greedy.
+- No fixed recipe is close everywhere: the best of `lex`, `sum`, `separator` is 1.80, 2.98, 1.37, 1.31, 2.46, 1.92, 1.09 times optimal.
+- Planning on the present estimates, even to full depth, is not reliably better than their greedy use: the estimates are
+  not accurate at the hypothetical states a plan visits. The exception is the small window, where the greedy use fails.
+
+## 36t. The order problem needs no exact twist: total tilt, fixed orders, planning in a surrogate (local, 2026-11-16) [identity proved and verified; planning verified at 10 to 12 positions only]
+
+Script `experiments/parallel_unmasking/surrogate_plan.py`; results `results/parallel_unmasking/order_study/surrogate_*.json`.
+
+**Identity.** One token per step; the order may depend on the revealed state; the model is order-consistent, so
+p(x) = prod_t m_{i_t}(a_t | x_t) along any such order; the proposal is the product twist's constrained marginal q_i, so
+every sample satisfies C. Then, with s the sampler's law,
+
+    KL(s || p(. | C)) = E_s[log s(x) - log p(x)] + log p(C) = log p(C) + E_s[ sum_t KL(q_{i_t} || m_{i_t}) ].
+
+- KL(q_i || m_i), the *tilt*, is how far the proposal moves the model's marginal at the revealed position. Both q_i and
+  m_i are in hand when the position is chosen, so the cost of the present step is known exactly, without the exact twist.
+- log p(C) does not depend on the order. The best order is the one with the least expected total tilt.
+- Relation to the true error: eps_i(x) = tilt_i(x) + log psi(x) - E_{a ~ q_i} log psi(x with i = a), with psi the exact
+  twist; the psi terms telescope to log p(C). The two costs have the same best plan and different greedy orders: greedy on
+  eps assumes the rest of the decode is exact, greedy on tilt assumes it is free. Least-tilted-first is 3.6 to 45 times optimal.
+- The expected total tilt is minus the expected log weight of a particle (the evidence lower bound read step by step).
+  What is new here is its use as the planning objective, and that it makes the order problem a statement about the
+  model's conditionals and the route alone.
+- Checked in all seven cells: total tilt + log p(C) equals the KL to six decimals for the optimal and the random order,
+  and the best plan for total tilt has the optimal KL.
+
+**Fixed orders and surrogates.** Exact KL as a multiple of the optimal KL (lower is better):
+
+| cell | random | ideal greedy | best fixed order | plan in 1st-order chain | plan in 2nd-order chain | fixed order found in 2nd-order chain | true tilt now + 2nd-order chain afterwards |
+|---|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=10 | 2.81 | 1.82 | 1.42 | 2.19 | 1.38 | 1.62 | 3.01 |
+| counting, chain_0.85, N=10 | 3.66 | 3.54 | 1.49 | 1.00 | 1.00 | 1.49 | 1.15 |
+| dyck, hidden_0.85, N=12 | 4.61 | 1.33 | 1.46 | 2.02 | 1.24 | 1.65 | 3.08 |
+| dyck, chain_0.85, N=12 | 3.55 | 1.63 | 1.12 | 1.00 | 1.00 | 1.12 | 1.00 |
+| window_small, hidden_0.85, N=10 | 18.02 | 1.26 | 1.00 | 3.88 | 1.22 | 1.00 | 9.05 |
+| two_window_small, hidden_0.85, N=10 | 22.13 | 1.50 | 1.00 | 2.62 | 1.34 | 1.34 | 2.64 |
+| forbidden, hidden_0.85, N=10 | 2.42 | 1.10 | 1.10 | 1.16 | 1.06 | 1.10 | 1.60 |
+
+- *Best fixed order*: the best state-independent permutation found by local search (swaps and insertions, 13 starts) with
+  exact evaluation. *Plan in a surrogate*: a first- or second-order Markov chain is fitted to 2,000 unconditional pilot
+  samples; the best plan is computed inside it (its own exact twist, no further calls to the model) and then scored
+  exactly on the true model.
+- The plan from the second-order surrogate is 1.00 to 1.38 times optimal and beats the ideal greedy order, which needs the
+  exact twist, in 7 of 7 cells. It also beats the best of `lex`, `sum`, `separator` in 7 of 7.
+- A first-order surrogate is not enough on the hidden chain (2.0 to 3.9 times optimal on four of its five cells): the
+  surrogate must carry the dependence beyond neighbours. Where the family contains the truth (Markov chain) it is 1.00.
+- A fixed order recovers the whole gain on the windows, most of it on forbidden and Dyck with the Markov chain, and
+  part of it on counting and on Dyck with the hidden chain (1.4 to 1.5 times optimal). The best fixed orders found:
+  - counting, hidden_0.85: [7, 6, 0, 1, 2, 8, 3, 4, 5, 9]
+  - counting, chain_0.85: [2, 4, 6, 8, 0, 7, 9, 3, 1, 5]
+  - dyck, hidden_0.85: [11, 0, 5, 6, 10, 4, 9, 1, 2, 8, 7, 3]
+  - dyck, chain_0.85: [11, 5, 0, 7, 4, 8, 3, 9, 2, 6, 10, 1]
+  - window_small, hidden_0.85: [6, 5, 3, 4, 8, 2, 1, 0, 9, 7]
+  - two_window_small, hidden_0.85: [1, 2, 8, 7, 3, 9, 5, 0, 6, 4]
+  - forbidden, hidden_0.85: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  On the Markov chain under counting it is every second position first: after those the rest are independent and the
+  product twist is exact. On the hidden chain it is contiguous runs. The windows go first, then outwards. There is no
+  common pattern, which is the case for computing the order rather than prescribing it.
+- Mixing does not work: the true tilt now plus the surrogate's expected tilt afterwards is worse than the surrogate's own
+  plan in all seven cells (by 0.4% on Dyck with the Markov chain, by 1.15 to 7 times elsewhere). The tilt totals are several nats and the differences that matter are hundredths; an error in
+  the surrogate's log p(C | x) does not cancel unless both terms come from the same model.
+- Limits. 10 to 12 positions is under two correlation lengths. The backward pass over all states does not exist at 64
+  positions and beyond, so a planner that scales is still to be built (fixed order optimised inside the surrogate;
+  rollouts inside the surrogate; a fitted value). Alphabets of 2 and 3. The pilot is the same 2,000 samples the kernel uses.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
@@ -1878,6 +2095,12 @@ job scripts and arm names keep working.
    (`twist_temp`) to the pressure case for both twists; the chain twist needs tempering of its masked marginals first.
    Until the pool mount is fixed, pin GPU jobs to a node that passes the storage probe. The order study (section 36i) is input to the
    selection rule; the user has thoughts on that rule and asked to be flagged before the work starts.
+0a. Selection after sections 36q to 36t: the objective is the expected total tilt, and the ideal order is a long-horizon
+   plan that a second-order surrogate recovers at 10 to 12 positions. To decide with the user: which planner scales
+   (a fixed order optimised offline inside the surrogate; rollouts inside the surrogate at decode time; a fitted value),
+   and what the surrogate is on a language model (a chain over the constraint's classes fitted to pilot samples).
+   Then: the same test at 32 to 64 positions against the measured orders of section 36i; the parallel form (co-reveal
+   term in the same objective); the exact search at 12 to 14 positions on the cluster.
 1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the
    stake paid beyond log(1 / p(C)), i.e. reveals where the proposal's marginal is accurate; measure KL = -E[log(W / p(C))]
    as the end measure on `hidden256`; then a scale-free score (`sum` fails on MDLM, `lex` costs steps on Dyck),

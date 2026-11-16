@@ -1,0 +1,100 @@
+{
+ "args": {
+  "N": 10,
+  "model": "hidden_0.85",
+  "constraint": "forbidden",
+  "pilot": 2000,
+  "surrogates": [
+   "markov1",
+   "markov2"
+  ],
+  "restarts": 12,
+  "out": "../../overnight/surrogate_forbidden_hidden_0.85_N10.json"
+ },
+ "provenance": {
+  "commit": "00121c0",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-16 17:14"
+ },
+ "log_pC": -1.6334077385823549,
+ "kl": {
+  "random": 0.39424632787193453,
+  "optimal": 0.1629737592645331,
+  "greedy": 0.18004971310910473,
+  "rollout_greedy": 0.16913808511629055,
+  "rollout_random": 0.18142824026425303,
+  "least_tilted": 0.6958808319776996,
+  "static": 0.179220640858136,
+  "markov1:optimal": 0.18880992212861158,
+  "markov1:rollout_random": 0.2193127290897363,
+  "markov1:static": 0.179220640858136,
+  "mix-markov1:optimal": 0.21296030899731802,
+  "mix-markov1:rollout_random": 0.21890433237229479,
+  "markov1:own_optimal_value": 0.19821903551724676,
+  "markov1:own_random_value": 0.5250349947617531,
+  "markov2:optimal": 0.17337379418542387,
+  "markov2:rollout_random": 0.20686228087364045,
+  "markov2:static": 0.179220640858136,
+  "mix-markov2:optimal": 0.26130279639895276,
+  "mix-markov2:rollout_random": 0.2507740729758977,
+  "markov2:own_optimal_value": 0.15685907856830855,
+  "markov2:own_random_value": 0.34143725602367364
+ },
+ "checks": {
+  "optimal_kl": 0.1629737592645331,
+  "optimal_total_tilt_plus_log_pC": 0.16297375926448554,
+  "random_kl": 0.39424632787193453,
+  "random_total_tilt_plus_log_pC": 0.3942463278718953,
+  "best_plan_for_tilt_kl": 0.16297375926453328
+ },
+ "static": {
+  "truth": {
+   "order": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "kl": 0.179220640858136
+  },
+  "markov1": {
+   "order": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "kl": 0.179220640858136
+  },
+  "markov2": {
+   "order": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "kl": 0.179220640858136
+  }
+ },
+ "seconds": 63.8
+}
