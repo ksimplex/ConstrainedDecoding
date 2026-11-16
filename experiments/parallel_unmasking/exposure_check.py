@@ -115,11 +115,13 @@ def run_cell(job):
         lw = tr[-1, alive] - truth.log_pC
         w = np.exp(lw)
         row = dict(model=mname, constraint=cname, N=N, schedule=name, n=int(a["n"]), dead=float(1 - alive.mean()),
-                   calls=float(np.mean(out["steps"])), var_logw=float(lw.var(ddof=1)), spread=float(w.std(ddof=1) / w.mean()),
+                   calls=float(np.mean(out["steps"])), log_pC=float(truth.log_pC), mean_logw=float(lw.mean()),
+                   mean_logw_se=float(lw.std(ddof=1) / np.sqrt(len(lw))), var_logw=float(lw.var(ddof=1)), spread=float(w.std(ddof=1) / w.mean()),
                    z_ratio=float(np.mean(np.where(alive, np.exp(tr[-1] - truth.log_pC), 0.0))), seconds=round(time.time() - t0, 1))
         for k, p in enumerate(PRED):
             x = rec[:, k]
             row[f"{p}_sum"] = float(x[:, alive].sum(0).mean())                       # E[sum_t x_t]
+            row[f"{p}_sum_se"] = float(x[:, alive].sum(0).std(ddof=1) / np.sqrt(alive.sum()))
             row[f"{p}_sumsq"] = float((x[:, alive] ** 2).sum(0).mean())              # E[sum_t x_t^2]
             row[f"{p}_bins"] = binned(x[used], inc[used])
         # correlation between the increments of consecutive revealing steps (the run-level bound assumes it is small)

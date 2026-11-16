@@ -892,7 +892,8 @@ a diffusion language model is the standard benchmark) with overall numbers. Proo
   `OMP_NUM_THREADS=2` (README).
 - **Not done here.** `twist_error.py` and `twist_smc.py` are unchanged; they become the test oracle of the chain-twist
   route wrapper when that is written.
-- `forced_first` is on by default, so the `random sequential` arm of section 27 reveals forced partners first.
+- `forced_first` is on by default, so the `random sequential` arm of section 27 reveals forced partners first
+  (measured in section 36b: on the full copy at N = 64 it lowers Var(log w_T) from 17.0 to 4.8).
 
 ## 36a. Suites, standard report and results log (2026-11-16) [verified]
 
@@ -913,15 +914,67 @@ a diffusion language model is the standard benchmark) with overall numbers. Proo
   0.40 [0.33, 0.46]); the guard on top of the pull-in is not resolved (0.11 [0.10, 0.12] against 0.12 [0.11, 0.14]).
   The bootstrap interval is too narrow under heavy tails; read it with `z_se_unreliable`.
 
+## 36b. Exposure against measured weight variance (2026-11-16) [verified at N = 64; N = 256 not run]
+
+`exposure_check.py`: hidden chain (noise 0.3), N = 64, forbidden / counting / copy / dyck, 15 schedules (6 one token per
+step, 9 parallel), 1,000 single particles each, no resampling. A probe records, per particle and step, the log-weight
+increment and the exposure of the set just chosen. Var(log w_T) is in nats^2 (lower is better).
+
+- **Step level: exposure sets the scale of the increment but is not a bound with constant 2.** Ratio sd(increment) /
+  exposure, median over exposure bins, by schedule: forbidden 0.47-1.52, counting 1.37-1.64, copy 0.44-0.89,
+  dyck 1.14-3.16. Largest bin: 3.3, 6.8, 1.9, 5.8. The claim of section 32 (sd at most 2 x exposure) is **refuted**
+  as stated on dyck and in the top bins of counting.
+- **Run level: cumulative exposure does not rank schedules.** Spearman correlation of Var(log w_T) with
+  E[sum of squared exposure] over the 15 schedules: +0.51, +0.07, -0.55, +0.45 (exposure added in quadrature over the
+  positions of a step); +0.49, +0.81, +0.49, +0.72 (added coherently, which mostly tracks the size of the sets).
+  On copy the constraint-first orders have the higher exposure (18.7 against 14.1) and the lower variance
+  (1.8-2.0 against 4.5-5.1).
+- **Why the step-to-run argument fails: increments of different steps cancel.** Sum over steps of Var(increment)
+  divided by Var(log w_T): forbidden 1.1-3.4, copy 1.3-3.3, dyck 4.7-7.4, counting 9.4-19.7. For the global
+  constraints almost all step-level fluctuation is undone later. This is the same fact as section 22 (intermediate
+  weights do not predict final ones) seen from the other side.
+- **Where the order matters, and by how much** (one token per step, Var(log w_T)): forbidden: `bound` 1.4, `lex` 1.5,
+  `sum` 3.1, random 11.9, `separator` 24.4 (worse than random). Copy: `lex` 1.8, `bound` 2.0, `sum` 4.5, random with
+  forced-first 4.8, `separator` 5.1, random without forced-first 17.0. Counting 0.34-0.51 and dyck 1.6-1.7 (2.5 for
+  random without forced-first): no order effect beyond noise.
+- **`forced_first` is a large part of the order fix on copy** (17.0 -> 4.8): the inference of section 27 is now
+  measured, at N = 64 on the full copy.
+- **An exact identity replaces the heuristic** [verified for one-token steps, 12 cases, all within one s.e.:
+  differences -0.15 to +0.17 nats, s.e. 0.12-0.34]. With the locally optimal proposal the weight is the model's path
+  probability over the proposal's, so log W_T = - sum_t log(q_t / p_t), and
+      KL(sampler's law || exact constrained law) = E[ sum_t D at the revealed position ] - log(1 / p(C)).
+  The cumulative stake paid at reveal, in excess of the fixed total log(1 / p(C)), is the sampler's KL error. It is
+  also -E[log(W / p(C))], which every run already gives. Measured KL in nats (lower is better): forbidden: random
+  2.6, `bound` 0.77, `separator` 4.1, parallel `lex` + pull + guard 0.78; copy: random 4.6, forced-first 2.0, `bound`
+  0.81, `separator` 1.8, parallel `lex` + pull + guard 0.67; counting 0.13-0.20 for all.
+  For a parallel step the identity needs the joint KL of the set, not the sum of the positions' stakes.
+- **Consequences.** (1) Exposure is dropped as the unifying criterion; it can stay as a per-step scale. (2) The
+  objective for the order is now exact: pay as little stake as possible beyond log(1 / p(C)). By the chain rule the
+  excess is the sum over steps of the error of the proposal's marginal at the revealed position, so the order should
+  reveal where the product twist's constrained marginal is accurate. A plausible reading of why constraint-first
+  wins on forbidden and copy [not tested]: a large D that comes from *revealed* context is exact, a constraint effect
+  that arrives through masked neighbours is where the product twist errs. (3) The chain twist gives an estimate of
+  exactly that error (the gap between its constrained marginal and the product one), so the two contributions meet.
+- **Not done.** The N = 256 run was stopped: the probe's kernel sums run over the full pilot range and would have
+  taken hours. Rerun with the pilot noise floor cut (entries below 1e-6), on the `hidden256` suite.
+- Files: `results/parallel_unmasking/exposure_N64.json`, `exposure_N64_summary.json`, `exposure_identity_N64.json`.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
 of section 34: the studies are registered functions behind one command line, not separate scripts, so the existing
 job scripts and arm names keep working.
 
-1. Selection: check exposure against measured log-weight variance; settle a scale-free score (`sum` fails on MDLM,
-   `lex` costs steps on Dyck); held-out constraints; ablations of order, guard, pull-in and tie-break. The pull-in
-   needs its own justification: exposure does not derive it.
+1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the
+   stake paid beyond log(1 / p(C)), i.e. reveals where the proposal's marginal is accurate; measure KL = -E[log(W / p(C))]
+   as the end measure on `hidden256`; then a scale-free score (`sum` fails on MDLM, `lex` costs steps on Dyck),
+   held-out constraints, ablations of order, guard, pull-in, forced-first and tie-break.
+1a. A real grammar through the chart route (requested 2026-11-16). Prerequisites: constrained marginals from the chart
+   (it is not differentiable as it stands), and an exact truth for a chain model under a grammar (chain x grammar
+   product; check against a bounded-depth automaton at 16-24 positions). Then: Dyck-1 through the chart in the same
+   cells as through the automaton (should agree within noise); pure Dyck-2 as the stress case; Dyck-2 with a free
+   atom symbol (the nesting skeleton of JSON) as the indicative case. Chart cost and the cost of the chain twist on
+   a chart (up to the cube of the number of classes) measured separately. Before the 1,024-position cluster job.
 2. Chain twist in the main sampler: pair-lift wrapper for automata, positivity mix, no-regression benchmark at 64, 256
    and 1,024 with and without the gate; then grammars with a measured cost; then the partial lift for copy. With many
    classes: full class by default, likely classes kept exactly and the rest merged, loss reported against the number
