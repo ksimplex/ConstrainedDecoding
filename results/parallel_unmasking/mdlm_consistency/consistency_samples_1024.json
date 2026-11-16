@@ -1,0 +1,64 @@
+{
+ "args": {
+  "N": [
+   1024
+  ],
+  "n": 8,
+  "orders": 6,
+  "chunk": 16,
+  "synthetic": false,
+  "oracle": false,
+  "real_text": false,
+  "seed": 0,
+  "out": "consistency_samples_1024.json"
+ },
+ "provenance": {
+  "commit": "00121c0",
+  "dirty": false,
+  "torch": "2.5.1+cu124",
+  "platform": "Linux-x86_64",
+  "started": "2026-11-16 17:48"
+ },
+ "rows": [
+  {
+   "N": 1024,
+   "source": "model samples",
+   "sequences": 8,
+   "random_orders": 4,
+   "mean_neg_logp_per_token": 6.557488068155364,
+   "entropy_by_quarter_of_own_order": [
+    6.713801815053433,
+    6.189825070550432,
+    5.903453472786214,
+    5.73697686146066
+   ],
+   "own_order_neg_logp_per_token": 6.186787057556989,
+   "distinct_token_share": 0.586669921875,
+   "first_sequences": [
+    "<|endoftext|>, to the post state Rommel, yet he pronounces it: \u201cWar Al Qaeda\u201d Yes!, that is its call. This Orwellian \u201cwar story\u201d the screams \u201cmore war\u201d so many times with impunity. The list of things can hardly be borne to his head but is latest. Quite so and has no interest if not but the fact that this war was for newspaper sales and well done.\n\nBeebeck blames for these great starred revenue all",
+    "<|endoftext|><|endoftext|>, near Flinnie Hill in central Northumberland.\n\nNootan, carmer, rose twice and won two of three question period against ministers of the Home Office of Scotland, Liberal Democrat Nick Lyon and Sir Hugh Harvey Mundell at Queensberryfields, HAWAL, last evening.\n\nIt was conducted when a snap referendum was called following last May's referendum election results in Wales and ",
+    "<|endoftext|> the Icelandic legal system.\n\nAn EU high court judge dismissed his claim that Iceland's government had gone ahead with the International Convention Against Animal Welfare in Iceland.<|endoftext|>BtMC says it takes a little too long to move on following court cases against EU leaders and Balkan states Macedonia and Greece. And that the verdict needs a shift in the spin in European inst",
+    "<|endoftext|> having an all-book rival like Raphael Lim back in Toronto a year ago, this rematch was just that at the beginning.\n\n\u201cJust as seriously as all the officers, all of them in officials with Peggy Dawson, Mike Duffy\u2019s team, and Harper, took over the Duffy Tip, Michael Mahins told the New York Morning. \u201cHopefully the syrup didn\u2019t start upset me too much. We\u2019re going to dig deep.\u201d\n\nGet Toda"
+   ],
+   "sd_over_orders": 24.417072010692905,
+   "sd_over_orders_se": 2.171608056170368,
+   "sd_over_orders_per_token": 0.02384479688544229,
+   "gap_to_mixture": 22.68810485502786,
+   "gap_to_mixture_se": 3.491390508404135,
+   "left_to_right_shift": -19.55370652944646,
+   "left_to_right_shift_se": 5.029497624676391,
+   "right_to_left_shift": -41.90526430656416,
+   "right_to_left_shift_se": 13.22503362011892,
+   "own_order_shift": 379.5978348527366,
+   "own_order_shift_se": 18.960279731528825,
+   "max_abs_spread": 76.1816545974325,
+   "seconds": 238.9
+  }
+ ],
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "gpu": "NVIDIA L40S"
+}

@@ -20,6 +20,8 @@ The evidence for a failed job is `slurm-<id>.out` in its working directory
 | 2026-11-16 05:00 | e2f6bade | 29301690 | node3502 | Storage probe pinned to the node | COMPLETED; pool tests hung | Same pattern as node3403 | Still bad. |
 | 2026-11-16 05:02 | 165e88ec | 29301723 | node4204 | Storage probe pinned to the node | COMPLETED; pool tests hung | `ls -d /orcd/pool/005/ksanj` instant, but `stat`, `md5sum`, `df` inside it and Python hang | Still bad three hours after the first failure; the directory appears mounted but unresponsive (looks like a stale mount). |
 | 2026-11-16 05:08 | b41c1480 | 29302027 | node3203 | Timing at `7395e53`, pinned with `-w node3203`, storage check first | COMPLETED, 12 of 12 cells | none | Pinning to a node that just passed the probe works. |
+| 2026-11-16 06:36 | b1ffcca2 | not recorded | node3203 | MDLM order consistency at `cc24eb5`, pinned with `-w node3203`, storage check first | COMPLETED in about 1 min | none | Pinned node still good. |
+| 2026-11-16 17:42 | 8fabd084 | not recorded | node3203 | MDLM order consistency follow-up at `00121c0` (real text, lengths to 1,024), pinned, storage check first | COMPLETED in about 10 min, 6 of 6 files | none | Pinned node still good eleven hours later. Other nodes not re-probed. |
 
 ## Summary of the 2026-11-16 episode
 

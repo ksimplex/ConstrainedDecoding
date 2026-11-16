@@ -1,0 +1,169 @@
+{
+ "args": {
+  "N": [
+   32,
+   64,
+   128,
+   256
+  ],
+  "n": 32,
+  "orders": 18,
+  "chunk": 64,
+  "synthetic": false,
+  "oracle": false,
+  "real_text": false,
+  "seed": 0,
+  "out": "consistency_samples.json"
+ },
+ "provenance": {
+  "commit": "00121c0",
+  "dirty": false,
+  "torch": "2.5.1+cu124",
+  "platform": "Linux-x86_64",
+  "started": "2026-11-16 17:42"
+ },
+ "rows": [
+  {
+   "N": 32,
+   "source": "model samples",
+   "sequences": 32,
+   "random_orders": 16,
+   "mean_neg_logp_per_token": 3.1572456662162542,
+   "entropy_by_quarter_of_own_order": [
+    3.3594567531038533,
+    1.9309601815138346,
+    1.4192466169450904,
+    0.9873005433117654
+   ],
+   "own_order_neg_logp_per_token": 1.9651596383973216,
+   "distinct_token_share": 0.369140625,
+   "first_sequences": [
+    " Nor nor Nor Nor nor Nor Nor nor Nor Nor nor Nor nor Nor Nor nor Nor Nor Nor Nor Nor Nor Nor nor Nor Nor Nor nor nor Nor Nor nor",
+    "<|endoftext|> [theEuropean] forces\u201d in Francoseizration\u2019s outstanding and courageous heroes, de la Fl\u00e8bert and Muramuni, two",
+    " of colleges and begin as 6, 10, 5, 4, 3, 2, 2, 2, 1, 1, 1, 2, 1, 2",
+    " at the beginning of Christianity plate something at the beginning of the Son of the Christ of Christ; the beginning of Christianity plate something at the end of Alexandria, and"
+   ],
+   "sd_over_orders": 9.654019941738195,
+   "sd_over_orders_se": 0.962916804584666,
+   "sd_over_orders_per_token": 0.3016881231793186,
+   "gap_to_mixture": 13.31765831086052,
+   "gap_to_mixture_se": 1.4787135728702285,
+   "left_to_right_shift": 4.0541581277206,
+   "left_to_right_shift_se": 1.4348939096519244,
+   "right_to_left_shift": 1.3395686008101984,
+   "right_to_left_shift_se": 1.8460089162447455,
+   "own_order_shift": 38.146752890205846,
+   "own_order_shift_se": 4.100224781749285,
+   "max_abs_spread": 72.85915619507432,
+   "seconds": 4.4
+  },
+  {
+   "N": 64,
+   "source": "model samples",
+   "sequences": 32,
+   "random_orders": 16,
+   "mean_neg_logp_per_token": 3.1630151522010497,
+   "entropy_by_quarter_of_own_order": [
+    3.5796258653704847,
+    2.0104012092548067,
+    1.534710392703694,
+    1.2299691160922461
+   ],
+   "own_order_neg_logp_per_token": 2.1165914755858313,
+   "distinct_token_share": 0.36865234375,
+   "first_sequences": [
+    "\u0103\u0103\u0103\ufffd\ufffd\u0103\u0103\u0103\u0103\ufffd\u0103\u0103\ufffd\ufffd\ufffd\u0103\u0103\ufffd\u0103\u0103\ufffd\u0103\ufffd\ufffd\u0103\ufffd\u0103\ufffd\u0103\u0103\u0103\ufffd\u0103\u0103\u0103\u0103\ufffd\ufffd\u0103\ufffd",
+    "\n\nslept\n\nslept\n\nslept\n\nslept\n\nslept tonight\n\nslept\n\nslept\n\nslept\n\nslept\n\nslept\n\nslept yesterday\n\nslept\n\nslept\n\nubit\n\nisfit\n\n",
+    " Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah Allah",
+    "<|endoftext|>\n\nFujutum Day\n\nMonday June 14th, 2011\n\nPeople's Day:\n\nWednesday October 25th, 2010\n\nFools:\n\nSunday June 14th, 2011\n\nFujutum Day:\n\nMonday June 11th, 2011\n\nPeople's Day"
+   ],
+   "sd_over_orders": 14.407012321234923,
+   "sd_over_orders_se": 1.4438304815774627,
+   "sd_over_orders_per_token": 0.22510956751929567,
+   "gap_to_mixture": 19.27773533159177,
+   "gap_to_mixture_se": 2.0313977886553465,
+   "left_to_right_shift": -0.1234695959561467,
+   "left_to_right_shift_se": 2.5572610018867308,
+   "right_to_left_shift": -10.413456309029408,
+   "right_to_left_shift_se": 3.085392967780177,
+   "own_order_shift": 66.97111530337398,
+   "own_order_shift_se": 6.796009234128127,
+   "max_abs_spread": 97.75166829756927,
+   "seconds": 9.8
+  },
+  {
+   "N": 128,
+   "source": "model samples",
+   "sequences": 32,
+   "random_orders": 16,
+   "mean_neg_logp_per_token": 3.7362531098025062,
+   "entropy_by_quarter_of_own_order": [
+    4.4356016857949765,
+    2.965798021573234,
+    2.354780708003235,
+    1.8365931794878034
+   ],
+   "own_order_neg_logp_per_token": 2.9385698855633517,
+   "distinct_token_share": 0.4833984375,
+   "first_sequences": [
+    "<|endoftext|>mq.com.xan xan http://allenmin.com/allenmin.com contiveusernameny.com educationalfun.com/avoryl-avoryl-avumn.l ! http://fatlibamalchoolfuntimer/avorylfun-avoryl.l ! http://libamalchoolfun/avorylfun-avumn.l http://minejoypul.jsonleaf.com/avorylfun-avorylfun-avumn-loryl to use jusbbe http://chaitleywhisk.com/",
+    "<|endoftext|>drawn taxi heads up. Some prepared coffees are nudged out on the tarmac, the start of a countdown that stands for succession of three sprints and half an hour to leave. The countdown begins in the room of Coul Coulson, Harrison-Clarke and Alison Redford before eventually leading into the kitchen of Coley-Murray. A window across the car is decorated with an ornamor bearing the name of ",
+    "\n\u2018Yeah, you man, you don\u2019t get the shit you have to take, you\u2019ll get some other crap you have to take, you\u2019ll get some other shit you couldn\u2019t know, you?\u2019\n\n\u2018Yeah, you man, you don\u2019t know, I\u2019m telling you, right?\u2019\n\n\u2018Right, right, I\u2019m giving you a right, I\u2019m not giving you up, I\u2019m going to and let you get out out?\u2019\n\nxxxxx",
+    "<|endoftext|> the business, its customers and its Parties as parties to the preliminary agreement.Mr Incorporates on the full terms of the term of valters in the purchase (de):Shareholders Shares shareholders Shareholders Shareholders Shareholders\n\nTHGNet understands that Mr's interest is outlined in the pre-proposal of the October-December competition tender and that the terms of the acquisition "
+   ],
+   "sd_over_orders": 16.222776639824627,
+   "sd_over_orders_se": 1.2691325478317983,
+   "sd_over_orders_per_token": 0.1267404424986299,
+   "gap_to_mixture": 23.15405888592553,
+   "gap_to_mixture_se": 1.9151289995366354,
+   "left_to_right_shift": 0.6881375233133724,
+   "left_to_right_shift_se": 3.720992778455062,
+   "right_to_left_shift": -19.883948576917057,
+   "right_to_left_shift_se": 4.270710511979432,
+   "own_order_shift": 102.10345270261172,
+   "own_order_shift_se": 6.880048828694294,
+   "max_abs_spread": 102.52954002527895,
+   "seconds": 36.9
+  },
+  {
+   "N": 256,
+   "source": "model samples",
+   "sequences": 32,
+   "random_orders": 16,
+   "mean_neg_logp_per_token": 4.441074695003239,
+   "entropy_by_quarter_of_own_order": [
+    5.471583927104664,
+    4.047607087057531,
+    3.023730954267062,
+    2.396500253430526
+   ],
+   "own_order_neg_logp_per_token": 3.7806000153192834,
+   "distinct_token_share": 0.5833740234375,
+   "first_sequences": [
+    "<|endoftext|> sex outside the two of his parents and a new book for the next several weeks. My bienfant hero to date has been focused on finding a healthy access to every person throughout her several lives.\n\nCollins is going to keep a celebrity roster in his favor. The writer- cameraman by herself co-anchor Mary Danbinson is going to be breakout Sharon Day. Day became pregnant with Guilla Pollard",
+    "<|endoftext|> to loves and groups that are sharing their beliefs,\u201d Haaretz asked.\n\nIran and other leaders of the world are \u201cfascist\u201d and \u201cnon-believers,\u201d he stated.\n\n\u201cHistory has threatened one leader of the world threatening people\u2019s faith. Because our God\u2019 leading Iran on this road, the leader who caused the destruction of this original Shiite-Sunni homeland, is organized and so\u2019 must go to 12 m",
+    "<|endoftext|>FIG MGE PRAGE + AGE CHANGE TOW Transition Gender TRANS Teen Transition Gender NEED Change Impact\u223c\u2206\u223c\u223b\u2206\u2206\u223c\u2204 \u2022 \u2022 Love Cloud Cloud Beta Eco-Op Caffe Club Eco NonAlternative Si Eco Livocock Moo Bird Eco Transition Art \u2605 Eco Transition Friendly Eco Transition Danger Transition Eco Grow Star Transition Eco Eco Radical Eco Eco Solo Transition Eco Turning Point Eco Eco Transition Eco Forest Eco",
+    "<|endoftext|> likelihood analyses, rather than critiquing either. Schwartz-Trade-Comms narrative algorithm for Schotter\u00fchle proved as likely as to have edge and Rohini to lose though neither was founded which player more explicitly dominated the outcome over Cheese. Still where Cheese's mastery, but in the second group of cases redistributing the impact-dependent analytical team which went under w"
+   ],
+   "sd_over_orders": 19.30802940798865,
+   "sd_over_orders_se": 1.0485446903416915,
+   "sd_over_orders_per_token": 0.07542198987495566,
+   "gap_to_mixture": 30.773456985362753,
+   "gap_to_mixture_se": 1.9964497350824983,
+   "left_to_right_shift": -1.761367718221642,
+   "left_to_right_shift_se": 3.606419351736704,
+   "right_to_left_shift": -22.115659083428977,
+   "right_to_left_shift_se": 3.9877044724242343,
+   "own_order_shift": 169.0815179990926,
+   "own_order_shift_se": 8.020202330481995,
+   "max_abs_spread": 119.23411907533591,
+   "seconds": 159.4
+  }
+ ],
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "gpu": "NVIDIA L40S"
+}

@@ -1,0 +1,64 @@
+{
+ "args": {
+  "N": [
+   512
+  ],
+  "n": 8,
+  "orders": 10,
+  "chunk": 32,
+  "synthetic": false,
+  "oracle": false,
+  "real_text": false,
+  "seed": 0,
+  "out": "consistency_samples_512.json"
+ },
+ "provenance": {
+  "commit": "00121c0",
+  "dirty": false,
+  "torch": "2.5.1+cu124",
+  "platform": "Linux-x86_64",
+  "started": "2026-11-16 17:46"
+ },
+ "rows": [
+  {
+   "N": 512,
+   "source": "model samples",
+   "sequences": 8,
+   "random_orders": 8,
+   "mean_neg_logp_per_token": 5.340971532441572,
+   "entropy_by_quarter_of_own_order": [
+    6.08260568280822,
+    4.826159825390967,
+    4.284907178762328,
+    3.9517633070975267
+   ],
+   "own_order_neg_logp_per_token": 4.814215236516112,
+   "distinct_token_share": 0.572509765625,
+   "first_sequences": [
+    "<|endoftext|> to be announced \u2013 on May 5th. The winners will be in OSN Div3 Division 5 1st place Bosnia DPR.\n\nAll-Star Matches\n\nTwo\n\nThree\n\nFormat\n\nThe tournament will host one of the Champions qualifier (the best team in the Americas) Afghanistan use step one in the 3rd group. It is not yet confirmed if during the CWB format will be open for D3 and/or OSN Div3 Champions League pool.\n\nThe winning ",
+    "<|endoftext|> November 19, the Presidential Public Safety Office said they identified \"an eight-year-old boy\" three years ago traveling in China via Papua New Guinea to Indonesia. Police checked in to question his passport after news of his \"alien family\", they said, father \"in exile with the US.\u201d\n\nIn search of his relatives\u2019 whereabouts as they had for three years, scores of natives were detained",
+    "<|endoftext|>\" is mandating their decisions. Seventy percent of Stanford Science Board members took part in forums or peer reviews that communicated opinions university scientists issued in response to the study's reportories to quell concern away from Science experts.Take unrestrained questions to scientific readers to avoid societal skepticism, because these engage too many Many scientists treat",
+    "<|endoftext|>\u2019s more Republican U.S. lawmakers. He has threatened condemnation for activities that preceded, including or denying, the coup. Erdogan is scrambling to garner the political backing of the Obama administration as a time to turn against the coup, but has backed away from starting with a compromise between changing hands on the opposition, crafted from views released by parliament becau"
+   ],
+   "sd_over_orders": 16.876494445245385,
+   "sd_over_orders_se": 1.155184070372463,
+   "sd_over_orders_per_token": 0.03296190321336989,
+   "gap_to_mixture": 23.38045278616852,
+   "gap_to_mixture_se": 2.13891866612548,
+   "left_to_right_shift": -12.890497618641916,
+   "left_to_right_shift_se": 6.955042894026825,
+   "right_to_left_shift": -21.796826953574055,
+   "right_to_left_shift_se": 6.337734044329027,
+   "own_order_shift": 269.69922351383553,
+   "own_order_shift_se": 22.706489860181108,
+   "max_abs_spread": 60.53792293765582,
+   "seconds": 92.6
+  }
+ ],
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "gpu": "NVIDIA L40S"
+}

@@ -2084,6 +2084,99 @@ every sample satisfies C. Then, with s the sampler's law,
   positions and beyond, so a planner that scales is still to be built (fixed order optimised inside the surrogate;
   rollouts inside the surrogate; a fitted value). Alphabets of 2 and 3. The pilot is the same 2,000 samples the kernel uses.
 
+## 36u. Calibrated twists on the resampling pressure case (cluster job `4b0e67e1`, 2026-11-16) [verified; 50 runs at 16 particles, 12 at 64]
+
+Arm set `calibrate` of `compare.py`; results `results/parallel_unmasking/calibrate_K{16,64}.json`, summary `calibrate_N256_summary.json`.
+`hidden_0.85`, 256 positions, forbidden and Dyck. Calibration (`twist_temp` tau) flattens the marginals of the masked
+positions inside the intermediate twist; tau = 1 is no calibration. RMS of log(Z_hat / p(C)) in nats, lower is better,
+with its jackknife standard error; 16 particles | 64 particles. The uncalibrated rows reproduce section 36k (same seeds).
+
+**forbidden, one token per step (256 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 3.32 ± 0.26 \| 2.13 ± 0.24 | | |
+| product | defensive | 2.18 ± 0.22 \| 1.35 ± 0.18 | 1.39 ± 0.15 \| 0.56 ± 0.07 | 1.92 ± 0.21 \| 1.03 ± 0.18 |
+| product | plain | 2.68 ± 0.19 \| 1.00 ± 0.13 | 1.22 ± 0.17 \| 0.77 ± 0.17 | 1.97 ± 0.18 \| 0.96 ± 0.14 |
+| chain | defensive | 1.39 ± 0.12 \| 0.66 ± 0.10 | 1.51 ± 0.19 \| 0.65 ± 0.10 | 1.81 ± 0.20 \| 1.41 ± 0.20 |
+| chain | plain | 1.98 ± 0.17 \| 1.05 ± 0.21 | 1.32 ± 0.14 \| 0.83 ± 0.18 | 1.87 ± 0.18 \| 1.45 ± 0.31 |
+
+**forbidden, budgeted, lex, B = 0.03 (26 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 1.39 ± 0.10 \| 0.84 ± 0.12 | | |
+| product | defensive | 1.20 ± 0.11 \| 0.60 ± 0.10 | 0.96 ± 0.10 \| 0.47 ± 0.06 | 0.89 ± 0.08 \| 0.38 ± 0.06 |
+| product | plain | 1.34 ± 0.13 \| 0.79 ± 0.08 | 0.98 ± 0.11 \| 0.49 ± 0.14 | 1.06 ± 0.10 \| 0.55 ± 0.16 |
+| chain | defensive | 0.98 ± 0.09 \| 0.37 ± 0.06 | 0.87 ± 0.08 \| 0.38 ± 0.06 | 0.80 ± 0.10 \| 0.59 ± 0.12 |
+| chain | plain | 1.03 ± 0.10 \| 0.55 ± 0.08 | 1.02 ± 0.08 \| 0.57 ± 0.10 | 0.96 ± 0.07 \| 0.59 ± 0.14 |
+
+**dyck, one token per step (256 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 0.48 ± 0.06 \| 0.21 ± 0.05 | | |
+| product | defensive | 0.68 ± 0.09 \| 0.42 ± 0.05 | 0.44 ± 0.04 \| 0.16 ± 0.04 | 0.49 ± 0.05 \| 0.14 ± 0.03 |
+| product | plain | 0.88 ± 0.08 \| 0.95 ± 0.39 | 0.43 ± 0.04 \| 0.28 ± 0.04 | 0.44 ± 0.05 \| 0.26 ± 0.03 |
+| chain | defensive | 0.39 ± 0.03 \| 0.23 ± 0.06 | 0.37 ± 0.03 \| 0.18 ± 0.02 | 0.49 ± 0.05 \| 0.17 ± 0.05 |
+| chain | plain | 0.42 ± 0.06 \| 0.14 ± 0.02 | 0.38 ± 0.04 \| 0.28 ± 0.03 | 0.33 ± 0.03 \| 0.22 ± 0.05 |
+
+**dyck, budgeted, lex, B = 0.03 (16 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 0.39 ± 0.04 \| 0.20 ± 0.03 | | |
+| product | defensive | 0.38 ± 0.04 \| 0.23 ± 0.04 | 0.41 ± 0.04 \| 0.13 ± 0.03 | 0.33 ± 0.03 \| 0.18 ± 0.03 |
+| product | plain | 0.59 ± 0.05 \| 0.26 ± 0.05 | 0.37 ± 0.04 \| 0.23 ± 0.05 | 0.46 ± 0.04 \| 0.23 ± 0.06 |
+| chain | defensive | 0.39 ± 0.04 \| 0.18 ± 0.03 | 0.44 ± 0.04 \| 0.21 ± 0.05 | 0.36 ± 0.04 \| 0.15 ± 0.03 |
+| chain | plain | 0.33 ± 0.03 \| 0.23 ± 0.07 | 0.42 ± 0.06 \| 0.13 ± 0.03 | 0.47 ± 0.08 \| 0.16 ± 0.04 |
+
+- Forbidden, one token per step: calibrating the product twist at tau = 0.7 brings it level with the uncalibrated chain
+  twist under defensive resampling (1.39 against 1.39 at 16 particles, 0.56 against 0.66 at 64), from 2.18 and 1.35 uncalibrated.
+  tau = 0.5 flattens too far for both twists. The chain twist gains nothing from calibration under defensive resampling;
+  under plain resampling tau = 0.7 removes its loss.
+- Dyck, one token per step: calibration removes the harm that resampling does with the product twist (0.68 and 0.88
+  uncalibrated, 0.43 to 0.49 calibrated, 0.48 with resampling off).
+- Budgeted schedule: every calibrated arm and the chain twist are within about two standard errors of each other;
+  the uncalibrated product twist is the worst on forbidden.
+- Reading: on this case calibration and the chain twist are substitutes as intermediate twists. Neither changes the
+  proposal, so neither changes the per-particle KL (10.4 nats on forbidden here); section 36w is about the proposal.
+
+## 36v. Order consistency of MDLM, follow-up (cluster job `8fabd084`, one L40S on node3203, 2026-11-16) [measured; 6 to 32 sequences per length]
+
+`experiments/parallel_unmasking/mdlm_order_consistency.py`; results `results/parallel_unmasking/mdlm_consistency/`.
+As section 36p, with real prose (six public-domain passages cut into chunks), lengths to 1,024, and the samples saved.
+All quantities in nats. *sd over orders*: standard deviation of log p of one sequence across random reveal orders
+(0 for an order-consistent model). *Gap to mixture*: log of the average probability over orders minus the average log.
+*Own order*: log p under the order that generated a sample minus the average over other orders.
+
+| source | tokens | sequences | random orders | -log p per token | sd over orders | per token | gap to mixture | left-to-right | right-to-left | own order | distinct-token share |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| real text | 32 | 29 | 16 | 5.32 | 16.0 ± 1.1 | 0.500 | 21.1 ± 1.8 | +11.4 ± 2.6 | -2.1 ± 2.8 |  | 0.81 |
+| real text | 64 | 12 | 16 | 4.52 | 18.2 ± 2.0 | 0.284 | 29.6 ± 3.7 | +11.7 ± 4.9 | -5.8 ± 3.7 |  | 0.70 |
+| real text | 128 | 6 | 16 | 3.97 | 15.3 ± 0.7 | 0.120 | 25.2 ± 3.0 | +3.1 ± 8.8 | -13.2 ± 6.0 |  | 0.62 |
+| model samples | 32 | 32 | 16 | 3.16 | 9.7 ± 1.0 | 0.302 | 13.3 ± 1.5 | +4.1 ± 1.4 | +1.3 ± 1.8 | +38 ± 4 | 0.37 |
+| model samples | 64 | 32 | 16 | 3.16 | 14.4 ± 1.4 | 0.225 | 19.3 ± 2.0 | -0.1 ± 2.6 | -10.4 ± 3.1 | +67 ± 7 | 0.37 |
+| model samples | 128 | 32 | 16 | 3.74 | 16.2 ± 1.3 | 0.127 | 23.2 ± 1.9 | +0.7 ± 3.7 | -19.9 ± 4.3 | +102 ± 7 | 0.48 |
+| model samples | 256 | 32 | 16 | 4.44 | 19.3 ± 1.0 | 0.075 | 30.8 ± 2.0 | -1.8 ± 3.6 | -22.1 ± 4.0 | +169 ± 8 | 0.58 |
+| model samples | 512 | 8 | 8 | 5.34 | 16.9 ± 1.2 | 0.033 | 23.4 ± 2.1 | -12.9 ± 7.0 | -21.8 ± 6.3 | +270 ± 23 | 0.57 |
+| model samples | 1024 | 8 | 4 | 6.56 | 24.4 ± 2.2 | 0.024 | 22.7 ± 3.5 | -19.6 ± 5.0 | -41.9 ± 13.2 | +380 ± 19 | 0.59 |
+
+- The inconsistency is real: on prose that no order generated, log p varies across orders with a standard deviation of
+  15 to 18 nats at 32 to 128 tokens.
+- It does not grow with length. On model samples the standard deviation is 10 to 24 nats from 32 to 1,024 tokens, so
+  per token it falls from 0.30 to 0.024.
+- The short samples of section 36p were degenerate, as suspected: at 32 and 64 tokens many are one token repeated
+  (distinct-token share 0.37). From 128 tokens the samples read as text (0.48 to 0.59; prose is 0.62 to 0.81).
+- A sample is far more probable under its own order: 38 to 380 nats, 1.2 falling to 0.37 nats per token. Entropy along
+  the generating order falls through the decode at every length (6.7 to 5.7 nats per step at 1,024 tokens).
+- Left-to-right scores prose 11 nats higher than a random order at 32 and 64 tokens; right-to-left is lower at every
+  length for samples of 64 tokens and more.
+- Consequence for the target (random-order average, user decision of 2026-11-16): one order's law differs from the
+  average by tens of nats in log-probability on a typical sequence, at any length. Against that, the schedule errors
+  measured in this document are 0.01 to 1 nat. A constraint-aware order on this model changes the sampled law by
+  far more than any of the errors being optimised, so the order rule and the target have to be settled together.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
