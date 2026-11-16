@@ -1633,6 +1633,107 @@ particles the budget buys. First three columns: the calls that 16 sequential par
 - Consequence for reporting: `cost` (calls x spread squared) ignores this bias and must not be used alone to rank
   budgeted arms.
 
+## 36n. Selection as planning on pair costs: formulation and first check (2026-11-16) [formulation derived; check verified at N = 64]
+
+**Objective (user and assistant, 2026-11-16).** Maximum accuracy at a fixed compute budget. With K particles and T
+steps the compute is K T, and the variance of the estimate is about (exp(kappa E) - 1) / K, where E is the KL
+divergence of one particle's path from the target and kappa is about 2.4 here (section 36i). At a fixed budget the
+quantity to minimise is therefore T (exp(kappa E) - 1), which for small E is T x E: steps times total error. No price
+per step is tuned. The exchange rate is implied: saving a step is worth an extra error of up to E / T, the current
+average error per step (for large E, about 1 / (kappa T)). Since T is the sum over reveals of 1 / (positions revealed
+in that step), the compute can be charged per reveal as its share of a call; the errors themselves add and are not
+divided. The co-reveal bias is not reduced by more particles, so it is budgeted against the target accuracy and is
+the one place the operating point enters. [derived; untested]
+
+**Total error is additive** (section 36b; rechecked in 36i): for one token per step, KL(sampler || target) is the
+expected sum of the per-step errors, for any order that depends only on what is revealed. In `_propose`
+(`twistroute/decode/twist.py`) the classes of all positions revealed in a step are read from one joint draw of the
+route, so the constraint's own coupling within a step is handled by the sampler, and the reveal set is chosen without
+seeing that draw.
+
+**Pair picture [derived at leading order].** Revealing i while j is masked costs
+c(i before j) = 1/2 Var over the class a at i of E[rho_j(x_j) | x_i = a], with rho_j the constrained over the model
+marginal at j. It is zero if j has no stake or is independent of i. The two mechanisms are two properties of c:
+asymmetry (an unconstrained position revealed before a constrained one it depends on pays; the reverse is free), and
+screening (c shrinks when something between the pair is revealed, which is a separator's value). A forced position
+has zero cost against every partner. Pairs revealed together pay the model's dependence, which is the bias.
+
+**First check** (`experiments/parallel_unmasking/pair_cost_check.py`, `results/parallel_unmasking/pair_cost_N64.json`):
+`hidden_0.85`, 64 positions, 60 exact constrained states at four reveal fractions, every unforced masked position
+(about 9,000 per constraint). Unlike section 36g, positions are not restricted to those carrying a stake and their
+immediate neighbours. `pair` is the sum of c over masked j. `lookahead` re-evaluates the product twist at the
+successor state. `exact update` takes the model's marginals after the reveal from the model (tests the derivation);
+`kernel update` multiplies the current marginals by the model's unconditional pair ratio at that distance, with no
+screening by revealed tokens (a first cut at what a pilot kernel would give).
+
+Rank correlation with the true cost within a state, 1 is the same ranking:
+
+| constraint | pair, exact update | lookahead, exact update | pair, kernel update | chain twist (section 36g) |
+|---|---|---|---|---|
+| counting | 0.21 | 0.22 | 0.23 | 0.06 |
+| dyck | 0.42 | 0.37 | 0.38 | 0.46 |
+| forbidden | 0.83 | 0.94 | 0.62 | 0.80 |
+| window | 0.92 | 0.98 | 0.88 | 0.28 |
+| two_window | 0.86 | 0.93 | 0.79 | 0.27 |
+
+Median of estimate over true cost on the costlier half of positions, 1 is the right size:
+
+| constraint | pair, exact update | lookahead, exact update | pair, kernel update | chain twist |
+|---|---|---|---|---|
+| counting | 1.31 | 12.48 | 2.94 | 0.45 |
+| dyck | 0.40 | 2.94 | 1.03 | 0.23 |
+| forbidden | 0.28 | 2.74 | 1.80 | 1.88 |
+| window | 0.72 | 3.69 | 6753.48 | 0.72 |
+| two_window | 0.75 | 2.09 | 110.48 | 0.20 |
+
+True cost at the position each rule would reveal next, nats x 1000, lower is better:
+
+| constraint | ideal | pair, exact update | lookahead, exact update | pair, kernel update | chain twist | lowest entropy | random |
+|---|---|---|---|---|---|---|---|
+| counting | 0.10 | 4.40 | 4.62 | 3.85 | 3.08 | 2.72 | 3.28 |
+| dyck | 0.06 | 10.03 | 15.39 | 10.60 | 5.92 | 9.26 | 16.15 |
+| forbidden | 0.90 | 2.01 | 2.28 | 6.35 | 6.04 | 4.55 | 36.24 |
+| window | 0.00 | 0.00 | 0.00 | 0.00 | 0.26 | 3.81 | 8.28 |
+| two_window | 0.12 | 0.56 | 0.45 | 0.66 | 3.02 | 5.26 | 15.22 |
+
+Windows by distance from the window (inside, within 6, farther), mean cost in nats x 1000:
+
+| constraint | revealed | true: inside, near, far | pair, exact update | pair, kernel update | chain twist |
+|---|---|---|---|---|---|
+| window | 10% | 20.2, 68.7, 2.2 | 155.2, 65.9, 2.0 | 192.3, 94.4, 4.2 | 29.5, 9.1, 1.4 |
+| window | 25% | 14.1, 27.2, 0.4 | 68.4, 22.7, 0.3 | 108.3, 47.7, 2.0 | 19.9, 6.2, 1.8 |
+| window | 50% | 5.8, 3.9, 0.0 | 6.9, 2.8, 0.0 | 13.1, 9.9, 0.4 | 12.3, 3.5, 1.3 |
+| window | 75% | 1.3, 1.0, 0.0 | 0.4, 1.1, 0.0 | 1.6, 6.4, 0.3 | 4.7, 0.8, 0.6 |
+| two_window | 10% | 21.9, 62.8, 6.1 | 92.8, 49.8, 4.1 | 107.4, 63.9, 7.5 | 20.5, 9.4, 1.4 |
+| two_window | 25% | 19.6, 34.8, 1.7 | 46.0, 23.8, 1.0 | 67.9, 44.8, 5.1 | 22.2, 7.8, 1.8 |
+| two_window | 50% | 10.1, 7.4, 0.2 | 11.0, 5.2, 0.1 | 21.1, 13.4, 1.7 | 13.3, 4.0, 1.2 |
+| two_window | 75% | 2.3, 0.6, 0.0 | 2.5, 0.5, 0.0 | 22.0, 5.1, 0.8 | 10.3, 0.9, 0.5 |
+
+Median of the kernel-update pair estimate over the true cost, by fraction revealed:
+
+| constraint | 10% revealed | 25% | 50% | 75% |
+|---|---|---|---|---|
+| counting | 3.88 | 2.69 | 2.03 | 2.23 |
+| dyck | 0.60 | 0.97 | 1.57 | 1.71 |
+| forbidden | 0.26 | 0.68 | 2.00 | 10.77 |
+| window | 1.86 | 6.89 | 36.98 | 68996.92 |
+| two_window | 1.02 | 1.92 | 9.13 | 1095.65 |
+
+- The asymmetric cost is predicted well: for unconstrained positions near a window the pair estimate with the exact
+  update is within about 20% of the true mean at every fraction. The chain twist's estimate there is 4 to 8 times too
+  small at 10 to 25% revealed.
+- For positions inside the window the pair estimate is 4 to 8 times too large when little is revealed. It uses the
+  constraint ratio at j before i's own class is fixed; the ratio conditional on that class is the correction to try.
+- Ranking within a state is good on the local constraints (0.83 to 0.98) and poor on the global ones (0.2 to 0.4), as
+  expected of a pairwise account. On counting and Dyck its next pick is no better than the chain twist's or random.
+- The lookahead estimate ranks slightly better but is 2 to 12 times too large: re-evaluating a mean-field twist after
+  updating every marginal counts shared dependence several times.
+- The size is off by a constraint-dependent factor (0.28 on forbidden, 1.3 on counting), so sums over a plan are not
+  yet comparable across constraints.
+- The kernel update without screening is usable when little is revealed and fails progressively after that. A kernel
+  that conditions on what lies between is needed before this can run without the model's exact update.
+- Open: on counting the ideal pick is about 30 times cheaper than a random one and no estimator finds it.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
