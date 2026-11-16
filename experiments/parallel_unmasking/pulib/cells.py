@@ -89,6 +89,7 @@ def make_constraint(name, den, N):
                 b = k
         d = C.dfa_at_least_k(0, b, den.S)
         truth = ConstrainedTruth(den, cl, d, active=act)
+        truth.wdfa = d                                    # the automaton and the positions it reads: for twists
         pos = [int(i) for i in np.nonzero(act)[0]]
         truth.info = dict(window=[pos[0], pos[-1] + 1], positions=len(pos), k=b, p_C=math.exp(truth.log_pC),
                           expected_count=float(w * (den.pi @ den.emit[0])[0]), constrained_fraction=w / N)
@@ -102,4 +103,6 @@ def make_constraint(name, den, N):
         return cl, build_route(dict(kind="cfg", A=den.S, N=N, grammar=gname)), truth
     d = {"forbidden": lambda: C.dfa_forbidden([(0, 0), (1, 2)], 3), "counting": lambda: C.dfa_exactly_k(0, N // 3, 3),
          "dyck": lambda: C.dfa_dyck1(N)}[name]()
-    return cl, torch_route(d), ConstrainedTruth(den, cl, d)
+    truth = ConstrainedTruth(den, cl, d)
+    truth.wdfa = d
+    return cl, torch_route(d), truth

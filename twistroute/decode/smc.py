@@ -43,7 +43,7 @@ __all__ = ["twisted_smc", "select_particles", "reveal_sets", "reveal_indices", "
 def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, return_particles=False,
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
                 lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0,
-                twist_temp=1.0, guard="warn", schedule="fixed", path_stat=None, resample_power=1.0):
+                twist_temp=1.0, guard="warn", schedule="fixed", path_stat=None, resample_power=1.0, twist=None):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -63,6 +63,11 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                  potential then uses the mixture density and is bounded by psi' / (a psi).
     twist_temp   tau in (0, 1]: calibrated twist, the route sum under future-token law q ∝ p^tau (1 = TWISTER);
                  the proposal is locally optimal for it and the weights correct exactly (see _propose)
+    twist        optional intermediate twist, an object with .log_psi(clamped class log-weights, log product twist)
+                 -> (P,) (decode.chain_twist.ChainTwist). It replaces the product twist in the weights at every
+                 step but the last, where the twist is the exact indicator; the proposal is unchanged. Z_hat is
+                 unbiased for any twist that is positive where the product twist is. Not combined with lookahead
+                 or twist_temp.
     schedule     "fixed" (N / T positions per step, the default and TWISTER's) or "independent" (each masked
                  position reveals with probability 1 / (T - t), the MDLM reverse step; see reveal_indices).
                  The native kernel must use the same schedule for the result to target that process.
@@ -110,6 +115,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         raise ValueError("twist_temp must lie in (0, 1]")
     if tau != 1.0 and (lookahead > 0 or mix_native > 0):
         raise ValueError("twist_temp != 1 is not combined with lookahead or mix_native")
+    if twist is not None and (lookahead > 0 or tau != 1.0):
+        raise ValueError("twist is not combined with lookahead or twist_temp")
     if lookahead < 0 or lookahead_draws < 1:
         raise ValueError("lookahead must be >= 0 and lookahead_draws >= 1")
     if lookahead_mean not in ("arith", "geom") or not 0.0 <= lookahead_shrink <= 1.0:
@@ -118,7 +125,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         g = _lookahead_log_gain(den, classes, route, xx, yy, lpp, lww, ee, tt, T, schedule, lookahead,
                                 lookahead_draws, gen, lookahead_mean)
         return torch.where(torch.isneginf(g), g, lookahead_shrink * g)
-    general = lookahead > 0 or mix_native > 0 or tau != 1.0           # otherwise the TWISTER / tempered update below
+    general = lookahead > 0 or mix_native > 0 or tau != 1.0 or twist is not None      # otherwise the TWISTER / tempered update below
     dev = classes.onehot.device
     policy = not isinstance(schedule, str)
     if policy and not hasattr(schedule, "reveal"):
@@ -139,6 +146,9 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         psi0 = logw
         if lookahead > 0:
             psi0 = beta * (eta0 + la(x, ycls, lp, lw, eta0, -1))
+            logw = psi0
+        if twist is not None:
+            psi0 = beta * twist.log_psi(clamp_revealed(lw, x, ycls, den.mask_id), eta0)
             logw = psi0
     s = _Particles(x, ycls, lp, lw, eta0.clone(), None if psi0 is None else psi0.clone())
     logZ = torch.zeros(nrun, dtype=torch.float64, device=dev)
@@ -178,6 +188,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         else:
             if lookahead > 0 and not last:
                 psi2 = beta * (eta2 + la(x2, y2, lp2, lw2, eta2, t))
+            if twist is not None and not last:  # a complete particle has one-hot weights: both twists are the indicator
+                psi2 = beta * twist.log_psi(clamp_revealed(lw2, x2, y2, den.mask_id), eta2)
             if log_ratio is None:
                 log_ratio = z_old - s.eta
             # log G = log psi_{t+1}(x') - log psi_t(x) - log(M(x'|x) / kappa(x'|x))

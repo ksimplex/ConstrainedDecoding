@@ -3,3 +3,4 @@ from .smc import twisted_smc, select_particles, reveal_sets, reveal_indices, cla
 from .native import native_sample, native_path_weights
 from .policy import (CouplingPolicy, DilatedSchedule, ThickSeparatorSchedule, DistanceKernel, COUNT_EDGES, fit_distance_kernel, constrained_marginals,
                      pairwise_mi)
+from .chain_twist import ChainTwist, fit_pair_kernel

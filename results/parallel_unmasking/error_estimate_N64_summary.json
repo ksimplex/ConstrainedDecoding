@@ -1,0 +1,219 @@
+{
+ "note": "hidden_0.85 at noise 0.15, 0.3, 0.5; N=64; 60 states per cell from the exact constrained law; reveal fractions 0.1, 0.25, 0.5, 0.75; eps in nats",
+ "per_constraint": {
+  "counting": {
+   "mean_eps": 0.0027427611009637853,
+   "forced_share": 0.0,
+   "spearman_pooled": {
+    "ratio": 0.3756591941469152,
+    "exact": 0.7071966390580747
+   },
+   "spearman_within_state": {
+    "ratio": 0.12157244585725382,
+    "exact": 0.5516931113496027
+   },
+   "chain_error_over_product_error": {
+    "ratio": 0.8472702905023941,
+    "exact": 0.5279916146980999
+   },
+   "estimate_over_true_median": {
+    "ratio": 0.48129981654147025,
+    "exact": 0.265829923528643
+   },
+   "bound_holds_share": {
+    "ratio": 1.0,
+    "exact": 1.0
+   },
+   "eps_at_pick_all": {
+    "cheapest": 0.00013188801393522034,
+    "estimate_ratio": 0.0025696992276120034,
+    "estimate_exact": 0.0008757049826632028,
+    "entropy": 0.0020181242846768212,
+    "stake": 0.005802728909703459,
+    "separator": 0.009113267346114694,
+    "random": 0.0032076988929284067
+   },
+   "eps_at_pick_unforced": {
+    "cheapest": 0.00013188801393522034,
+    "estimate_ratio": 0.0025696992276120034,
+    "estimate_exact": 0.0008757049826632028,
+    "entropy": 0.0020181242846768212,
+    "stake": 0.005802728909703459,
+    "separator": 0.009113267346114694,
+    "random": 0.0032076988929284067
+   }
+  },
+  "dyck": {
+   "mean_eps": 0.008369095325147893,
+   "forced_share": 0.037085861122856535,
+   "spearman_pooled": {
+    "ratio": 0.5885765618183056,
+    "exact": 0.7899581257492936
+   },
+   "spearman_within_state": {
+    "ratio": 0.46993373457695126,
+    "exact": 0.7206361313671428
+   },
+   "chain_error_over_product_error": {
+    "ratio": 0.5816741352850001,
+    "exact": 0.5438515881085182
+   },
+   "estimate_over_true_median": {
+    "ratio": 0.24913230191051544,
+    "exact": 0.22013741488509694
+   },
+   "bound_holds_share": {
+    "ratio": 0.9797865354805374,
+    "exact": 0.9838169642857142
+   },
+   "eps_at_pick_all": {
+    "cheapest": 6.005636878718508e-06,
+    "estimate_ratio": 0.00024379559088624864,
+    "estimate_exact": 0.00013786714066460915,
+    "entropy": 0.00016860138783619826,
+    "stake": 0.002173068506577449,
+    "separator": 0.023628327179795978,
+    "random": 0.013536377186188215
+   },
+   "eps_at_pick_unforced": {
+    "cheapest": 7.862722611639226e-05,
+    "estimate_ratio": 0.005865988288680624,
+    "estimate_exact": 0.0023836940573504863,
+    "entropy": 0.005323458957859091,
+    "stake": 0.029473456429353232,
+    "separator": 0.0236508305283219,
+    "random": 0.013806604436618094
+   }
+  },
+  "forbidden": {
+   "mean_eps": 0.01729556240801752,
+   "forced_share": 0.028278014574122306,
+   "spearman_pooled": {
+    "ratio": 0.759878186929213,
+    "exact": 0.8570046640256213
+   },
+   "spearman_within_state": {
+    "ratio": 0.7192443336276861,
+    "exact": 0.8574020781771001
+   },
+   "chain_error_over_product_error": {
+    "ratio": 0.6260198389259677,
+    "exact": 0.3243607145445947
+   },
+   "estimate_over_true_median": {
+    "ratio": 1.6224427857348414,
+    "exact": 0.9329597747834868
+   },
+   "bound_holds_share": {
+    "ratio": 0.9768387001533989,
+    "exact": 0.9961422583180508
+   },
+   "eps_at_pick_all": {
+    "cheapest": 0.0007506553095709959,
+    "estimate_ratio": 0.002889215266557552,
+    "estimate_exact": 0.0025758120294307736,
+    "entropy": 0.0029935622760326897,
+    "stake": 0.011036601768603107,
+    "separator": 0.059731840563864325,
+    "random": 0.028299900701079194
+   },
+   "eps_at_pick_unforced": {
+    "cheapest": 0.0008413970174845102,
+    "estimate_ratio": 0.003452259727382761,
+    "estimate_exact": 0.0031473653304129293,
+    "entropy": 0.003954672175345897,
+    "stake": 0.013327264970637104,
+    "separator": 0.059731840563864325,
+    "random": 0.02860073941474149
+   }
+  },
+  "window": {
+   "mean_eps": 0.011470554712050775,
+   "forced_share": 0.011060839703228945,
+   "spearman_pooled": {
+    "ratio": 0.744336617443986,
+    "exact": 0.8734606356545057
+   },
+   "spearman_within_state": {
+    "ratio": 0.583313492063492,
+    "exact": 0.7391964111883177
+   },
+   "chain_error_over_product_error": {
+    "ratio": 0.4779526858973828,
+    "exact": 0.3047561447272626
+   },
+   "estimate_over_true_median": {
+    "ratio": 1.0859122022917214,
+    "exact": 0.6540437643097412
+   },
+   "bound_holds_share": {
+    "ratio": 0.9798629462086264,
+    "exact": 0.9914632507726071
+   },
+   "eps_at_pick_all": {
+    "cheapest": 3.087714404769807e-07,
+    "estimate_ratio": 0.0002923994825233043,
+    "estimate_exact": 0.0002748670515483487,
+    "entropy": 0.0020986440915712573,
+    "stake": 0.01627525564760002,
+    "separator": 0.009724245042995901,
+    "random": 0.0046529070753204785
+   },
+   "eps_at_pick_unforced": {
+    "cheapest": 3.088052515473198e-07,
+    "estimate_ratio": 0.000292443283707263,
+    "estimate_exact": 0.0002761131079307884,
+    "entropy": 0.0021003380921167853,
+    "stake": 0.016339292364272815,
+    "separator": 0.009891179652511387,
+    "random": 0.004666976546160267
+   }
+  },
+  "two_window": {
+   "mean_eps": 0.0246145804136206,
+   "forced_share": 0.01007296263317888,
+   "spearman_pooled": {
+    "ratio": 0.7463744058370155,
+    "exact": 0.8183174003912435
+   },
+   "spearman_within_state": {
+    "ratio": 0.5951445862555554,
+    "exact": 0.7343564511074362
+   },
+   "chain_error_over_product_error": {
+    "ratio": 0.43646463769548155,
+    "exact": 0.3316940941687742
+   },
+   "estimate_over_true_median": {
+    "ratio": 0.6832545796695554,
+    "exact": 0.48117744895062975
+   },
+   "bound_holds_share": {
+    "ratio": 0.9717909844350111,
+    "exact": 0.9904483766546268
+   },
+   "eps_at_pick_all": {
+    "cheapest": 5.910738145822872e-05,
+    "estimate_ratio": 0.0019207773802755671,
+    "estimate_exact": 0.0013442831064920306,
+    "entropy": 0.00461689637540253,
+    "stake": 0.02298276057756324,
+    "separator": 0.030115308453597795,
+    "random": 0.013173530217305876
+   },
+   "eps_at_pick_unforced": {
+    "cheapest": 6.0617901079520684e-05,
+    "estimate_ratio": 0.0019207773810684722,
+    "estimate_exact": 0.001360356373670999,
+    "entropy": 0.00469578615047111,
+    "stake": 0.023336614336085696,
+    "separator": 0.03032335630062867,
+    "random": 0.01318000551163312
+   }
+  }
+ },
+ "markov_sanity": {
+  "max_chain_error_over_product_error_exact": 5.809017996482092e-08,
+  "min_spearman_exact": 0.9375043696049429
+ }
+}

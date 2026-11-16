@@ -74,6 +74,17 @@ class Cell:
         kw.setdefault("mixed", False)
         return CouplingPolicy(kernel, theta, priority=priority, rate=None if B is None else B / self.N, **kw)
 
+    def chain_twist(self, eps=0.05):
+        """The first-order chain twist for this cell's automaton (decode.chain_twist), with a pair kernel fitted on
+        --pilot model samples. Automaton constraints only."""
+        if "twist" not in self._kernels:
+            from twistroute.decode import ChainTwist, fit_pair_kernel
+            if not hasattr(self.truth, "wdfa"):
+                raise ValueError(f"no chain twist for the constraint {self.cname!r}: it is not an automaton")
+            K = fit_pair_kernel(self.den, self.cl, self.a["pilot"], torch.Generator().manual_seed(self.seed("pair_kernel")))
+            self._kernels["twist"] = ChainTwist(self.truth.wdfa, K, eps=eps, active=getattr(self.truth, "active", None))
+        return self._kernels["twist"]
+
     def control(self):
         """One reveal per step in random order without resampling: samples the target itself and cannot hide mass."""
         return Arm("fixed 1/step, no resampling", "fixed", self.N, self.nrun, smc=dict(ess_min=0.0))
@@ -193,3 +204,17 @@ def resample(c):
                 smc={k: (gates[sn] if v == "gate" else v) for k, v in smc.items()}, K=K)
             for K in (a.get("resample_ks") or RESAMPLE_KS) for sn in names for rn, smc in RESAMPLE_MODES
             if not a.get("resample_modes") or rn in a["resample_modes"]]
+
+
+TWIST_RESAMPLING = (("off", dict(ess_min=0.0)), ("defensive", dict()), ("plain", dict(defensive=0.0)))
+
+
+@arm_set("twist")
+def twist(c):
+    """Product twist against the first-order chain twist, with and without resampling, on three schedules. Without
+    resampling the two twists give the same weights; the question is what resampling does under each."""
+    N, n, kg, tw = c.N, c.nrun, c.kernel("graded"), c.chain_twist()
+    scheds = (("fixed 1/step", lambda: "fixed"), ("lex sequential", lambda: c.policy(kg, 0.0, "lex", max_set=1)),
+              ("lex B=0.03 +pull", lambda: c.policy(kg, 0.0, "lex", B=0.03, pull_forced=8)))
+    return [Arm(f"{sn} | {tn} twist | resampling {rn}", mk(), N, n, smc=dict(smc, **({"twist": tw} if tn == "chain" else {})))
+            for sn, mk in scheds for tn in ("product", "chain") for rn, smc in TWIST_RESAMPLING]
