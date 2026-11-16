@@ -1144,12 +1144,202 @@ four reveal fractions); `hidden_0.85` x forbidden / window / two_window at N = 2
   N = 256: 0.14, 0.43, 0.77. Order 2 costs about twice order 1 here; in general a factor of the class count.
 - Files: `results/parallel_unmasking/twist_order_N64.json`, `twist_order_N256.json`, `twist_order_summary.json`.
 
+## 36i. Order study: cheapest-first to separator-first (cluster job `91729edd`, 2026-11-16) [verified at N = 64]
+
+Setting: 3 hidden chains (noise 0.15, 0.3, 0.5) x 5 automaton constraints, 64 positions, 100 runs x 16 particles, 43 arms
+per cell, 645 results, no errors. Code commit `7bb07b0`. Files: `results/parallel_unmasking/axis_N64.json`,
+`axis_N64.logZ.npz`, `axis_N64_summary.json`; logged to `log.jsonl`.
+
+Orders: `cheapest` ranks by the true error of the next reveal using the exact twist (the ideal greedy reference, oracle
+models only); `estimate` ranks by the chain-against-product disagreement; `confident` is lowest entropy; `lex` is
+constraint-first; `sum` is stake plus coupling; `separator` is highest coupling; `random` is uniform.
+
+**Check of the exact arms.** The 210 sequential arms should estimate p(C) without bias. 2.9% are more than two
+standard errors from the truth (chance level); the largest deviation is 3.38 standard errors (`confident`, Dyck, noise 0.15).
+
+**Sequential orders, resampling off.** KL(sampler || exact constrained law) per particle in nats, lower is better.
+Geometric mean over the 3 chains. All arms use 64 calls. Largest standard error of any entry before averaging: 0.2.
+
+| constraint | mode | cheapest | estimate | confident | lex | sum | separator | random |
+|---|---|---|---|---|---|---|---|---|
+| counting | sequential | 0.152 | 0.189 | 0.415 | 0.180 | 0.101 | 0.126 | 0.159 |
+| dyck | sequential | 0.232 | 0.383 | 0.668 | 0.506 | 0.525 | 0.511 | 0.561 |
+| forbidden | sequential | 0.548 | 0.595 | 0.540 | 0.589 | 1.009 | 3.806 | 2.416 |
+| window | sequential | 0.051 | 0.444 | 0.061 | 0.073 | 0.069 | 0.314 | 0.351 |
+| two_window | sequential | 0.258 | 0.716 | 0.145 | 0.085 | 0.098 | 0.464 | 0.658 |
+
+Mean rank over the 15 cells (1 = lowest KL): cheapest 2.40, estimate 4.87, confident 4.07, lex 3.27, sum 2.87, separator 4.80, random 5.73.
+Times lowest: cheapest 5, estimate 0, confident 3, lex 4, sum 3, separator 0, random 0.
+
+Differences per chain (noise 0.3, 0.15, 0.5), in standard errors of the difference:
+
+| constraint | comparison | noise 0.3 | noise 0.15 | noise 0.5 |
+|---|---|---|---|---|
+| two_window | cheapest against lex | 0.269 against 0.090 (+8.1 s.e.) | 0.461 against 0.212 (+8.2 s.e.) | 0.139 against 0.032 (+7.4 s.e.) |
+| two_window | cheapest against confident | 0.269 against 0.161 (+4.5 s.e.) | 0.461 against 0.301 (+5.0 s.e.) | 0.139 against 0.063 (+4.9 s.e.) |
+| window | estimate against cheapest | 0.504 against 0.051 (+16.9 s.e.) | 0.399 against 0.105 (+10.3 s.e.) | 0.435 against 0.025 (+16.8 s.e.) |
+| window | estimate against random | 0.504 against 0.363 (+4.0 s.e.) | 0.399 against 0.570 (-4.2 s.e.) | 0.435 against 0.210 (+7.8 s.e.) |
+| window | cheapest against lex | 0.051 against 0.070 (-1.4 s.e.) | 0.105 against 0.247 (-6.2 s.e.) | 0.025 against 0.023 (+0.3 s.e.) |
+| dyck | cheapest against estimate | 0.254 against 0.424 (-5.5 s.e.) | 0.559 against 0.727 (-3.8 s.e.) | 0.089 against 0.182 (-5.1 s.e.) |
+| dyck | cheapest against lex | 0.254 against 0.611 (-9.4 s.e.) | 0.559 against 1.138 (-10.1 s.e.) | 0.089 against 0.186 (-5.1 s.e.) |
+| counting | cheapest against sum | 0.176 against 0.122 (+2.6 s.e.) | 0.324 against 0.197 (+4.4 s.e.) | 0.062 against 0.043 (+1.6 s.e.) |
+| counting | cheapest against random | 0.176 against 0.179 (-0.1 s.e.) | 0.324 against 0.336 (-0.4 s.e.) | 0.062 against 0.067 (-0.4 s.e.) |
+| counting | confident against random | 0.508 against 0.179 (+11.0 s.e.) | 0.842 against 0.336 (+11.8 s.e.) | 0.168 against 0.067 (+5.8 s.e.) |
+| forbidden | cheapest against confident | 0.615 against 0.576 (+0.9 s.e.) | 1.020 against 1.011 (+0.2 s.e.) | 0.262 against 0.270 (-0.3 s.e.) |
+| forbidden | cheapest against random | 0.615 against 2.662 (-23.4 s.e.) | 1.020 against 5.092 (-29.7 s.e.) | 0.262 against 1.040 (-16.5 s.e.) |
+| forbidden | separator against random | 4.248 against 2.662 (+11.1 s.e.) | 8.477 against 5.092 (+14.1 s.e.) | 1.532 against 1.040 (+6.7 s.e.) |
+
+Readings:
+- No order is lowest on every constraint.
+- Ideal greedy cheapest-first is not the optimum. It is lowest on Dyck and tied lowest on the single window and on
+  forbidden, but on two windows constraint-first is 2 to 4 times lower on every chain (7 to 8 standard errors), and on
+  counting it is no better than random and worse than `sum` (resolved on two of the three chains). This is the myopia
+  expected of a greedy rule, now measured.
+- The estimate order is never lowest. On the single window it is 4 to 17 times worse than the ideal order across the
+  chains (0.399 to 0.504 against 0.025 to 0.105), and about 3 times worse on two windows.
+- Lowest entropy is the worst order on counting, and among the best on forbidden and the windows.
+- Separator-first is the worst order on forbidden (worse than random) and second lowest on counting.
+
+**Why the estimate order fails on windows** (`experiments/parallel_unmasking/order_attribution.py`, local, noise 0.3,
+400 particles). The sampler's KL equals the sum over steps of the true error at the revealed position, so it can be
+split by where the revealed position lies: inside the window, near it (within 6 positions, one correlation length), or
+far. `true` and `est` are the summed true error and the summed estimate at the same positions, in nats per particle.
+`step` is the mean step at which positions of that group are revealed.
+
+| constraint | order | KL (sum of steps) | true inside | true near | true far | est inside | est near | est far | step inside | step near | step far | cluster KL |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| window | estimate | 0.467 | 0.060 | 0.326 | 0.081 | 0.033 | 0.015 | 0.000 | 57 | 49 | 22 | 0.504 ± 0.025 |
+| window | cheapest | 0.053 | 0.019 | 0.014 | 0.019 | 0.046 | 0.028 | 0.139 | 49 | 51 | 23 | 0.051 ± 0.008 |
+| window | lex | 0.074 | 0.074 | 0.000 | 0.000 | 0.072 | 0.016 | 0.041 | 8 | 36 | 35 | 0.070 ± 0.011 |
+| window | random | 0.371 | 0.086 | 0.262 | 0.024 | 0.133 | 0.052 | 0.049 | 29 | 32 | 32 | 0.363 ± 0.025 |
+| two_window | estimate | 0.861 | 0.084 | 0.619 | 0.158 | 0.050 | 0.033 | 0.000 | 54 | 42 | 18 | 0.835 ± 0.035 |
+| two_window | cheapest | 0.285 | 0.079 | 0.119 | 0.087 | 0.061 | 0.078 | 0.098 | 42 | 40 | 23 | 0.269 ± 0.019 |
+| two_window | lex | 0.087 | 0.087 | 0.000 | 0.000 | 0.064 | 0.031 | 0.032 | 7 | 36 | 34 | 0.090 ± 0.011 |
+| two_window | random | 0.741 | 0.105 | 0.577 | 0.059 | 0.163 | 0.145 | 0.034 | 28 | 32 | 32 | 0.756 ± 0.033 |
+
+- The estimate order reveals the far and near positions before the window, because the estimate rates them almost
+  free: 0.000 summed over the far positions and 0.015 over the near ones on the single window, against true errors of
+  0.081 and 0.326. Most of its KL is paid at the near positions.
+- Revealing the window late is not the cause in itself: the ideal order also reveals it late and has the lowest KL.
+- Constraint-first pays only inside the window. Once the window is resolved every other position is free.
+- This is the failure anticipated in section 36g: where the product and chain twists are wrong in the same way, their
+  disagreement is small and the estimate understates the error.
+- An earlier hypothesis, that the estimate is exactly zero everywhere outside the window, was wrong: its largest value
+  outside the window at the fully masked state is 0.056.
+- Check of the attribution: the step-sum agrees with the cluster's weight-based KL in all 8 cases. The local
+  weight-based KL (not tabulated) agrees in 7; for `lex` on the single window it is 0.011 ± 0.019 against the
+  cluster's 0.070 ± 0.011, 2.7 standard errors apart, taken to be a fluctuation of a heavy-tailed mean at 400 particles.
+
+**Parallel modes.** Denoiser calls per particle, lower is faster, resampling off:
+
+| constraint | mode | cheapest | estimate | confident | lex | sum | separator | random |
+|---|---|---|---|---|---|---|---|---|
+| counting | B=0.03 +pull | 15.2 | 14.7 | 17.7 | 12.7 | 10.8 | 11.0 | 12.7 |
+| counting | B=0.3 +pull | 10.2 | 9.6 | 10.1 | 7.6 | 6.7 | 6.6 | 7.9 |
+| dyck | B=0.03 +pull | 17.8 | 14.8 | 16.1 | 11.7 | 10.1 | 10.0 | 11.5 |
+| dyck | B=0.3 +pull | 9.6 | 8.9 | 8.5 | 6.8 | 5.7 | 5.9 | 6.8 |
+| forbidden | B=0.03 +pull | 19.4 | 19.5 | 19.0 | 20.7 | 12.1 | 10.9 | 12.8 |
+| forbidden | B=0.3 +pull | 13.2 | 13.2 | 11.0 | 12.4 | 7.9 | 6.7 | 8.0 |
+| window | B=0.03 +pull | 16.7 | 17.1 | 20.1 | 11.4 | 10.8 | 10.7 | 12.7 |
+| window | B=0.3 +pull | 10.0 | 10.0 | 11.4 | 6.8 | 6.7 | 6.7 | 8.0 |
+| two_window | B=0.03 +pull | 17.2 | 18.2 | 19.4 | 11.5 | 11.1 | 10.7 | 12.7 |
+| two_window | B=0.3 +pull | 9.9 | 10.4 | 11.9 | 6.8 | 6.7 | 6.6 | 8.0 |
+
+Cost = calls x spread^2, lower is better, where spread is the sd/mean of the estimate of p(C) over runs. Resampling off:
+
+| constraint | mode | cheapest | estimate | confident | lex | sum | separator | random |
+|---|---|---|---|---|---|---|---|---|
+| counting | sequential | 1.28 | 1.47 | 6.75 | 4.62 | 0.59 | 0.57 | 1.37 |
+| counting | B=0.03 +pull | 1.04 | 0.85 | 0.85 | 0.37 | 0.28 | 0.32 | 0.51 |
+| counting | B=0.3 +pull | 0.50 | 0.37 | 0.35 | 0.21 | 0.19 | 0.16 | 0.31 |
+| dyck | sequential | 1.96 | 4.29 | 5.51 | 3.41 | 2.77 | 4.11 | 4.52 |
+| dyck | B=0.03 +pull | 1.51 | 1.76 | 1.35 | 0.77 | 0.84 | 0.62 | 0.70 |
+| dyck | B=0.3 +pull | 0.71 | 0.74 | 0.93 | 0.48 | 0.41 | 0.39 | 0.62 |
+| forbidden | sequential | 5.19 | 5.39 | 5.51 | 4.74 | 11.83 | 26.19 | 20.78 |
+| forbidden | B=0.03 +pull | 2.63 | 3.54 | 2.83 | 4.03 | 2.91 | 4.22 | 4.16 |
+| forbidden | B=0.3 +pull | 3.54 | 2.59 | 3.07 | 3.09 | 2.71 | 3.08 | 4.22 |
+| window | sequential | 0.39 | 3.48 | 0.46 | 0.51 | 0.48 | 1.47 | 2.30 |
+| window | B=0.03 +pull | 0.07 | 0.99 | 0.20 | 0.11 | 0.13 | 0.34 | 0.45 |
+| window | B=0.3 +pull | 0.07 | 0.29 | 0.17 | 0.14 | 0.12 | 0.23 | 0.30 |
+| two_window | sequential | 2.08 | 6.67 | 1.47 | 0.51 | 0.62 | 2.80 | 5.23 |
+| two_window | B=0.03 +pull | 0.28 | 1.07 | 0.12 | 0.08 | 0.08 | 1.15 | 1.20 |
+| two_window | B=0.3 +pull | 0.06 | 1.04 | 0.17 | 0.08 | 0.09 | 0.60 | 0.81 |
+
+- Orders that rank by coupling (`sum`, `separator`) need the fewest calls; `cheapest`, `estimate` and `confident` need
+  1.3 to 2 times more at the same budget.
+- The lowest-cost arm is a parallel arm in all 15 cells (`sum` in 6, `cheapest` in 5, `lex` in 2, `separator` and
+  `estimate` in 1 each; B = 0.3 in 10, B = 0.03 in 5).
+- **Caveat that changes how to read the cost table.** Cost measures spread around the arm's own mean. A budgeted
+  parallel schedule is not exact, and the bias against the exact law is not in the cost:
+
+| mode | arms | Z_hat / p(C): min | median | max | share more than 2 s.e. from 1 | median marginal TV error |
+|---|---|---|---|---|---|---|
+| sequential | 105 | 0.858 | 1.001 | 1.099 | 4% | 0.0158 |
+| B=0.03 +pull | 105 | 0.815 | 0.995 | 1.083 | 14% | 0.0171 |
+| B=0.3 +pull | 105 | 0.585 | 0.958 | 1.206 | 74% | 0.0210 |
+
+  At B = 0.3 most arms sample a measurably different law (forbidden: 0.62 to 0.74 of the true p(C)). The marginal TV
+  column is at 16 particles and is dominated by sampling noise, so it does not separate bias from noise. This study
+  therefore does not answer "error against the exact law at equal calls" for the budgeted arms.
+
+**Chain twist with defensive resampling against resampling off.** Ratio of spreads over the 315 matched pairs: median
+0.98, 10th to 90th percentile 0.81 to 1.14, range 0.40 to 2.05. Below 1 means resampling helped.
+
+| constraint | median ratio | min | max | resampling events per run |
+|---|---|---|---|---|
+| counting | 1.02 | 0.40 | 2.05 | 0.21 |
+| dyck | 0.98 | 0.74 | 1.25 | 0.60 |
+| forbidden | 0.88 | 0.60 | 1.14 | 1.80 |
+| window | 1.00 | 0.78 | 1.19 | 0.08 |
+| two_window | 1.02 | 0.75 | 1.32 | 0.27 |
+
+Neutral at this length except on forbidden, where resampling fires most. Consistent with section 36f.
+
+## 36j. Where the time of a step goes on MDLM (cluster job `1fc965f6`, one L40S, 2026-11-16) [partial: 10 of 12 cells; stage split pending]
+
+`experiments/parallel_unmasking/mdlm_timing.py`, commit `5c12f04`; file `results/parallel_unmasking/mdlm_timing_run1.json`.
+Half-revealed state, three token classes, two constraints: a count on a window of a tenth of the positions and a count
+on the whole sequence. Median of 7 repetitions, milliseconds for the whole batch, lower is better. The last three
+columns are in denoiser calls at the same batch size.
+
+| N | particles | constraint | denoiser | class projection | kernel sum | route logZ | route marginals | reveal, sequential | reveal, parallel | chain twist | chain twist (calls) | step, sequential (calls) | step, parallel (calls) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 8 | window | 9.0 | 0.9 | 5.6 | 0.7 | 3.6 | 10.7 | 48.5 | 7.4 | 0.82 | 2.67 | 6.86 |
+| 128 | 8 | whole_sequence | 9.0 | 0.9 | 5.6 | 6.3 | 32.1 | 38.4 | 191.2 | 10.1 | 1.12 | 8.73 | 25.69 |
+| 128 | 64 | window | 30.0 | 7.6 | 5.6 | 0.7 | 3.5 | 11.1 | 61.1 | 7.4 | 0.25 | 1.74 | 3.40 |
+| 128 | 64 | whole_sequence | 30.0 | 7.6 | 5.6 | 6.3 | 32.8 | 38.6 | 320.4 | 10.2 | 0.34 | 3.55 | 12.94 |
+| 128 | 256 | window | 155.1 | 30.3 | 5.6 | 0.7 | 3.6 | 10.7 | 62.6 | 7.4 | 0.05 | 1.29 | 1.62 |
+| 128 | 256 | whole_sequence | 155.1 | 30.3 | 5.6 | 6.3 | 32.4 | 38.7 | 323.9 | 10.2 | 0.07 | 1.64 | 3.48 |
+| 256 | 8 | window | 10.7 | 1.9 | 11.1 | 1.4 | 6.8 | 19.4 | 108.8 | 14.4 | 1.36 | 3.60 | 12.00 |
+| 256 | 8 | whole_sequence | 10.7 | 1.9 | 11.1 | 12.5 | 64.3 | 75.8 | 626.5 | 20.1 | 1.89 | 14.02 | 65.72 |
+| 256 | 64 | window | 65.3 | 15.1 | 11.1 | 1.4 | 6.9 | 19.8 | 112.7 | 14.5 | 0.22 | 1.63 | 3.06 |
+| 256 | 64 | whole_sequence | 65.3 | 15.1 | 11.1 | 12.6 | 64.6 | 77.7 | 637.6 | 20.3 | 0.31 | 3.35 | 11.92 |
+
+- The run stopped at N = 256 with 256 particles: the full-vocabulary log-softmax of that batch needs 12.3 GiB on top of
+  35 GiB held. That cell is not measured.
+- Route, kernel and twist times do not grow with the number of particles; they are about 50 to 60 microseconds per
+  position step, which is GPU per-operation overhead. The script passes the full particle batch to each timer
+  (read from the code; a shape assertion is added in the rerun).
+- The chain twist costs 0.05 to 0.34 of a denoiser call at 64 or more particles, and 0.8 to 1.9 at 8.
+- The constraint-aware sequential reveal equals one constrained-marginals pass plus one kernel sum.
+- The parallel reveal is 4.5 to 8.4 times dearer than the sequential one. From the code, the candidates are the
+  forced-partner pull-in (up to 8 extra constrained-marginals passes per step) and an admission loop over all
+  positions. Component times predict 38 + 8 x 32 = 294 ms at N = 128 on the whole-sequence constraint against 320 to
+  324 measured. This is a prediction, not a stage measurement.
+- This run did not record how many positions a parallel reveal admits, so its cost per revealed position is unknown.
+- Rerun with per-stage timers, a no-pull-in variant and the admitted count (commit `7395e53`): the second submission
+  hung in the GPU check on node4204 and was cancelled at its 45-minute limit without running any timing code; the
+  third (job `0ef5c662`) is in the queue.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
 of section 34: the studies are registered functions behind one command line, not separate scripts, so the existing
 job scripts and arm names keep working.
 
+0. Timing on the real model (section 36j): read the per-stage split of the parallel reveal when job `0ef5c662`
+   returns, and decide whether the pull-in needs a cheaper form. The order study (section 36i) is input to the
+   selection rule; the user has thoughts on that rule and asked to be flagged before the work starts.
 1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the
    stake paid beyond log(1 / p(C)), i.e. reveals where the proposal's marginal is accurate; measure KL = -E[log(W / p(C))]
    as the end measure on `hidden256`; then a scale-free score (`sum` fails on MDLM, `lex` costs steps on Dyck),
