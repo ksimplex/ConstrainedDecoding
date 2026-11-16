@@ -680,17 +680,179 @@ With 25 runs the spread ratios are indicative only.
 the worst and is the working default. The open question is the relative weight of the two terms. [hypothesis: a
 scale-free combination, for example ranks or each term divided by its maximum over masked positions]
 
-## 27. Next steps (2026-11-15, afternoon)
+## 27. Order or parallelism? The sequential smart-order control (local, 2026-11-15) [verified]
 
-1. Remote, awaiting approval: constraint-interaction study at N = 1,024 with all 12 cells and the one-per-step control
-   (`jobs/interact_N1024.sbatch`); Dyck at N = 256 with more runs and at N = 1,024.
-2. The relative weight of the constraint and separator terms in the score (section 26), then the held-out stress
-   constraints (required motif, per-segment counts, window all-different, parity, motif and count), unchanged.
-3. Gated resampling: a criterion for repeated events; test at N = 256 (`resample_N256.json`, running) and 1,024.
-4. A separator score that values thickness (section 24); sub-additivity audit of the kernel; the prediction
-   sd(r) = sqrt(2 x load) at budgets below 0.01.
-5. Constraint-aware closeness through Hessian-vector products of log Z. [hypothesis]
-6. An error measure sensitive to long-range joint structure.
-7. Owed: three proofs (resampling at unequal progress under rollback; unbiasedness with an adaptive proposal;
-   accuracy of the first-order effective-coupling formula); the fix to Definition 5.1 of the notes; the `TorchChart`
-   gradient; strip and grid oracles; a trained small model; the plan document.
+`results/parallel_unmasking/seqorder_N256_hidden085_summary.json` (`--arms seqorder`; `CouplingPolicy(max_set=1)` is one
+token per step in priority order). `hidden_0.85`, N = 256, 100 runs of 16 particles, no resampling. The other hidden
+chains (`hidden_0.85_n0.15`, `_n0.5`) were interrupted by a session restart and are partial.
+Spread of Z_hat (denoiser calls): sequential | parallel at the exact threshold | parallel at B = 0.03.
+
+| Constraint | Random (native) | `sum` | `lex` | `bound` | `separator` |
+|---|---|---|---|---|---|
+| `copy_spread` | 0.79 (256) | 0.04 (256), 0.12 (56), 0.18 (14) | 0.03, 0.19, 0.12 | 0.03, 0.08, 0.13 | 0.32, 0.56, 0.57 |
+| `copy_block` | 0.45 | 0.19, 0.39, 0.27 | 0.09, 0.40, 0.28 | 0.10, 0.18, 0.14 | 0.29, 0.29, 0.29 |
+| `two_window` | 0.33 | 0.14, 0.15, 0.15 | 0.15, 0.13, 0.15 | 0.15, 0.14, 0.18 | 0.29, 0.35, 0.27 |
+| `window` | 0.21 | 0.13, 0.14, 0.17 | 0.12, 0.12, 0.15 | 0.12, 0.12, 0.15 | 0.21, 0.16, 0.21 |
+
+- **A constraint-aware order is a fix to the base sequential sampler**: 1.6 to 20 times lower spread than random order
+  at the same 256 calls.
+- **Parallelism costs weights only on the copies**, and that cost is a selection flaw (section 31), not inherent.
+- Smart parallel at 14 calls beats random sequential at 256 calls in all four cells. In calls x spread^2 the 14-call
+  `sum` schedule is 9 to 16 times cheaper than `sum` sequential on three constraints and level on `copy_spread`.
+
+## 28. First look at a real model: MDLM on OpenWebText (cluster job `ea73325e`, one L40S, 2026-11-15) [verified]
+
+`results/parallel_unmasking/mdlm_N128.json`, `mdlm_N256.json`; script `experiments/parallel_unmasking/mdlm_first_look.py`.
+130M parameters, GPT-2 tokens, 256 audited sequences at N = 128 and 128 at N = 256. The gap is defined per step as
+log(sequential joint of the step's tokens in index order) - log(product of their conditionals); its mean is minus a KL
+and is well defined although the model's conditionals are not order-consistent.
+
+**Kernel (token-level coupling, nats).** Unscreened, by distance 1, 2, 4, 8, 16, 32, 64: N = 128: 1.41, 0.88, 0.55,
+0.47, 0.54, 0.71, 0.86; N = 256: 1.55, 0.81, 0.32, 0.20, 0.19, 0.22, 0.41. With 3 to 4 revealed tokens in between: 0.05 to
+0.15; with 17 or more: 0.005 to 0.03. **Dependence does not decay with distance; it decays with how much is revealed.**
+
+**Unconstrained audit, N = 256** (calls, KL in nats, 99th percentile of the per-sequence gap):
+
+| Schedule | Calls | KL | q99 |
+|---|---|---|---|
+| Separator, B = 1 | 142 | 1.11 +- 0.16 | 7.2 |
+| Separator, B = 3 | 93 | 2.87 +- 0.27 | 12.9 |
+| Random order, B = 3 | 76 | 2.12 +- 0.25 | 9.5 |
+| Least-coupled-first (`least_tie`), B = 3 | 74 | 2.60 +- 0.26 | 10.9 |
+| Separator, B = 10 | 78 | 9.35 +- 0.49 | 23.9 |
+| Fixed 2 / 4 / 8 / 16 per step | 128 / 64 / 32 / 16 | 6.1 / 15.7 / 36.4 / 65.9 | 24.8 / 39.5 / 76.6 / 113 |
+| Dilated, base 2 | 8 | 123 +- 3 | 208 |
+
+- Budgets up to 0.3 nats allow no parallelism. About 3.4 times fewer calls cost 2 to 3 nats. At about 75 calls the gap
+  is a third of fixed-size at 128 calls and a sixth of fixed-size at 64. N = 128: `least_tie` B = 3: 58 calls, KL 1.75;
+  separator B = 3: 65 calls, 3.18; fixed 2 per step: 64 calls, 6.77. The separator order is not the best here.
+- Measured KL / predicted load: 0.96 to 1.43 at N = 128 and 0.80 to 1.75 at N = 256 over the seven budgeted arms. The
+  job printed a load three times too high (the schedule object was shared by three batches); the files carry the
+  corrected value and the original.
+- No budgeted arm below 56 calls was run: no comparison at 16 or 32 calls yet.
+
+**Order inconsistency (N = 128, 96 sequences; log p about -454 nats).** A second random order differs from the first
+by -0.4 +- 2.5 on average with a per-sequence s.d. of 24 nats; the separator order by -6.4 +- 2.7; left to right by
+-1.1 +- 2.8. A schedule gap of 1 to 3 nats is small beside this; "exact" on this model is defined up to it.
+
+**Constrained (N = 128, 48 runs of 8 particles, three token classes, no resampling).** Spread of Z_hat:
+
+| Constraint | Random sequential | `sum` sequential | `lex` sequential | `lex`, B = 3 (55 to 58 calls) | `sum`, B = 3 (65 calls) |
+|---|---|---|---|---|---|
+| Window count | 0.96 | 0.89 | 0.54 | 0.51 | 1.01 |
+| Two-window count | 0.90 | 1.07 | 0.64 | 0.67 | 1.07 |
+| Class copy (6 pairs) | 1.05 | 0.90 | 0.55 | 0.55 | 0.67 |
+
+- Constraint-first halves the spread and its parallel version keeps that at under half the calls.
+- `sum` does nothing here: the separator term is in whole nats and swamps the constraint term (the scale problem).
+- log Z_hat depends on the order by 0.3 to 1 nat (copy: -1.39 `lex`, -1.94 random, -2.35 `sum`).
+
+## 29. A non-mean-field twist (local, 2026-11-15) [verified at N = 64; not yet in the main sampler]
+
+`twist_error.py`, `twist_smc.py`; `results/parallel_unmasking/twist_error_N64.json`, `twist_smc_N64.json`.
+The twist is the constraint's probability under a stand-in for the model. Product = independent positions (in use).
+Chain = a first-order chain. `chain_ratio` builds it with no extra denoiser call from the current marginals and a
+stationary adjacent-class kernel K: Q_i(a, b) proportional to mu_{i+1}(b) K(a, b) / sum_a' mu_i(a') K(a', b).
+
+Spread over states of log psi_standin - log psi_true (nats), 25% revealed, 300 states from the constrained law, N = 64:
+
+| Constraint (`hidden_0.85`) | Product | Chain, model's own pair conditionals | `chain_ratio` |
+|---|---|---|---|
+| Counting | 0.81 | 0.33 | 0.16 |
+| Window | 1.09 | 0.39 | 0.24 |
+| Two windows | 0.51 | 0.12 | 0.14 |
+| Dyck | 1.13 | 0.52 | 0.34 |
+| Forbidden motif | 0.98 | 0.76 | 0.65 |
+
+On `chain_0.85` the exact-pair chain has error 0.000 (code check) and `chain_ratio` 0.31 to 0.39 against 0.95 to 2.03.
+
+Sampler test (random-order sequential, three hidden chains x five constraints, 2,000 particles, positivity mix 5%):
+- Resampling harm (spread with plain resampling / without): product median 1.57 (1.03 to 3.29; above 1.25 in 10 of 15
+  cells); `chain_ratio` median 1.01 (0.80 to 1.19; none above 1.25).
+- Spread without resampling relative to the product twist: `chain_ratio` median 0.89 (0.33 to 1.26); exact-pair chain
+  0.54 (0.15 to 0.92).
+- All arms unbiased against the exact p(C) (largest |Z - 1| / s.e. 3.7 over 90 estimates).
+
+Plan: a route-generic lift. The chain is a set of pairwise factors between neighbours; lifting = multiplying the
+constraint by them and summing exactly. Automata: product automaton (about x A). Grammars: intersection with the pair
+automaton (up to x A^3). Factor graphs: when the combined graph stays narrow (aligned copy is a ladder); otherwise a
+partial lift. Determinant-based routes (arborescences): not covered; the product twist remains the fallback.
+[derived; needs a proof for the weighted, position-dependent case]. Order k costs A^k (automata), A^(3k) (charts).
+Related: Discrete Copula Diffusion (Liu, Broadrick, Niepert & Van den Broeck, arXiv:2410.01949) keeps a diffusion
+model's marginals and takes the dependence from a second model by I-projection; `chain_ratio` is one scaling pass of
+that projection, used inside the twist so the target is unchanged. Iterating the projection is a lead. [hypothesis]
+
+## 30. Gated resampling at N = 256 (local, 2026-11-15) [verified]
+
+`results/parallel_unmasking/resample_N256.json`: `chain_0.85`, `hidden_0.85` x (window, copy_spread), K = 4, 16, 64,
+3,200 particles. Relative s.e. of the pooled Z_hat over its value without resampling, 12 cases per schedule:
+
+| Schedule | Defensive | Plain | Systematic | Exponent 0.5 | Gated |
+|---|---|---|---|---|---|
+| One per step: median (range) | 3.70 (0.23-49) | 2.27 (0.26-30) | 3.42 (0.16-44) | 4.93 (0.24-38) | 0.78 (0.24-1.45) |
+| Separator: median (range) | 1.14 (0.24-2.7) | 1.56 (0.14-9.8) | 1.49 (0.13-30) | 1.36 (0.17-7.7) | 0.94 (0.19-1.14) |
+
+Ungated resampling is 4 to 49 times worse on the window constraint and 2 to 5 times better on `copy_spread`, where the
+weights are poor without it. The gate keeps the gain and removes the harm: never more than 1.5 times worse in 24
+cases, better by over 1.25 times in 10.
+
+## 31. Why parallel steps cost weights on the block copy: half-open pairs (local, 2026-11-15) [verified]
+
+`hidden_0.85`, `copy_block`, N = 256. In every parallel step the two block tokens revealed together are from different
+pairs (0.00 complete pairs, 2.00 half-open per step): the rule takes the best token of one block, then the best of
+the other, and their forced partners stay masked beside fresh reveals. Variance of the log-weight after the first
+step: 0.80 with two half-open pairs; 0.215 with one complete pair (`pull_forced`), identical to the sequential value
+after the same two reveals (0.215), and likewise after the second pair (0.438 both). The gap in section 27 between
+exact-threshold and budgeted parallel on this cell is real (bootstrap 90% intervals 0.35-0.44 and 0.24-0.30).
+- At the exact threshold the pull-in did not engage: the kernel entry between partners 128 apart is 2e-10 nats, pilot
+  noise that fails an exact zero test. `PULL_TOL = 1e-6` nats now applies to forced partners.
+- Under a budget the pull-in engaged but 62% to 66% of the near-block positions were revealed before the block was
+  complete (0% at the exact threshold). `guard=True` makes a position without a constraint stake count its coupling to
+  still-masked positions with one as load. Test of both: `--arms fix` (`fix_N256.json`, running).
+- `bound` breaks ties left to right and so pairs partners by accident; that is why it beat `lex` in parallel there.
+
+## 32. Exposure: one criterion behind the order rules (2026-11-15) [derived, not yet checked numerically]
+
+Exact: with the product twist and its locally optimal proposal the weight of a sequential step is
+w = psi(new state) / psi(old state with the new token clamped): the revision of the twist caused by the other masked
+positions' marginals moving. First order: log w ~ sum_j <mu^C_j / mu_j, change in mu_j>, and by Cauchy-Schwarz with the
+local chi-square / KL relation sd(log w) <~ 2 sum_j sqrt(D_j M(i, j)), with D_j = KL(mu^C_j || mu_j) (the stake) and
+M(i, j) the kernel. Exposure = stake x coupling over the positions that stay masked: one kernel application per step.
+Constraint-first and the guard follow from keeping it low; the partner pull-in does not (it needs how the stake moves
+after a reveal). To check: does cumulative exposure predict the log-weight variance across schedules, as load
+predicts the gap? Each piece of the rule stays only if its ablation moves error at equal calls or calls at equal error.
+
+## 33. Roadmap and decisions (2026-11-15, evening)
+
+Paper framing (user): building on Dang & Ermon (constrained decoding with automata) and TWISTER (SMC for the exact
+constrained law): (a) constraint families beyond automata; (b) a twist that is not mean-field; (c) a constraint-aware
+unmasking schedule, sequential then parallel. Aim: constrained decoding that is useful and fast; gains in capacity,
+accuracy and efficiency. Verification wanted: (i) the twist at length, on all families, across scales of dependence
+and on a real diffusion language model; (ii) the sequential rule, then the parallel rule, each across models and
+constraints with ablations and the accuracy / efficiency trade-off derived; (iii) a practical case (structured JSON on
+a diffusion language model is the standard benchmark) with overall numbers. Proofs for major statements.
+- Evaluate on hidden chains (several noise levels); Markov chains are a sanity check. Baseline = random sequential.
+- Compare schedules with resampling off; resampling is studied separately.
+- Prefer one justified, ablated criterion to a list of rules. End measures: error against the exact constrained law
+  at equal denoiser calls, or calls to reach a given error; weight variance is the working proxy only.
+- Twist changes must not regress: exact regression with the new options off, unbiasedness, a frozen benchmark,
+  opt-in until it passes.
+- Kernel: no per-layout or per-region patches; pool by maximum; report the audit distribution (tail frequencies,
+  both directions); no worst-case bound. Arborescence routes are out of scope for the lift.
+- A real language model's dependence is long-range early on; plan for a modest parallel gain there.
+- Remote runs need approval; the 1,024-position job waits for the selection fix.
+
+## 34. Next steps (2026-11-15, evening)
+
+1. Selection: read `fix_N256.json`; check exposure against measured log-weight variance; settle a scale-free score;
+   held-out constraints; ablations.
+2. Refactor before the wrapper: split `compare.py` into a small library and per-study scripts; separate scoring from
+   admission in `CouplingPolicy`; exact-regression and unbiasedness tests for every option; a README for the folder.
+3. Chain twist in the main sampler: pair-lift wrapper for automata, positivity mix, no-regression benchmark at 64, 256
+   and 1,024 with and without the gate; then grammars with a measured cost; then the partial lift for copy.
+4. Kernel keyed on how much is revealed; pooling by maximum; the stress oracle with a persistent global latent.
+5. Real model: budgets down to 16 calls; the chain twist; then an instruction-following model for structured JSON.
+6. Cluster (after 1): interaction study and sequential control at 1,024 on the hidden chains
+   (`jobs/interact_N1024.sbatch`, drafted). Finish the two interrupted hidden chains of section 27.
+7. Proofs: unbiasedness with a state-dependent order; the closure proposition for the lift; the exposure bound; the
+   three owed earlier. Notes and plan document.
