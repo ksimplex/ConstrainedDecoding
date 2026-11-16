@@ -1720,12 +1720,14 @@ Median of the kernel-update pair estimate over the true cost, by fraction reveal
 | two_window | 1.02 | 1.92 | 9.13 | 1095.65 |
 
 - The asymmetric cost is predicted well: for unconstrained positions near a window the pair estimate with the exact
-  update is within about 20% of the true mean at every fraction. The chain twist's estimate there is 4 to 8 times too
-  small at 10 to 25% revealed.
-- For positions inside the window the pair estimate is 4 to 8 times too large when little is revealed. It uses the
+  update is 0.68 to 1.06 of the true mean across the four fractions and both window constraints. The chain twist's
+  estimate there is 4 to 8 times too small at 10 to 25% revealed.
+- For positions inside the window the pair estimate is 2 to 8 times too large at 10 to 25% revealed and about right
+  at 50%. It uses the
   constraint ratio at j before i's own class is fixed; the ratio conditional on that class is the correction to try.
 - Ranking within a state is good on the local constraints (0.83 to 0.98) and poor on the global ones (0.2 to 0.4), as
-  expected of a pairwise account. On counting and Dyck its next pick is no better than the chain twist's or random.
+  expected of a pairwise account. On counting its next pick is worse than a random one; on Dyck it is better than random but worse than the chain
+  twist's.
 - The lookahead estimate ranks slightly better but is 2 to 12 times too large: re-evaluating a mean-field twist after
   updating every marginal counts shared dependence several times.
 - The size is off by a constraint-dependent factor (0.28 on forbidden, 1.3 on counting), so sums over a plan are not
