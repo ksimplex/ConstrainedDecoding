@@ -1050,13 +1050,29 @@ Profiled on `hidden_0.85` x `window`, N = 256, 400 particles, one CPU thread, an
   unchanged with the option off.
 - **Not done**: the chain-twisted proposal (the proposal is still the product twist's); grammars and copy; the
   no-regression benchmark at 256 and 1,024.
-- **Study `--arms twist`** (`hidden_0.85`, N = 64, 200 runs x 16; running, 1 of 5 cells complete). Spread of Z-hat
-  (sd / mean, lower is better), random one token per step:
-  - `dyck`: product twist 0.31 off, 0.43 defensive resampling, 0.91 plain resampling; chain twist 0.32 off, 0.28
-    defensive, 0.30 plain. Resampling events per run 3.1-3.4 against 1.1-1.2. The harm of resampling is gone.
-  - `counting`: resampling never fires at K = 16 (0.15-0.17 in all six arms): no information.
-  - `forbidden`: no resampling harm under either twist; differences between arms are within heavy-tail noise (the
-    two "off" arms, which have the same law, read 0.67 and 0.52).
+- **Study `--arms twist`** (`hidden_0.85`, N = 64, 200 runs x 16, 5 automaton constraints x 3 schedules x 2 twists x
+  3 resampling settings = 90 arms; complete). Spread of Z-hat = sd / mean over runs (lower is better); "ratio" = spread
+  with resampling / spread without (above 1 = resampling hurts).
+  - **Random one token per step** (the base sampler), product twist off | defensive | plain, then chain twist:
+    - `dyck`: 0.31 | 0.43 | 0.91, then 0.32 | 0.28 | 0.30 (plain ratio 2.97 -> 0.94; events per run 3.4 -> 1.2).
+    - `window`: 0.19 | 0.40 | 1.05, then 0.22 | 0.21 | 0.21 (5.53 -> 0.99; events 3.0 -> 0.2).
+    - `two_window`: 0.34 | 0.42 | 0.47, then 0.32 | 0.29 | 0.32 (1.36 -> 1.01; events 2.1 -> 0.8).
+    - `counting`: 0.16 | 0.17 | 0.15, then 0.16 | 0.14 | 0.15 (resampling never fires at K = 16: no information).
+    - `forbidden`: 0.67 | 0.68 | 0.66, then 0.52 | 0.54 | 0.51 (ratios 0.99 and 0.99; the product/chain gap is
+      heavy-tail noise, the two "off" arms have the same law).
+  - **Over all 15 (constraint, schedule) settings**, ratio for plain resampling: product twist median 1.06, worst 5.53,
+    above 1.25 in 4 of 15; chain twist median 0.99, worst 1.13, above 1.25 in none. Defensive: product worst 2.11,
+    chain worst 1.17.
+  - With the constraint-first order (`lex`, sequential or B = 0.03 with pull-in) resampling fires rarely (0-2.2 events
+    per run) and there is little harm to remove: product 0.88-1.26, chain 0.80-1.13.
+  - **Unbiasedness**: on the one-token-per-step arms (exact schedules), (Z-hat / p(C) - 1) / s.e. has largest absolute
+    value 2.51 over the 20 chain-twist arms with resampling and 2.98 over the 20 product-twist ones. Under the budget
+    Z-hat estimates that schedule's own hit rate (0.90-0.98 of p(C) here), as before.
+  - **Reading.** The chain twist does what section 29 found in the reference sampler, now in the main one: it makes
+    resampling safe (never more than 1.13 times worse than none, against up to 5.5 times) and gains nothing by itself
+    without resampling. In these cells resampling with the chain twist is roughly neutral, not a gain; whether it
+    becomes a gain needs longer sequences or fewer particles, where degeneracy bites.
+  - Files: `results/parallel_unmasking/twist_N64.json` (+ `.logZ.npz`), `twist_N64_summary.json`; logged.
 
 ## 36g. Is the chain-product disagreement an estimate of the product twist's error? (2026-11-16) [verified at N = 64]
 
