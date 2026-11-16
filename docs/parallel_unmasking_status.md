@@ -1295,7 +1295,7 @@ Cost = calls x spread^2, lower is better, where spread is the sd/mean of the est
 
 Neutral at this length except on forbidden, where resampling fires most. Consistent with section 36f.
 
-## 36j. Where the time of a step goes on MDLM (cluster job `1fc965f6`, one L40S, 2026-11-16) [partial: 10 of 12 cells; stage split pending]
+## 36j. Where the time of a step goes on MDLM (cluster job `1fc965f6`, one L40S, 2026-11-16) [partial: 10 of 12 cells; GPU stage split not measured]
 
 `experiments/parallel_unmasking/mdlm_timing.py`, commit `5c12f04`; file `results/parallel_unmasking/mdlm_timing_run1.json`.
 Half-revealed state, three token classes, two constraints: a count on a window of a tenth of the positions and a count
@@ -1331,9 +1331,13 @@ columns are in denoiser calls at the same batch size.
   0.03 and 0.3.
 - Rerun with per-stage timers, a no-pull-in variant and the admitted count (commit `7395e53`): the second and third
   submissions (nodes node4204 and node3403) hung at Python start-up or `import torch` before any timing code ran and
-  were cancelled at their time limits; a 5-minute `timeout` did not end the third. Cause not established. A fresh
-  Python from the same environment started in 2.7 s on the login node afterwards (user's check). A fourth submission
-  with staged start-up diagnostics (job `48847543`) is in the queue. Section 36l has the stage split on CPU.
+  were cancelled at their time limits; a 5-minute `timeout` did not end the third. A fresh Python from the same
+  environment started in 2.7 s on the login node afterwards (user's check). A fourth submission with staged start-up
+  diagnostics (job `48847543`, node3502) located the problem: a plain `ls` of a file under `~/orcd/pool` did not
+  return in 120 s and was hard-killed, while the job's working directory under the home filesystem worked. So the
+  pooled storage, which holds the environment and the model cache, was unreachable from three GPU nodes between 02:01
+  and at least 04:47. No timing code ran in attempts 2 to 4. The GPU stage split is not measured. Section 36l has the
+  stage split on CPU.
 
 ## 36k. A resampling pressure case: 256 positions, whole-sequence constraints (cluster job `a16667c2`, 2026-11-16) [verified; small samples]
 
@@ -1405,7 +1409,7 @@ Against the criterion:
   off because a budgeted schedule is not exact.
 - Limits: one chain, 12 runs at 64 particles, and no arm with the chain twist in the proposal.
 
-## 36l. Where the schedule's own time goes over a whole decode (local CPU, 2026-11-16) [verified on oracle cells; GPU split pending]
+## 36l. Where the schedule's own time goes over a whole decode (local CPU, 2026-11-16) [verified on oracle cells; GPU split not measured]
 
 `experiments/parallel_unmasking/reveal_stages.py`; file `results/parallel_unmasking/reveal_stages_local.json`.
 `hidden_0.85`, 16 particles, pilot 2,000, constraint-first order, the study's arm settings (B is the whole-sequence
@@ -1451,7 +1455,7 @@ call counts of the studies.
   forbidden, and is below it at 256.
 - This explains the GPU measurement of section 36j in kind (the parallel reveal is several times dearer per step and
   the candidate was the pull-in). The GPU run used a looser budget (rate 1/N, i.e. B = 1) and a small pilot, so its
-  ratios are not the same quantity; the per-stage GPU rerun (job `48847543`) is pending.
+  ratios are not the same quantity. The per-stage GPU rerun did not run (storage unreachable from GPU nodes, section 36j).
 - Not done: a pull-in that skips constraints or steps with nothing to pull. That is a design choice for the selection
   rule.
 
@@ -1461,8 +1465,10 @@ Done since section 34: the selection-fix run (section 31) and the refactor (sect
 of section 34: the studies are registered functions behind one command line, not separate scripts, so the existing
 job scripts and arm names keep working.
 
-0. Timing on the real model (section 36j): read the per-stage split of the parallel reveal when job `48847543`
-   returns, and decide whether the pull-in needs a cheaper form. The order study (section 36i) is input to the
+0. Timing on the real model (section 36j): the per-stage split of the parallel reveal on the GPU is blocked until
+   the pooled storage is reachable from GPU nodes again (probe first, then rerun `mdlm_timing.py` at commit `7395e53`).
+   The CPU split (section 36l) shows the pull-in is the extra cost and admits nothing on window, counting and
+   forbidden; decide whether it needs a cheaper form. The order study (section 36i) is input to the
    selection rule; the user has thoughts on that rule and asked to be flagged before the work starts.
 1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the
    stake paid beyond log(1 / p(C)), i.e. reveals where the proposal's marginal is accurate; measure KL = -E[log(W / p(C))]
