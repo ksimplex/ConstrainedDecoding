@@ -44,8 +44,10 @@ def spread(logz, n_boot=1000, seed=0):
         return None, None, None
     f = lambda v: float(v.std(ddof=1) / v.mean())
     idx = np.random.default_rng(seed).integers(0, n, size=(n_boot, n))
-    b = w[idx]; bs = b.std(axis=1, ddof=1) / b.mean(axis=1)
-    return f(w), float(np.quantile(bs, 0.05)), float(np.quantile(bs, 0.95))
+    b = w[idx]
+    with np.errstate(invalid="ignore", divide="ignore"):                 # a resample of runs that all have Z_hat = 0
+        bs = b.std(axis=1, ddof=1) / b.mean(axis=1)                       # has no spread; it is left out
+    return f(w), float(np.nanquantile(bs, 0.05)), float(np.nanquantile(bs, 0.95))
 
 
 def summarise(path):
