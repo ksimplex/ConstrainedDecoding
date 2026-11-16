@@ -52,6 +52,7 @@ def main():
     ap.add_argument("--constraint", default="counting", help="counting, or dyck (class 0 is the opening bracket; the spread "
                     "ratio is then that of the number of opening brackets, and `centred` does not apply)")
     ap.add_argument("--orders", nargs="+", default=["random", "lex", "separator", "sum", "cheapest", "centred"])
+    ap.add_argument("--proposal", choices=("product", "chain"), default="product", help="propose the revealed token from the product twist's constrained marginal, or the first-order chain twist's")
     a = ap.parse_args(); torch.set_num_threads(2)
     from pulib.cells import n_symbols
     N, P = a.N, a.P; k = N // 3 if a.constraint == "counting" else N // 2
@@ -59,10 +60,26 @@ def main():
     kern, _ = fit_distance_kernel(den, N, a.pilot, torch.Generator().manual_seed(1), count_edges=COUNT_EDGES)
     ref = te.Twists(den, truth.wdfa, getattr(truth, "active", None) if getattr(truth, "active", None) is not None else [True] * N)
     res = dict(args=vars(a), provenance=provenance(), log_pC=float(truth.log_pC), rows=[])
+    chain = None
+    if a.proposal == "chain":
+        from twistroute.decode import ChainTwist, fit_pair_kernel
+        from pulib.orders import exact_conditionals
+        chain = ChainTwist(truth.wdfa, fit_pair_kernel(den, cl, a.pilot, torch.Generator().manual_seed(5)), active=getattr(truth, "active", None))
+
+    def proposal(lwc):
+        qq = constrained_marginals(route, lwc) if chain is None else chain.marginals(lwc)
+        return qq / qq.sum(-1, keepdim=True).clamp_min(1e-300)
+
+    def cheapest_chain(sx):                                 # ideal greedy for the chain proposal
+        e = kl(proposal(sx.lwc), exact_conditionals(ref, den, sx.st.x, torch.exp(den.log_cond(sx.st.x))))
+        return torch.where(torch.isfinite(e), -e, torch.full_like(e, -1e30))
+
     for oname in a.orders:
         t0 = time.time()
         if oname == "cheapest":
-            pr = cheapest_order(ref, den)
+            pr = cheapest_order(ref, den) if chain is None else cheapest_chain
+        elif oname == "ltr":
+            pr = lambda sx: -torch.arange(N, dtype=torch.float64).expand(sx.st.x.shape)
         elif oname == "centred":
             pr = lambda s: -torch.nan_to_num(influence(den, s.st.x, s.mu, k)[0], posinf=1e30)
         else:
@@ -75,8 +92,8 @@ def main():
             masked = x == den.mask_id
             ycls = cl.token_class[torch.where(masked, torch.zeros_like(x), x)]
             lw = cl.class_logw(den.logits(x)); st = RevealState(x, ycls, lw, den.mask_id, cl, route)
-            lwc = clamp_revealed(lw, x, ycls, den.mask_id); q = constrained_marginals(route, lwc)
-            vif_t[t] = float(influence(den, x, q, k)[1].mean()) if t < N - 1 else 1.0
+            lwc = clamp_revealed(lw, x, ycls, den.mask_id); q = proposal(lwc)
+            vif_t[t] = float(influence(den, x, q, k)[1].mean()) if t < N - 1 and a.constraint in ("counting", "dyck") else 1.0
             idx, _ = pol.reveal(st, t, N, g); i = idx[:, 0]
             q0 = q[rows, i]; pm = torch.exp(den.log_cond(x))[rows, i]
             pi = torch.zeros(P, den.S, dtype=torch.float64)
