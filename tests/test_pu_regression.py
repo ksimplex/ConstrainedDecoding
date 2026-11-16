@@ -30,7 +30,8 @@ CASES = [("full", "hidden_0.85", "copy", 32), ("core", "chain_0.85", "dyck", 32)
          ("seqorder", "hidden_0.85", "two_window", 80), ("fix", "hidden_0.85", "copy_block", 80),
          ("fix", "chain_0.85", "copy_spread", 80), ("fix", "hidden_0.85", "window", 80),
          ("resample", "chain_0.85", "counting", 32)]
-SKIP = {"seconds"}
+SKIP = {"seconds",
+        "kl_particle", "var_logw_particle", "dead_particles"}      # added to the rows after the reference was frozen
 
 
 def stamp():

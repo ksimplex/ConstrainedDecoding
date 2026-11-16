@@ -50,6 +50,12 @@ def run_cell(job):
                    seed=cell.seed(name),
                    seconds=round(time.time() - t0, 2), frac_valid=out["frac_valid_finite"],
                    **metrics(out, den, truth, N, S, K, pair_truth))
+        if row["n_res"] == 0.0:                    # no resampling: each particle keeps its own weight, so the mean
+            lw = np.asarray(out["logw"], dtype=np.float64).reshape(-1) - truth.log_pC     # log-weight is -KL(sampler || target)
+            alive = np.isfinite(lw)
+            row["kl_particle"] = float(-lw[alive].mean()) if alive.any() else None
+            row["var_logw_particle"] = float(lw[alive].var(ddof=1)) if alive.sum() > 1 else None
+            row["dead_particles"] = float(1.0 - alive.mean())
         row["route_passes"] = 0.0 if isinstance(sch, str) else sch.route_passes / max(sch.calls, 1)
         if getattr(sch, "particle_calls", 0):          # mean summed kernel load per particle path: the predicted E[r]
             row["load_per_path"] = sch.load_sum * sch.calls / sch.particle_calls

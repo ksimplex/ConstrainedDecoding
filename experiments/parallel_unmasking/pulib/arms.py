@@ -218,3 +218,26 @@ def twist(c):
               ("lex B=0.03 +pull", lambda: c.policy(kg, 0.0, "lex", B=0.03, pull_forced=8)))
     return [Arm(f"{sn} | {tn} twist | resampling {rn}", mk(), N, n, smc=dict(smc, **({"twist": tw} if tn == "chain" else {})))
             for sn, mk in scheds for tn in ("product", "chain") for rn, smc in TWIST_RESAMPLING]
+
+
+AXIS_ORDERS = ("cheapest", "estimate", "confident", "lex", "sum", "separator", "random")
+AXIS_BUDGETS = (0.03, 0.3)
+
+
+@arm_set("axis")
+def axis(c):
+    """From cheapest-first to separator-first: seven orders, one token per step and in parallel under two budgets
+    (with the partner pull-in), without resampling and with the chain twist plus defensive resampling. `cheapest`
+    uses the exact twist (the ideal reference, oracle models only); `estimate` uses the chain twist's disagreement
+    with the product twist; `confident` is lowest entropy of the constrained marginal. Automaton constraints only."""
+    import twist_error as te
+    from .orders import cheapest_order, estimate_order
+    N, n, kg, tw = c.N, c.nrun, c.kernel("graded"), c.chain_twist()
+    ref = te.Twists(c.den, c.truth.wdfa, getattr(c.truth, "active", None) if getattr(c.truth, "active", None) is not None else [True] * N)
+    order = lambda name: {"cheapest": cheapest_order(ref, c.den), "estimate": estimate_order(tw)}.get(name, name)
+    modes = [("sequential", dict(max_set=1))] + [(f"B={B} +pull", dict(B=B, pull_forced=8)) for B in AXIS_BUDGETS]
+    resampling = (("resampling off", OFF), ("chain twist, defensive resampling", dict(twist=tw)))
+    arms = [c.control()]
+    arms += [Arm(f"{o} {mn} | {rn}", c.policy(kg, 0.0, order(o), **mk), N, n, smc=smc)
+             for o in AXIS_ORDERS for mn, mk in modes for rn, smc in resampling]
+    return arms

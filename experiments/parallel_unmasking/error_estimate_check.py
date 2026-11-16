@@ -30,29 +30,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import twist_error as te                                                                           # noqa: E402
 from pulib.arms import Cell                                                                        # noqa: E402
 from pulib.cells import make_model, make_constraint, n_symbols                                     # noqa: E402
+from pulib.orders import kl, exact_conditionals                                                    # noqa: E402
 from pulib.summary import provenance                                                               # noqa: E402
 
 FRACS = (0.1, 0.25, 0.5, 0.75)
 RULES = ("cheapest", "estimate_ratio", "estimate_exact", "stake", "separator", "entropy", "random")
-
-
-def kl(p, q):
-    """KL(p || q) along the last axis; inf where p puts mass on a value q excludes."""
-    t = torch.where(p > 0, p * (torch.log(p.clamp_min(1e-300)) - torch.log(q.clamp_min(1e-300))), torch.zeros_like(p))
-    out = t.sum(-1).clamp_min(0.0)
-    return torch.where(((p > 1e-12) & (q <= 0)).any(-1), torch.full_like(out, float("inf")), out)
-
-
-def exact_conditionals(tw, den, x, mu):
-    """pi (B, N, S): p(class at i | revealed tokens of x, C) at masked positions, by clamping each masked position
-    to each class and evaluating the exact twist. Zeros at revealed positions."""
-    B, N = x.shape
-    b, i = (x == den.mask_id).nonzero(as_tuple=True)
-    pi = torch.zeros(B, N, den.S, dtype=torch.float64)
-    for a in range(den.S):
-        xa = x[b].clone(); xa[torch.arange(len(b)), i] = a
-        pi[b, i, a] = mu[b, i, a] * torch.exp(tw.true(xa))
-    return pi / pi.sum(-1, keepdim=True).clamp_min(1e-300)
 
 
 def run_cell(job):

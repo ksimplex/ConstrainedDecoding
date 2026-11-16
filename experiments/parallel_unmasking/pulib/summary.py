@@ -66,6 +66,7 @@ def summarise(path):
                         cost=None if s is None else r["steps"] * s * s,
                         z_ratio=r["z_ratio"], z_ratio_se=r["z_ratio_se"], z_se_unreliable=r.get("z_se_unreliable"),
                         marg_tv=r["marg_tv"], sd_r=r.get("sd_r"), n_res=r.get("n_res"), ess=r.get("ess"),
+                        kl_particle=r.get("kl_particle"), dead_particles=r.get("dead_particles"),
                         source=os.path.basename(path)))
     return out
 
