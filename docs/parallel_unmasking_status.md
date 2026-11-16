@@ -939,15 +939,20 @@ increment and the exposure of the set just chosen. Var(log w_T) is in nats^2 (lo
   random without forced-first): no order effect beyond noise.
 - **`forced_first` is a large part of the order fix on copy** (17.0 -> 4.8): the inference of section 27 is now
   measured, at N = 64 on the full copy.
-- **An exact identity replaces the heuristic** [verified for one-token steps, 12 cases, all within one s.e.:
-  differences -0.15 to +0.17 nats, s.e. 0.12-0.34]. With the locally optimal proposal the weight is the model's path
+- **An exact identity replaces the heuristic** [verified for one-token steps: 12 cases (4 schedules x 3
+  constraints, 400 particles each), differences -0.15 to +0.17 nats against standard errors 0.12-0.34; 11 within one
+  s.e., the largest 1.13 s.e. (counting, random with forced-first). The s.e. combines the two terms as if independent;
+  per-particle differences were not saved. Corrected 2026-11-16: an earlier version said "all within one s.e."]. With the locally optimal proposal the weight is the model's path
   probability over the proposal's, so log W_T = - sum_t log(q_t / p_t), and
       KL(sampler's law || exact constrained law) = E[ sum_t D at the revealed position ] - log(1 / p(C)).
   The cumulative stake paid at reveal, in excess of the fixed total log(1 / p(C)), is the sampler's KL error. It is
   also -E[log(W / p(C))], which every run already gives. Measured KL in nats (lower is better): forbidden: random
   2.6, `bound` 0.77, `separator` 4.1, parallel `lex` + pull + guard 0.78; copy: random 4.6, forced-first 2.0, `bound`
   0.81, `separator` 1.8, parallel `lex` + pull + guard 0.67; counting 0.13-0.20 for all.
-  For a parallel step the identity needs the joint KL of the set, not the sum of the positions' stakes.
+  For a parallel step the identity needs the joint KL of the set, not the sum of the positions' stakes. The same
+  run included one parallel schedule (`lex theta=0.0 +pull+guard`), where the sum of marginal stakes misses by
+  -0.01 (forbidden), -0.24 (counting) and -9.79 nats (copy, where pulled partners are drawn jointly): as expected,
+  and not part of the check. The joint form is not yet tested.
 - **Consequences.** (1) Exposure is dropped as the unifying criterion; it can stay as a per-step scale. (2) The
   objective for the order is now exact: pay as little stake as possible beyond log(1 / p(C)). By the chain rule the
   excess is the sum over steps of the error of the proposal's marginal at the revealed position, so the order should

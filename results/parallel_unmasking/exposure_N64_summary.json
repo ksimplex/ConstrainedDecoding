@@ -952,7 +952,9 @@
    "kl": 2.585974025330876,
    "diff": -0.0523062473386422,
    "se": 0.2516177091003743,
-   "var_logw": 10.512055127582656
+   "var_logw": 10.512055127582656,
+   "one_token_per_step": true,
+   "diff_in_se": -0.20787983296428633
   },
   {
    "constraint": "forbidden",
@@ -962,7 +964,9 @@
    "kl": 2.3789372487882123,
    "diff": 0.03630986951649495,
    "se": 0.2574887369804092,
-   "var_logw": 10.874974752768729
+   "var_logw": 10.874974752768729,
+   "one_token_per_step": true,
+   "diff_in_se": 0.14101537000143644
   },
   {
    "constraint": "forbidden",
@@ -972,7 +976,9 @@
    "kl": 0.7691317232469065,
    "diff": 0.023834315460512845,
    "se": 0.132513776852219,
-   "var_logw": 1.63514473193212
+   "var_logw": 1.63514473193212,
+   "one_token_per_step": true,
+   "diff_in_se": 0.17986292464588924
   },
   {
    "constraint": "forbidden",
@@ -982,7 +988,9 @@
    "kl": 4.094447569451665,
    "diff": -0.04285607399929248,
    "se": 0.3435534809236392,
-   "var_logw": 21.72683320817779
+   "var_logw": 21.72683320817779,
+   "one_token_per_step": true,
+   "diff_in_se": -0.12474353013124613
   },
   {
    "constraint": "forbidden",
@@ -992,7 +1000,9 @@
    "kl": 0.775945202908848,
    "diff": -0.014127956320320045,
    "se": 0.125665729670333,
-   "var_logw": 2.150609791598264
+   "var_logw": 2.150609791598264,
+   "one_token_per_step": false,
+   "diff_in_se": -0.11242489386233481
   },
   {
    "constraint": "copy",
@@ -1002,7 +1012,9 @@
    "kl": 4.554042106540551,
    "diff": -0.15062273531158077,
    "se": 0.33748434159200685,
-   "var_logw": 15.73957203818786
+   "var_logw": 15.73957203818786,
+   "one_token_per_step": true,
+   "diff_in_se": -0.44631029280070217
   },
   {
    "constraint": "copy",
@@ -1012,7 +1024,9 @@
    "kl": 2.0318228563383713,
    "diff": 0.001151038840725871,
    "se": 0.19695662280145784,
-   "var_logw": 4.128786962533988
+   "var_logw": 4.128786962533988,
+   "one_token_per_step": true,
+   "diff_in_se": 0.0058441235656552445
   },
   {
    "constraint": "copy",
@@ -1022,7 +1036,9 @@
    "kl": 0.8097228273466719,
    "diff": 0.16671667704591542,
    "se": 0.19207428476846725,
-   "var_logw": 1.969549012684915
+   "var_logw": 1.969549012684915,
+   "one_token_per_step": true,
+   "diff_in_se": 0.8679802048820917
   },
   {
    "constraint": "copy",
@@ -1032,7 +1048,9 @@
    "kl": 1.8305147251204148,
    "diff": -0.09110670503112539,
    "se": 0.20177559329821826,
-   "var_logw": 4.532220356705976
+   "var_logw": 4.532220356705976,
+   "one_token_per_step": true,
+   "diff_in_se": -0.45152490220396685
   },
   {
    "constraint": "copy",
@@ -1042,7 +1060,9 @@
    "kl": 0.6737704404905928,
    "diff": -9.794024978568777,
    "se": 0.07044280210375531,
-   "var_logw": 1.7205237759009673
+   "var_logw": 1.7205237759009673,
+   "one_token_per_step": false,
+   "diff_in_se": -139.03514178983315
   },
   {
    "constraint": "counting",
@@ -1052,7 +1072,9 @@
    "kl": 0.1940820591403053,
    "diff": 0.04681741490235691,
    "se": 0.13289879510570082,
-   "var_logw": 0.4712024012461384
+   "var_logw": 0.4712024012461384,
+   "one_token_per_step": true,
+   "diff_in_se": 0.35227870098536834
   },
   {
    "constraint": "counting",
@@ -1062,7 +1084,9 @@
    "kl": 0.17414604204426265,
    "diff": 0.14370681162362064,
    "se": 0.12657313171657297,
-   "var_logw": 0.4529505858000859
+   "var_logw": 0.4529505858000859,
+   "one_token_per_step": true,
+   "diff_in_se": 1.1353658527262642
   },
   {
    "constraint": "counting",
@@ -1072,7 +1096,9 @@
    "kl": 0.19165012142340399,
    "diff": 0.01207895811506432,
    "se": 0.12213961299154164,
-   "var_logw": 0.4360307032197762
+   "var_logw": 0.4360307032197762,
+   "one_token_per_step": true,
+   "diff_in_se": 0.09889468141593676
   },
   {
    "constraint": "counting",
@@ -1082,7 +1108,9 @@
    "kl": 0.12578561055193402,
    "diff": 0.05528048871517868,
    "se": 0.12630404091441638,
-   "var_logw": 0.32714102103379283
+   "var_logw": 0.32714102103379283,
+   "one_token_per_step": true,
+   "diff_in_se": 0.4376779105003991
   },
   {
    "constraint": "counting",
@@ -1092,7 +1120,10 @@
    "kl": 0.19613575714359738,
    "diff": -0.2394133986422194,
    "se": 0.10809840022007319,
-   "var_logw": 0.41412445071497794
+   "var_logw": 0.41412445071497794,
+   "one_token_per_step": false,
+   "diff_in_se": -2.214772819531161
   }
- ]
+ ],
+ "identity_note": "The identity E[sum_t D at reveal] = log(1/p(C)) + KL is for one-token steps (one_token_per_step = true). The rows of 'lex theta=0.0 +pull+guard' are a parallel schedule: there the sum of the positions' marginal stakes is not the joint stake of the set, so the identity is not expected to hold in this form and those rows are not part of the check. 'se' combines the two standard errors as if independent; the per-particle differences were not saved."
 }
