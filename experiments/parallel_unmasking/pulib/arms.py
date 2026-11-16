@@ -1,0 +1,195 @@
+"""Arm sets of the comparison.
+
+An arm is one sampler configuration run on a cell: a schedule (the string "fixed" or a policy object), a cap T on
+the number of steps, a number of runs, and overrides of the sampler's resampling settings. An arm set is a
+function of the cell that returns the arms of one study; `ARM_SETS` maps the `--arms` name to it. To add a study,
+write one function below and decorate it.
+
+Arm names are part of the results: each arm's random stream is derived from its name (cells.stream_seed), and
+analysis scripts select arms by name. Renaming an arm changes its numbers.
+"""
+from dataclasses import dataclass, field
+import torch
+
+from .cells import stream_seed
+from .gate import resampling_gate
+
+THETAS = (0.0, 0.003, 0.01, 0.03, 0.1)
+BUDGETS = (0.01, 0.03, 0.1, 0.3, 1.0)      # whole-sequence error budgets in nats; the policy gets rate = B / N
+THICK_SMALL_BUDGETS = (0.001, 0.0001)    # appended after BUDGETS so earlier partial results stay valid
+THICK_WIDTHS = (1, 2, 3, 4, 6)
+THICK_SPACINGS = (8, 16, 24, 32, 48, 64)
+ORDER_PRIORITIES = ("bound", "random", "confident", "separator", "sum", "weighted", "lex", "least", "least_random", "least_tie")
+SEQ_ORDERS = ("sum", "lex", "separator", "random", "bound")
+RESAMPLE_KS = (4, 16, 64, 256)
+RESAMPLE_MODES = (("off", dict(ess_min=0.0)), ("defensive", dict()), ("plain", dict(defensive=0.0)),
+                  ("gated", dict(defensive=0.0, resample_power="gate")),
+                  ("systematic", dict(defensive=0.0, resampler="systematic")),
+                  ("power 0.5", dict(defensive=0.0, resample_power=0.5)), ("power 0.25", dict(defensive=0.0, resample_power=0.25)),
+                  ("power 0.5 systematic", dict(defensive=0.0, resample_power=0.5, resampler="systematic")))
+INTERACT_BUDGETS = (0.03, 0.3)
+INTERACT_ORDERS = ("separator", "sum", "weighted", "lex", "bound", "random", "least_tie")
+FIX_VARIANTS = (("", 0, False), (" +pull", 8, False), (" +pull+guard", 8, True))      # name tag, pull_forced, guard
+OFF = dict(ess_min=0.0)                   # no resampling
+
+ARM_SETS = {}
+
+
+@dataclass
+class Arm:
+    name: str
+    schedule: object                      # "fixed" or an object with .reveal(state, t, T, gen)
+    T: int                                # number of steps ("fixed") or the cap on them (policies)
+    nrun: int
+    smc: dict = field(default_factory=dict)       # overrides of twisted_smc's resampling settings (default: defensive 0.25)
+    K: int = None                         # particles per run; None = the cell's --K
+
+
+class Cell:
+    """One (model, constraint, N) with its pilot kernels, fitted on first use and kept."""
+
+    def __init__(self, mname, cname, N, a, den, cl, route, truth):
+        self.mname, self.cname, self.N, self.a = mname, cname, N, a
+        self.den, self.cl, self.route, self.truth = den, cl, route, truth
+        self.nrun = a["nrun"]
+        self.gate_info = None
+        self._kernels = {}
+
+    def seed(self, *parts):
+        return stream_seed(self.a["seed"], self.mname, self.cname, self.N, *parts)
+
+    def kernel(self, kind="two-bin"):
+        """"two-bin": screened / unscreened by distance. "graded": binned by the number of revealed positions in
+        between, from the same pilot traces. "small": two-bin from --pilot-small traces."""
+        if kind not in self._kernels:
+            from twistroute.decode import fit_distance_kernel, COUNT_EDGES
+            n, tag = (self.a["pilot_small"], "pilot_small") if kind == "small" else (self.a["pilot"], "pilot")
+            kw = dict(count_edges=COUNT_EDGES) if kind == "graded" else {}
+            self._kernels[kind] = fit_distance_kernel(self.den, self.N, n, torch.Generator().manual_seed(self.seed(tag)), **kw)[0]
+        return self._kernels[kind]
+
+    def policy(self, kernel, theta=0.0, priority="bound", B=None, **kw):
+        """CouplingPolicy without the mixed term; B is a whole-sequence budget in nats (rate B / N)."""
+        from twistroute.decode import CouplingPolicy
+        kw.setdefault("mixed", False)
+        return CouplingPolicy(kernel, theta, priority=priority, rate=None if B is None else B / self.N, **kw)
+
+    def control(self):
+        """One reveal per step in random order without resampling: samples the target itself and cannot hide mass."""
+        return Arm("fixed 1/step, no resampling", "fixed", self.N, self.nrun, smc=dict(ess_min=0.0))
+
+
+def arm_set(name):
+    def register(f):
+        ARM_SETS[name] = f
+        return f
+    return register
+
+
+def budget_tag(B):
+    return "theta=0.0" if B is None else f"B={B}"
+
+
+def _standard(c, core):
+    N, n, kern = c.N, c.nrun, c.kernel()
+    arms = [Arm(f"fixed {N // T}/step", "fixed", T, n) for T in ((N, N // 8, N // 16) if core else (N, N // 2, N // 4, N // 8))]
+    arms += [c.control()]
+    arms += [Arm(f"policy theta={th}", c.policy(kern, th), N, n) for th in THETAS]
+    if not core:
+        arms += [Arm(f"small-pilot theta={th}", c.policy(c.kernel("small"), th), N, n) for th in (0.01, 0.03)]
+        arms += [Arm(f"{pr} theta={th}", c.policy(kern, th, pr), N, n) for pr in ("confident", "random") for th in (0.01, 0.03)]
+    arms += [Arm("random theta=0.0", c.policy(kern, 0.0, "random"), N, n)]            # same sets rule, order not chosen
+    if c.a["nrun_mixed"] > 0 and not core:   # the mixed-path term costs N * A extra route passes per particle per step
+        arms += [Arm(f"mixed theta={th}", c.policy(kern, th, mixed=True), N, c.a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
+        arms += [Arm(f"policy-ref theta={th}", c.policy(kern, th), N, c.a["nrun_mixed"]) for th in (0.0, 0.01, 0.03)]
+    return arms
+
+
+@arm_set("full")
+def full(c):
+    """Fixed schedules at 1, 2, 4, 8 per step, the threshold sweep, a small pilot, two other priorities, the mixed term."""
+    return _standard(c, core=False)
+
+
+@arm_set("core")
+def core(c):
+    """For long sequences: the controls, two naive parallel schedules, the threshold sweep."""
+    return _standard(c, core=True)
+
+
+@arm_set("order")
+def order(c):
+    """Which position next: every priority score at one threshold (--order-theta)."""
+    N, n, th = c.N, c.nrun, c.a["order_theta"]
+    arms = [Arm("fixed 1/step", "fixed", N, n), c.control()]
+    return arms + [Arm(f"{pr} theta={th}", c.policy(c.kernel(), th, pr), N, n) for pr in ORDER_PRIORITIES]
+
+
+@arm_set("budget")
+def budget(c):
+    """Whole-sequence budgets, graded against two-bin kernel, with fixed and dilated baselines."""
+    from twistroute.decode import DilatedSchedule
+    N, n, kg = c.N, c.nrun, c.kernel("graded")
+    arms = [Arm("fixed 8/step", "fixed", N // 8, n)]
+    arms += [Arm(f"dilated base={b}", DilatedSchedule(b), N, n) for b in (2, 4)]
+    arms += [Arm(f"{pr} theta=0.0 graded", c.policy(kg, 0.0, pr), N, n) for pr in ("separator", "bound")]
+    arms += [Arm(f"{pr} B={B} graded", c.policy(kg, 0.0, pr, B=B), N, n) for pr in ("separator", "bound", "random", "least_random") for B in BUDGETS]
+    arms += [Arm(f"separator B={B} two-bin", c.policy(c.kernel(), 0.0, "separator", B=B), N, n) for B in BUDGETS]
+    return arms
+
+
+@arm_set("interact")
+def interact(c):
+    """How the order interacts with the constraint: every score at the exact threshold and two budgets, no resampling."""
+    N, n, kg = c.N, c.nrun, c.kernel("graded")
+    arms = [Arm(f"{pr} {budget_tag(B)}", c.policy(kg, 0.0, pr, B=B), N, n, smc=OFF) for B in (None,) + INTERACT_BUDGETS for pr in INTERACT_ORDERS]
+    return arms + [c.control()]
+
+
+@arm_set("thick")
+def thick(c):
+    """Do thick separators first beat the greedy rule's single-token bisection? No resampling: r is the measure."""
+    from twistroute.decode import DilatedSchedule, ThickSeparatorSchedule
+    N, n, kg = c.N, c.nrun, c.kernel("graded")
+    arms = [Arm(f"separator B={B} graded", c.policy(kg, 0.0, "separator", B=B), N, n, smc=OFF) for B in BUDGETS + THICK_SMALL_BUDGETS]
+    arms += [Arm("separator theta=0.0 graded", c.policy(kg, 0.0, "separator"), N, n, smc=OFF)]
+    arms += [Arm("dilated base=2", DilatedSchedule(2), N, n, smc=OFF)]
+    arms += [Arm(f"thick w={w} spacing={sp}", ThickSeparatorSchedule(w, sp), N, n, smc=OFF) for w in THICK_WIDTHS for sp in THICK_SPACINGS if sp >= 4 * w]
+    return arms
+
+
+@arm_set("seqorder")
+def seqorder(c):
+    """Order or parallelism? Every score one token per step, against its parallel versions. No resampling."""
+    N, n, kg = c.N, c.nrun, c.kernel("graded")
+    arms = [c.control()]
+    for pr in SEQ_ORDERS:
+        arms += [Arm(f"{pr} sequential", c.policy(kg, 0.0, pr, max_set=1), N, n, smc=OFF),
+                 Arm(f"{pr} theta=0.0", c.policy(kg, 0.0, pr), N, n, smc=OFF),
+                 Arm(f"{pr} B=0.03", c.policy(kg, 0.0, pr, B=0.03), N, n, smc=OFF)]
+    return arms
+
+
+@arm_set("fix")
+def fix(c):
+    """Selection fixes: forced-partner pull-in and the guard, against the plain rule. No resampling."""
+    N, n, kg = c.N, c.nrun, c.kernel("graded")
+    return [Arm(f"{pr} {budget_tag(B)}{tag}", c.policy(kg, 0.0, pr, B=B, pull_forced=pull, guard=gd), N, n, smc=OFF)
+            for pr in ("lex", "sum") for B in (None, 0.03) for tag, pull, gd in FIX_VARIANTS]
+
+
+@arm_set("resample")
+def resample(c):
+    """Does resampling hurt only when K is small? Total particles nrun * K held fixed across K; exact schedules
+    only, so r = 0 throughout. The gate is fitted per schedule on a pilot without resampling."""
+    N, a, kg = c.N, c.a, c.kernel("graded")
+    names = ("fixed 1/step", "separator theta=0.0")
+    sched = lambda sn: "fixed" if sn.startswith("fixed") else c.policy(kg, 0.0, "separator")
+    gates, c.gate_info = {}, {}
+    for sn in names:
+        gates[sn], c.gate_info[sn] = resampling_gate(c.den, c.cl, c.route, N, sched(sn), a.get("gate_pilot", 4000),
+                                                     torch.Generator().manual_seed(c.seed("gate", sn)))
+    return [Arm(f"{sn} K={K} resampling {rn}", sched(sn), N, max(a["nrun"] * a["K"] // K, 2),
+                smc={k: (gates[sn] if v == "gate" else v) for k, v in smc.items()}, K=K)
+            for K in (a.get("resample_ks") or RESAMPLE_KS) for sn in names for rn, smc in RESAMPLE_MODES
+            if not a.get("resample_modes") or rn in a["resample_modes"]]

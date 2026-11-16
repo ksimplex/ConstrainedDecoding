@@ -246,7 +246,7 @@ class CouplingPolicy:
                               confidence gate). "least_random" starts from a random masked position instead.
                None of these reads the constraint's type: they use the route's marginals and the model kernel only.
                A function f(s) -> (P, N) scores is also accepted, with s the step context of `step_context`
-               (s.mu, s.ent, s.masked, `CouplingPolicy.distortion(s)`, `policy.neighbour_sum(s, v)`): a new order is
+               (s.mu, s.ent, s.masked, `CouplingPolicy.distortion(s)`, `CouplingPolicy.neighbour_sum(s, v)`): a new order is
                then a new function, and the admission rule below is untouched.
     pull_forced  when > 0: for up to this many admitted positions per step on which the constraint has a stake, the
                positions that this reveal will force (those whose constrained marginal becomes deterministic once
@@ -365,11 +365,12 @@ class CouplingPolicy:
             s.D = (torch.xlogy(s.mu, s.mu) - s.mu * torch.log(w.clamp_min(1e-300))).sum(-1).clamp_min(0.0)
         return s.D
 
-    def neighbour_sum(self, s, v):
+    @staticmethod
+    def neighbour_sum(s, v):
         """sum_j M(i, j) v_j over masked positions j, (P, N)."""
-        if hasattr(self.kernel, "apply"):
-            return self.kernel.apply(s.masked, v).to(s.dev)
-        return (self.kernel.matrix(s.masked).to(s.dev) @ v[..., None]).squeeze(-1)
+        if hasattr(s.kernel, "apply"):
+            return s.kernel.apply(s.masked, v).to(s.dev)
+        return (s.kernel.matrix(s.masked).to(s.dev) @ v[..., None]).squeeze(-1)
 
     def score(self, s, gen=None):
         """Scoring: (P, N) priorities, higher first, NEG_INF outside the masked positions. Reads the step context
