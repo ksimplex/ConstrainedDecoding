@@ -694,8 +694,14 @@ Spread of Z_hat (denoiser calls): sequential | parallel at the exact threshold |
 | `two_window` | 0.33 | 0.14, 0.15, 0.15 | 0.15, 0.13, 0.15 | 0.15, 0.14, 0.18 | 0.29, 0.35, 0.27 |
 | `window` | 0.21 | 0.13, 0.14, 0.17 | 0.12, 0.12, 0.15 | 0.12, 0.12, 0.15 | 0.21, 0.16, 0.21 |
 
-- **A constraint-aware order is a fix to the base sequential sampler**: 1.6 to 20 times lower spread than random order
-  at the same 256 calls.
+- **A constraint-aware order is a fix to the base sequential sampler**: 1.7 to 28 times lower spread than random order
+  at the same 256 calls for `sum`, `lex` and `bound` (unrounded ratios 1.66 to 27.6; `copy_spread` 21.8, 27.6, 24.7).
+  The separator order alone gives 1.0 to 2.5. (Corrected 2026-11-16: an earlier version said "1.6 to 20", computed from
+  the rounded table entries.)
+- The file also holds a `random sequential` arm (random priority through the policy, one position per step): spread
+  0.35, 0.21, 0.36, 0.20 on `copy_spread`, `copy_block`, `two_window`, `window`. It is not the plain random baseline:
+  the policy's `forced_first` default reveals a forced copy partner next, which is itself a constraint-aware step. The
+  baseline in the table is the native one-per-step sampler. [inferred from the code default, not isolated by a run]
 - **Parallelism costs weights only on the copies**, and that cost is a selection flaw (section 31), not inherent.
 - Smart parallel at 14 calls beats random sequential at 256 calls in all four cells. In calls x spread^2 the 14-call
   `sum` schedule is 9 to 16 times cheaper than `sum` sequential on three constraints and level on `copy_spread`.
@@ -808,7 +814,18 @@ exact-threshold and budgeted parallel on this cell is real (bootstrap 90% interv
   noise that fails an exact zero test. `PULL_TOL = 1e-6` nats now applies to forced partners.
 - Under a budget the pull-in engaged but 62% to 66% of the near-block positions were revealed before the block was
   complete (0% at the exact threshold). `guard=True` makes a position without a constraint stake count its coupling to
-  still-masked positions with one as load. Test of both: `--arms fix` (`fix_N256.json`, running).
+  still-masked positions with one as load. Test of both: `--arms fix` (`fix_N256.json`).
+- **Result (2026-11-16) [verified, one model, four constraints, 100 runs x 16].** Spread of Z-hat, plain | +pull |
+  +pull+guard (calls), against the sequential value:
+  - `copy_block`, `lex`: sequential 0.09; theta = 0: 0.40 (57) | 0.12 (56) | 0.11 (56); B = 0.03: 0.28 (15) | 0.12 (20) | 0.10 (24).
+  - `copy_block`, `sum`: sequential 0.19; theta = 0: 0.39 (54) | 0.23 (54) | 0.21 (60); B = 0.03: 0.27 (14) | 0.23 (14) | 0.20 (19).
+  - `copy_spread`, `lex`: sequential 0.03; theta = 0: 0.19 (57) | 0.06 (56) | 0.04 (57); B = 0.03: 0.12 (15) | 0.07 (15) | 0.06 (15).
+  - `copy_spread`, `sum`: sequential 0.04; theta = 0: 0.12 (56) | 0.08 (55) | 0.05 (56); B = 0.03: 0.18 (14) | 0.08 (14) | 0.07 (14).
+  - `window`, `two_window`: 0.11 to 0.19 in every variant, sequential 0.12 to 0.15 (no change beyond noise); the guard
+    adds about five calls under the budget (14-15 to 19-20).
+  - Z-hat / p(C) 0.97 to 1.09 plain, 0.97 to 1.02 with the fixes; marginal TV on `copy_block` 2.2-3.1% plain, 1.4-1.9% fixed.
+  - Reading: the parallel cost on the copies was the selection flaw. The pull-in carries most of the gain; the guard a
+    little more at a cost in calls. Summary: `results/parallel_unmasking/fix_N256_summary.json`.
 - `bound` breaks ties left to right and so pairs partners by accident; that is why it beat `lex` in parallel there.
 
 ## 32. Exposure: one criterion behind the order rules (2026-11-15) [derived, not yet checked numerically]
