@@ -2177,6 +2177,58 @@ All quantities in nats. *sd over orders*: standard deviation of log p of one seq
   measured in this document are 0.01 to 1 nat. A constraint-aware order on this model changes the sampled law by
   far more than any of the errors being optimised, so the order rule and the target have to be settled together.
 
+## 36w. The chain twist as the proposal (local, 2026-11-16) [exact at 10 to 12 positions; sampled at 64 with 300 particles, one hidden chain]
+
+Scripts `surrogate_plan.py --proposal chain` (exact) and `counting_orders.py --proposal chain` (sampled); results
+`results/parallel_unmasking/order_study/chainprop_*.json` and `prop_*_N64.json`.
+In the sampler the chain twist is an intermediate potential only: the revealed token is still drawn from the product
+twist's constrained marginal, so the per-particle KL is unchanged (section 36f). Here the token is drawn from the chain
+twist's constrained marginal instead (`ChainTwist.marginals`, pair table from 2,000 pilot samples). The identity of
+section 36t holds for any proposal that stays inside the constraint. Checks: the chain proposal puts at most 1e-15 on a
+value with no completion; the tables match brute-force enumeration of the left-to-right sampler to six decimals for both
+proposals in five cells; total tilt + log p(C) equals the KL to six decimals in all seven.
+
+**Exact, 10 to 12 positions.** KL of the sampler from the constrained law, nats, lower is better: product proposal -> chain proposal.
+
+| cell | random | ideal greedy | best fixed order | optimal | plan in 2nd-order surrogate | best fixed order under the chain proposal |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=10 | 0.0653 -> 0.0549 | 0.0422 -> 0.0161 | 0.0329 -> 0.0145 | 0.0232 -> 0.0067 | 0.0321 -> 0.0180 | [2, 1, 3, 4, 5, 6, 7, 8, 9, 0] |
+| counting, chain_0.85, N=10 | 0.9423 -> 0.3277 | 0.9095 -> 0.0273 | 0.3822 -> 0.0005 | 0.2572 -> 0.0005 | 0.2577 -> 0.0005 | [1, 2, 4, 5, 6, 7, 8, 0, 3, 9] |
+| dyck, hidden_0.85, N=12 | 0.3447 -> 0.0778 | 0.0996 -> 0.0052 | 0.1092 -> 0.0095 | 0.0748 -> 0.0015 | 0.0924 -> 0.0145 | [0, 11, 5, 6, 2, 3, 1, 7, 8, 10, 9, 4] |
+| dyck, chain_0.85, N=12 | 2.8171 -> 0.0891 | 1.2935 -> 0.0288 | 0.8856 -> 0.0000 | 0.7932 -> 0.0000 | 0.7935 -> 0.0000 | [0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 10, 8] |
+| window_small, hidden_0.85, N=10 | 0.4315 -> 0.1953 | 0.0301 -> 0.0098 | 0.0239 -> 0.0115 | 0.0239 -> 0.0098 | 0.0291 -> 0.0164 | [5, 3, 6, 4, 0, 1, 7, 8, 2, 9] |
+| two_window_small, hidden_0.85, N=10 | 0.5776 -> 0.1682 | 0.0391 -> 0.0008 | 0.0261 -> 0.0011 | 0.0261 -> 0.0007 | 0.0351 -> 0.0010 | [1, 7, 8, 2, 3, 4, 5, 0, 6, 9] |
+| forbidden, hidden_0.85, N=10 | 0.3942 -> 0.0561 | 0.1800 -> 0.0117 | 0.1792 -> 0.0223 | 0.1630 -> 0.0095 | 0.1734 -> 0.0168 | [6, 7, 9, 8, 5, 4, 3, 2, 1, 0] |
+
+- The chain proposal lowers the KL under every rule in every cell. Its ideal greedy order beats the *optimal* order of
+  the product proposal in all seven cells.
+- Under the chain proposal the best fixed orders are close to contiguous, and on the Markov chain the error is
+  essentially zero: the first-order chain twist is then exact for a contiguous masked stretch.
+- Order still matters: random order is 5 to 20 times the ideal greedy KL under the chain proposal in six cells.
+
+**Sampled, 64 positions, `hidden_0.85`, 300 particles.** KL as the sum over steps of the true error, nats, lower is better:
+product proposal -> chain proposal. The estimate from the weights agrees within its standard error (0.02 to 0.17).
+
+| constraint | random | left to right | lex | sum | ideal greedy |
+|---|---|---|---|---|---|
+| counting | 0.180 -> 0.188 | 0.778 -> 0.208 | 0.204 -> 0.263 | 0.123 -> 0.146 | 0.191 -> 0.078 |
+| dyck | 0.642 -> 0.298 | 1.291 -> 0.314 | 0.586 -> 0.288 | 0.599 -> 0.246 | 0.262 -> 0.103 |
+| forbidden | 2.588 -> 0.419 | 0.586 -> 0.216 | 0.582 -> 0.216 | 1.171 -> 0.284 | 0.599 -> 0.096 |
+| window | 0.389 -> 0.256 | 0.421 -> 0.254 | 0.076 -> 0.080 | 0.091 -> 0.078 | 0.050 -> 0.017 |
+| two_window | 0.730 -> 0.450 | 0.733 -> 0.365 | 0.085 -> 0.102 | 0.115 -> 0.135 | 0.278 -> 0.032 |
+
+- Forbidden and Dyck: the chain proposal lowers the KL under every order, by 2.7 to 6 times on forbidden and about 2 times on Dyck.
+- Counting and the windows: no gain under the fixed recipes (`lex`, `sum`), which already reveal the constrained positions
+  in a good order for the product proposal; a gain of 1.5 to 2 times under random and left-to-right on the windows; none under random on counting.
+- With the ideal greedy order the chain proposal gives the lowest KL measured on every constraint: counting 0.078 against 0.123, dyck 0.103 against 0.262, forbidden 0.096 against 0.582, window 0.017 against 0.050, two_window 0.032 against 0.085 for the best product-proposal arm.
+- Without the exact twist the best chain-proposal arm is counting 0.146 (product 0.123), dyck 0.246 (product 0.586), forbidden 0.216 (product 0.582), window 0.078 (product 0.076), two_window 0.102 (product 0.085): the gain that is
+  reachable today is on forbidden and Dyck only. The rest needs an order rule that finds what the ideal greedy order finds.
+- The small-size picture overstates the gain. At 10 positions a near-contiguous order was almost ideal under the chain
+  proposal; at 64 positions left-to-right is level with random on counting, Dyck and the window. The hidden chain's
+  dependence (correlation length about 6) is longer than a first-order chain with one pooled table carries.
+- Not done: the chain proposal inside the sampler (a joint route sample under the chain law is needed when several
+  positions are revealed in one step); other hidden chains; 256 positions; cost per step.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
@@ -2194,6 +2246,8 @@ job scripts and arm names keep working.
    and what the surrogate is on a language model (a chain over the constraint's classes fitted to pilot samples).
    Then: the same test at 32 to 64 positions against the measured orders of section 36i; the parallel form (co-reveal
    term in the same objective); the exact search at 12 to 14 positions on the cluster.
+   Also to decide (section 36w): move the chain twist into the proposal. At 64 positions it halves the KL on forbidden
+   and Dyck under any order and gives the best arm on every constraint with the ideal greedy order.
 1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the
    stake paid beyond log(1 / p(C)), i.e. reveals where the proposal's marginal is accurate; measure KL = -E[log(W / p(C))]
    as the end measure on `hidden256`; then a scale-free score (`sum` fails on MDLM, `lex` costs steps on Dyck),
