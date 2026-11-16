@@ -29,6 +29,7 @@ particle. This needs a route whose logZ is differentiable (TorchChain and TorchC
 it stands).
 """
 import math
+from types import SimpleNamespace
 import torch
 
 from .schedule import NEG_INF, clamp_revealed
@@ -244,6 +245,9 @@ class CouplingPolicy:
                               order of DEMASK, Ringel, Ali & Romano, arXiv:2604.02560, Alg. 2, without its
                               confidence gate). "least_random" starts from a random masked position instead.
                None of these reads the constraint's type: they use the route's marginals and the model kernel only.
+               A function f(s) -> (P, N) scores is also accepted, with s the step context of `step_context`
+               (s.mu, s.ent, s.masked, `CouplingPolicy.distortion(s)`, `policy.neighbour_sum(s, v)`): a new order is
+               then a new function, and the admission rule below is untouched.
     pull_forced  when > 0: for up to this many admitted positions per step on which the constraint has a stake, the
                positions that this reveal will force (those whose constrained marginal becomes deterministic once
                the admitted position is fixed) are admitted in the same step, ahead of the other candidates, if
@@ -279,8 +283,8 @@ class CouplingPolicy:
     """
 
     def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None, pull_forced=0, guard=False):
-        if priority not in PRIORITIES:
-            raise ValueError(f"priority must be one of {PRIORITIES}")
+        if not callable(priority) and priority not in PRIORITIES:
+            raise ValueError(f"priority must be one of {PRIORITIES} or a function of the step context")
         if theta < 0:
             raise ValueError("theta must be >= 0")
         self.max_set = None if max_set is None else int(max_set)
@@ -314,6 +318,170 @@ class CouplingPolicy:
             E = E + mix + mix.transpose(1, 2)
         return E
 
+    @property
+    def dynamic(self):
+        """True for the least-coupled-first orders, which are built during admission rather than scored up front."""
+        return self.priority in ("least", "least_random", "least_tie")
+
+    def _fits(self, spent, load, count, pulled=False):
+        """The admission test for one candidate per particle: does its load fit the threshold, the per-step budget
+        or the per-position rate, and is the step below its cap? A forced partner (`pulled`) is also admitted when
+        its load is below PULL_TOL, whatever the rule."""
+        if self.rate is not None:
+            fit = spent + load <= self.rate * (count + 1)
+        elif self.budget is not None:
+            fit = spent + load <= self.budget
+        else:
+            fit = load <= (max(self.theta, PULL_TOL) if pulled else self.theta)
+        if pulled and (self.rate is not None or self.budget is not None):
+            fit = fit | (load <= PULL_TOL)
+        if self.max_set is not None:
+            fit = fit & (count < self.max_set)
+        return fit
+
+    def step_context(self, st, masked):
+        """What one step's scoring and admission read: the exact constrained marginals `mu` (P, N, A), their
+        entropy `ent`, and the model kernel, either as rows on demand (`lean`, `counts`) or as the full effective
+        coupling `E` (P, N, N). `distortion(s)` adds D_i on first use."""
+        P, N = masked.shape
+        s = SimpleNamespace(st=st, masked=masked, P=P, N=N, dev=masked.device, kernel=self.kernel, D=None)
+        s.lwc = clamp_revealed(st.lw, st.x, st.ycls, st.mask_id)
+        s.mu = constrained_marginals(st.route, s.lwc)
+        self.route_passes += 1 + (N * s.mu.shape[-1] if self.mixed else 0)
+        s.ent = -torch.xlogy(s.mu, s.mu).sum(-1)
+        s.lean = not self.mixed and hasattr(self.kernel, "row")     # kernel rows on demand: no (P, N, N) storage
+        if s.lean:
+            s.counts, s.E = self.kernel.counts(masked), None
+        else:
+            E = self.coupling(st, masked, s.mu, s.ent)
+            s.counts, s.E = None, torch.where((masked[:, :, None] & masked[:, None, :]), E, torch.zeros_like(E))
+        return s
+
+    @staticmethod
+    def distortion(s):
+        """D_i = KL(mu_i || w_i) in nats, (P, N): how far the constraint moves the model's prediction at i."""
+        if s.D is None:
+            w = torch.exp(s.st.lw.double())
+            s.D = (torch.xlogy(s.mu, s.mu) - s.mu * torch.log(w.clamp_min(1e-300))).sum(-1).clamp_min(0.0)
+        return s.D
+
+    def neighbour_sum(self, s, v):
+        """sum_j M(i, j) v_j over masked positions j, (P, N)."""
+        if hasattr(self.kernel, "apply"):
+            return self.kernel.apply(s.masked, v).to(s.dev)
+        return (self.kernel.matrix(s.masked).to(s.dev) @ v[..., None]).squeeze(-1)
+
+    def score(self, s, gen=None):
+        """Scoring: (P, N) priorities, higher first, NEG_INF outside the masked positions. Reads the step context
+        only; it decides the order in which admission considers positions, never whether one is admitted."""
+        cand, dev = s.masked, s.dev
+        if callable(self.priority):
+            score = self.priority(s).double()
+        elif self.dynamic:                     # the order is built during admission; the score only picks the start
+            idx = torch.arange(s.N, device=dev).double()
+            score = -idx.expand(s.P, s.N) if self.priority == "least" else torch.rand(cand.shape, generator=gen, device=dev).double()
+        elif self.priority == "confident":
+            score = -s.ent
+        elif self.priority == "random":
+            score = torch.rand(cand.shape, generator=gen, device=dev).double()
+        else:
+            D = self.distortion(s)
+            dist = torch.where(cand, D, torch.zeros_like(D))
+            if self.priority == "bound":
+                score = dist
+            else:
+                nb = self.neighbour_sum(s, cand.double() if self.priority in ("separator", "sum", "lex") else dist)
+                score = nb if self.priority == "separator" else (LEX_SCALE * dist + nb if self.priority == "lex" else dist + nb)
+        if self.forced_first and not self.dynamic:
+            sizes = (s.st.classes.onehot > 0).sum(0).to(dev)
+            forced = cand & (s.ent < 1e-9) & (sizes[s.mu.argmax(-1)] == 1)
+            score = torch.where(forced, torch.full_like(score, float("inf")), score)
+        return torch.where(cand, score, torch.full_like(score, NEG_INF))
+
+    def _guard_load(self, s, load):
+        """Starting loads under `guard`: a position without a constraint stake carries its model coupling to the
+        still-masked positions that have one."""
+        stake_m = s.masked & (self.distortion(s) > STAKE_TOL)        # still-masked positions the constraint cares about
+        g = self.kernel.apply(s.masked, stake_m.double()).to(s.dev)
+        g = torch.where(g < PULL_TOL, torch.zeros_like(g), g)        # pilot noise is not coupling
+        return torch.where(s.masked & ~stake_m, g, load)
+
+    def _pull(self, s, sel, cs, chosen, spent, load):
+        """Forced-partner pull-in for the particles `sel`, which have just admitted positions `cs` on which the
+        constraint has a stake: one route pass with `cs` clamped to its most likely class finds the positions that
+        this reveal forces; those that fit are admitted now. Updates chosen, spent and load in place."""
+        cand, dev = s.masked, s.dev
+        ar = torch.arange(sel.numel(), device=dev)
+        rep = s.mu[sel, cs].argmax(-1)
+        l2 = s.lwc[sel].clone()
+        keep = torch.zeros_like(l2[:, 0], dtype=torch.bool); keep[ar, rep] = True
+        l2[ar, cs] = torch.where(keep, l2[ar, cs], torch.full_like(l2[:, 0], NEG_INF))
+        mu2 = constrained_marginals(s.st.route, l2); self.route_passes += sel.numel() / s.P
+        e2 = -torch.xlogy(mu2, mu2).sum(-1)
+        forced2 = cand[sel] & ~chosen[sel] & (e2 < 1e-9) & (s.ent[sel] >= 1e-9)
+        forced2[ar, cs] = False
+        for _ in range(int(forced2.sum(-1).max())):                     # admit them in index order
+            has = forced2.any(-1); j = forced2.to(torch.int8).argmax(-1)
+            rs = sel[has]; js = j[has]
+            fit = self._fits(spent[rs], load[rs, js], chosen[rs].sum(-1), pulled=True)
+            ra, ja = rs[fit], js[fit]
+            if ra.numel():
+                chosen[ra, ja] = True; spent[ra] = spent[ra] + load[ra, ja]
+                r2 = self.kernel.row((s.counts[0][ra], s.counts[1][ra]), ja).to(dev)
+                load[ra] += torch.where(cand[ra], r2, torch.zeros_like(r2))
+            forced2[ar[has], js] = False
+
+    def admit(self, s, score, gen=None):
+        """Admission: consider the masked positions in score order (or least-coupled-first) and admit each one
+        whose load, its summed coupling to the positions admitted before it in this step, passes `_fits`.
+        Returns the chosen set (P, N) and the summed load admitted per particle (P,)."""
+        cand, P, N, dev, dynamic = s.masked, s.P, s.N, s.dev, self.dynamic
+        order = torch.argsort(score, dim=-1, descending=True, stable=True)
+        chosen = torch.zeros_like(cand)
+        load = torch.zeros(P, N, dtype=torch.float64, device=dev)
+        rows = torch.arange(P, device=dev)
+        spent = torch.zeros(P, dtype=torch.float64, device=dev)       # sum of the loads admitted so far
+        alive = torch.ones(P, dtype=torch.bool, device=dev)           # dynamic order: still adding positions
+        pulls = 0
+        if self.guard and not dynamic and hasattr(self.kernel, "apply"):
+            load = self._guard_load(s, load)
+        tie = torch.arange(N, device=dev).double() * 1e-300           # ties go to the left-most position
+        if self.priority == "least_tie":                               # or to a random one: a learned dependence
+            tie = torch.rand(cand.shape, generator=gen, device=dev).double() * 1e-300     # matrix has no exact ties
+        for k in range(N):
+            if dynamic and k > 0:
+                rest = cand & ~chosen
+                c = torch.where(rest, load + tie, torch.full_like(load, float("inf"))).argmin(-1)
+                live = alive & rest[rows, c]
+            else:
+                c = order[:, k]
+                live = cand[rows, c]
+            lc = load[rows, c]
+            fits = self._fits(spent, lc, chosen.sum(-1))
+            if self.max_set is not None and k > 0 and not dynamic and bool((chosen.sum(-1) >= self.max_set).all()):
+                break
+            ok = live & fits
+            if dynamic:
+                alive = alive & ok                                     # the least-coupled one failed: stop this particle
+                if not alive.any():
+                    break
+            chosen[rows, c] |= ok
+            spent = spent + torch.where(ok, lc, torch.zeros_like(lc))
+            if s.lean:                       # rows only for the particles that admitted their candidate
+                sel = ok.nonzero(as_tuple=True)[0]
+                if sel.numel():
+                    r = self.kernel.row((s.counts[0][sel], s.counts[1][sel]), c[sel]).to(dev)
+                    load[sel] += torch.where(cand[sel], r, torch.zeros_like(r))
+            else:
+                load = load + torch.where(ok[:, None], s.E[rows, c], torch.zeros_like(load))
+            if self.pull_forced and not dynamic and pulls < self.pull_forced and s.lean:
+                stake = ok & (s.ent[rows, c] > 1e-9) & (self.distortion(s)[rows, c] > 1e-9)       # the constraint cares about c
+                sel = stake.nonzero(as_tuple=True)[0]
+                if sel.numel():
+                    pulls += 1
+                    self._pull(s, sel, c[sel], chosen, spent, load)
+        return chosen, spent
+
     @torch.no_grad()
     def reveal(self, st, t, T, gen=None):
         masked = st.x == st.mask_id
@@ -322,126 +490,8 @@ class CouplingPolicy:
         if t >= T - 1:
             chosen = masked
         else:
-            lwc = clamp_revealed(st.lw, st.x, st.ycls, st.mask_id)
-            mu = constrained_marginals(st.route, lwc)
-            self.route_passes += 1 + (N * mu.shape[-1] if self.mixed else 0)
-            ent = -torch.xlogy(mu, mu).sum(-1)
-            cand = masked
-            lean = not self.mixed and hasattr(self.kernel, "row")     # kernel rows on demand: no (P, N, N) storage
-            if lean:
-                counts = self.kernel.counts(masked)
-            else:
-                E = self.coupling(st, masked, mu, ent)
-                E = torch.where((cand[:, :, None] & cand[:, None, :]), E, torch.zeros_like(E))
-            dist_all = None
-            if self.pull_forced or self.guard:
-                w_ = torch.exp(st.lw.double())
-                dist_all = (torch.xlogy(mu, mu) - mu * torch.log(w_.clamp_min(1e-300))).sum(-1).clamp_min(0.0)
-            dynamic = self.priority in ("least", "least_random", "least_tie")
-            if dynamic:                        # the order is built during selection; the score only picks the start
-                idx = torch.arange(N, device=dev).double()
-                score = -idx.expand(P, N) if self.priority == "least" else torch.rand(masked.shape, generator=gen, device=dev).double()
-            elif self.priority == "confident":
-                score = -ent
-            elif self.priority == "random":
-                score = torch.rand(masked.shape, generator=gen, device=dev).double()
-            else:
-                w = torch.exp(st.lw.double())
-                dist = (torch.xlogy(mu, mu) - mu * torch.log(w.clamp_min(1e-300))).sum(-1)       # D_i, nats
-                dist = torch.where(cand, dist, torch.zeros_like(dist)).clamp_min(0.0)
-                if self.priority == "bound":
-                    score = dist
-                else:
-                    v = cand.double() if self.priority in ("separator", "sum", "lex") else dist
-                    nb = self.kernel.apply(masked, v).to(dev) if hasattr(self.kernel, "apply") else \
-                        (self.kernel.matrix(masked).to(dev) @ v[..., None]).squeeze(-1)
-                    score = nb if self.priority == "separator" else (LEX_SCALE * dist + nb if self.priority == "lex" else dist + nb)
-            if self.forced_first and not dynamic:
-                sizes = (st.classes.onehot > 0).sum(0).to(dev)
-                forced = masked & (ent < 1e-9) & (sizes[mu.argmax(-1)] == 1)
-                score = torch.where(forced, torch.full_like(score, float("inf")), score)
-            score = torch.where(cand, score, torch.full_like(score, NEG_INF))
-            order = torch.argsort(score, dim=-1, descending=True, stable=True)
-            chosen = torch.zeros_like(masked)
-            load = torch.zeros(P, N, dtype=torch.float64, device=dev)
-            rows = torch.arange(P, device=dev)
-            spent = torch.zeros(P, dtype=torch.float64, device=dev)       # sum of the loads admitted so far
-            alive = torch.ones(P, dtype=torch.bool, device=dev)           # dynamic order: still adding positions
-            pulls = 0
-            if self.guard and not dynamic and hasattr(self.kernel, "apply"):
-                stake_m = cand & (dist_all > STAKE_TOL)                   # still-masked positions the constraint cares about
-                g = self.kernel.apply(masked, stake_m.double()).to(dev)
-                g = torch.where(g < PULL_TOL, torch.zeros_like(g), g)     # pilot noise is not coupling
-                load = torch.where(cand & ~stake_m, g, load)
-            tie = torch.arange(N, device=dev).double() * 1e-300           # ties go to the left-most position
-            if self.priority == "least_tie":                               # or to a random one: a learned dependence
-                tie = torch.rand(masked.shape, generator=gen, device=dev).double() * 1e-300     # matrix has no exact ties
-            for k in range(N):
-                if dynamic and k > 0:
-                    rest = cand & ~chosen
-                    c = torch.where(rest, load + tie, torch.full_like(load, float("inf"))).argmin(-1)
-                    live = alive & rest[rows, c]
-                else:
-                    c = order[:, k]
-                    live = cand[rows, c]
-                lc = load[rows, c]
-                if self.rate is not None:
-                    fits = spent + lc <= self.rate * (chosen.sum(-1) + 1)
-                elif self.budget is not None:
-                    fits = spent + lc <= self.budget
-                else:
-                    fits = lc <= self.theta
-                if self.max_set is not None:
-                    fits = fits & (chosen.sum(-1) < self.max_set)
-                    if k > 0 and not dynamic and bool((chosen.sum(-1) >= self.max_set).all()):
-                        break
-                ok = live & fits
-                if dynamic:
-                    alive = alive & ok                                     # the least-coupled one failed: stop this particle
-                    if not alive.any():
-                        break
-                chosen[rows, c] |= ok
-                spent = spent + torch.where(ok, lc, torch.zeros_like(lc))
-                if lean:                         # rows only for the particles that admitted their candidate
-                    sel = ok.nonzero(as_tuple=True)[0]
-                    if sel.numel():
-                        r = self.kernel.row((counts[0][sel], counts[1][sel]), c[sel]).to(dev)
-                        load[sel] += torch.where(cand[sel], r, torch.zeros_like(r))
-                else:
-                    load = load + torch.where(ok[:, None], E[rows, c], torch.zeros_like(load))
-                if self.pull_forced and not dynamic and pulls < self.pull_forced and lean:
-                    stake = ok & (ent[rows, c] > 1e-9) & (dist_all[rows, c] > 1e-9)       # the constraint cares about c
-                    sel = stake.nonzero(as_tuple=True)[0]
-                    if sel.numel():
-                        pulls += 1
-                        cs = c[sel]; rep = mu[sel, cs].argmax(-1)
-                        l2 = lwc[sel].clone()
-                        keep = torch.zeros_like(l2[:, 0], dtype=torch.bool); keep[torch.arange(sel.numel(), device=dev), rep] = True
-                        l2[torch.arange(sel.numel(), device=dev), cs] = torch.where(keep, l2[torch.arange(sel.numel(), device=dev), cs], torch.full_like(l2[:, 0], NEG_INF))
-                        mu2 = constrained_marginals(st.route, l2); self.route_passes += sel.numel() / P
-                        e2 = -torch.xlogy(mu2, mu2).sum(-1)
-                        forced2 = cand[sel] & ~chosen[sel] & (e2 < 1e-9) & (ent[sel] >= 1e-9)
-                        forced2[torch.arange(sel.numel(), device=dev), cs] = False
-                        for _ in range(int(forced2.sum(-1).max())):                     # admit them in index order
-                            has = forced2.any(-1); j = forced2.to(torch.int8).argmax(-1)
-                            rs = sel[has]; js = j[has]
-                            lj = load[rs, js]
-                            if self.rate is not None:
-                                fit = spent[rs] + lj <= self.rate * (chosen[rs].sum(-1) + 1)
-                            elif self.budget is not None:
-                                fit = spent[rs] + lj <= self.budget
-                            else:
-                                fit = lj <= max(self.theta, PULL_TOL)
-                            if self.rate is not None or self.budget is not None:
-                                fit = fit | (lj <= PULL_TOL)
-                            if self.max_set is not None:
-                                fit = fit & (chosen[rs].sum(-1) < self.max_set)
-                            ra, ja = rs[fit], js[fit]
-                            if ra.numel():
-                                chosen[ra, ja] = True; spent[ra] = spent[ra] + load[ra, ja]
-                                r2 = self.kernel.row((counts[0][ra], counts[1][ra]), ja).to(dev)
-                                load[ra] += torch.where(cand[ra], r2, torch.zeros_like(r2))
-                            forced2[torch.arange(sel.numel(), device=dev)[has], js] = False
+            s = self.step_context(st, masked)
+            chosen, spent = self.admit(s, self.score(s, gen), gen)
             self.load_sum += float(spent.sum())
         self.calls += 1
         self.particle_calls += P
