@@ -1009,6 +1009,33 @@ The policy needs one thing from a route: exact constrained marginals, obtained b
   `lex` B = 0.03: 0.32 and 0.34 at 10.8 and 10.9 calls). The chart cell took 115 s against 3 s for the automaton.
 - Still without an exact truth: factor graphs under a chain.
 
+## 36e. Speed pass (2026-11-16) [verified: frozen reference reproduced exactly, all test files pass]
+
+Profiled on `hidden_0.85` x `window`, N = 256, 400 particles, one CPU thread, and on `dyck2_atoms` at N = 32.
+
+- **Done (exact, local changes).**
+  1. Kernel sums: the count of revealed positions was re-binned for every distance on every call; the kernel now
+     keeps a lookup from count to value (`DistanceKernel._by_count`).
+  2. The gap diagnostic asked the denoiser for the conditionals at a state the sampler had just evaluated; the
+     oracle keeps its last answer and the diagnostic is evaluated before the denoiser moves on (one denoiser pass
+     per step saved when there is no resampling).
+  3. (Earlier today) the memory watcher thread is stopped with its cell.
+- **Effect.** One token per step (256 calls): 67.6 s -> 48.4 s. Parallel, `lex` B = 0.03 with pull-in and guard
+  (19 calls): 13.6 s -> 10.1 s.
+- **Where the time goes now** (one token per step, 48 s): kernel sums 30%, constrained marginals 18%, route logZ 17%,
+  route sampling 14%, denoiser 12%. Chart cell (44 s for 192 particles, 24 calls): inside pass 53%, its backward
+  pass 27%.
+- **Not done, with reasons.**
+  - Reusing one route forward pass for the twist, the proposal and the marginals (the same input is evaluated three
+    times per step): needs a cache threaded through the sampler; estimated gain about 12% on chart cells, 2-3% on
+    automata. Worth doing when chart runs start.
+  - A noise floor on the pilot kernel: its range is 145-157 positions with any entry above zero and 37 above 1e-6
+    nats; cutting below 1e-6 makes a kernel sum 3-4 times cheaper. It changes which positions the exact threshold
+    admits, so it is a method change, not a speed fix.
+  - Charts on a GPU: the chart code is batched torch; the 64-position grammar suites go to the cluster GPU.
+  - Vectorising the chart's per-nonterminal reduction loop: a real rewrite of a core route; only if GPU runs show it
+    matters.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2

@@ -154,6 +154,8 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
     for t in range(T):
         last = t == T - 1
         x2, y2, z_old, log_ratio = _propose(den, classes, route, s, t, T, schedule, gen, mix_native, tau)
+        if pstat is not None:                   # before the denoiser moves on to x2: it still holds its answer at s.x
+            pstat = pstat + path_stat(s.x, x2)
         lp2, lw2, eta2, psi2 = _successor_twist(den, classes, route, x2, y2, z_old, last, beta, tau)
         all_done = False
         if policy and not last:                 # a particle that is complete takes the exact terminal twist
@@ -164,8 +166,6 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                 eta2, psi2 = torch.where(done, fin, eta2), torch.where(done, fin, psi2)
                 all_done = bool(done.all())
         steps = steps + (x2 != s.x).any(-1).long()
-        if pstat is not None:
-            pstat = pstat + path_stat(s.x, x2)
         if guard != "off":
             live = torch.isfinite(logw) & torch.isfinite(s.eta)
             on = torch.isfinite(z_old)

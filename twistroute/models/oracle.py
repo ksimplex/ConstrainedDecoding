@@ -84,12 +84,21 @@ class OracleHMM:
         return b
 
     def log_cond(self, x):
-        """(B, N) -> (B, N, S) float64: log p(x_i = v | revealed tokens other than i), at every position."""
+        """(B, N) -> (B, N, S) float64: log p(x_i = v | revealed tokens other than i), at every position.
+
+        The last answer is kept: the sampler and the gap diagnostic (parallel_log_prob) ask for the conditionals
+        at the same state one after the other, and the second call would repeat the whole forward-backward pass.
+        Callers must not modify the returned tensor in place."""
+        last = getattr(self, "_last_cond", None)
+        if last is not None and last[0].shape == x.shape and torch.equal(last[0], x):
+            return last[1]
         e = self._evidence(x)
         ahat, _ = self._forward(e)
         g = ahat * self._backward(e)
         g = g / g.sum(-1, keepdim=True).clamp_min(1e-300)                 # p(h_i | evidence except i)
-        return torch.log(torch.einsum("bnh,nhs->bns", g, self.emit))
+        out = torch.log(torch.einsum("bnh,nhs->bns", g, self.emit))
+        self._last_cond = (x.clone(), out)
+        return out
 
     def logits(self, x):
         """Denoiser interface: (B, N) -> (B, N, V) float32 log-probs, mask column -inf."""

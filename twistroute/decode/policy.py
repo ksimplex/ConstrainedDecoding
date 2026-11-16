@@ -107,9 +107,18 @@ class DistanceKernel:
     def ks(self):
         return self.table[:, 1]
 
+    def _by_count(self, dev, n):
+        """(distances, n + 1) lookup: entry [d, c] is table[d, bin of c] for a count c of revealed positions in
+        between. Built once per kernel; indexing it is the same value as binning the count on every call."""
+        tab = getattr(self, "_count_table", None)
+        if tab is None or tab.shape[1] < n + 1 or tab.device != torch.device(dev):
+            bins = torch.bucketize(torch.arange(n + 1), self.edges, right=True)
+            tab = self._count_table = self.table[:, bins].to(dev)
+        return tab
+
     def _value(self, d, between, dev):
         """Kernel value for distances d and counts `between` of revealed positions strictly inside (same shape)."""
-        return self.table.to(dev)[d, torch.bucketize(between, self.edges.to(dev), right=True)]
+        return self._by_count(dev, self.table.shape[0])[d, between]
 
     def matrix(self, masked):
         P, N = masked.shape
@@ -155,9 +164,10 @@ class DistanceKernel:
         W = min(int(nz.max()) if nz.numel() else 0, masked.shape[1] - 1)
         v = v.double()
         out = torch.zeros_like(v)
+        tab = self._by_count(dev, self.table.shape[0])
         for d in range(1, W + 1):
             between = before[:, d:] - upto[:, :-d]                         # revealed strictly inside (i, i + d)
-            m = self._value(torch.full_like(between, d), between, dev)
+            m = tab[d][between]
             out[:, :-d] += m * v[:, d:]
             out[:, d:] += m * v[:, :-d]
         return out
