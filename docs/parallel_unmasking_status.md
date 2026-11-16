@@ -1489,6 +1489,62 @@ call counts of the studies.
 - Not done: a pull-in that skips constraints or steps with nothing to pull. That is a design choice for the selection
   rule.
 
+## 36m. How biased are the budgeted schedules against the one-token-per-step law? (2026-11-16) [verified at N = 64]
+
+**Decision (user, 2026-11-16).** The target for parallel schedules is the law of the one-token-per-step sampler
+conditioned on the constraint, taken as the denoiser's underlying joint. A budgeted parallel schedule is then an
+approximation, its bias counts as error, and the budget is the tolerance.
+
+From the order study (section 36i), resampling off. The sampler is exact for the model run under the same schedule,
+so the mean of the estimate of p(C) differs from the exact p(C) only through the dependence among positions revealed
+together. Pooled over 3 chains and 7 orders (21 arms each), inverse-variance weighted; 0 is unbiased.
+
+| budget | constraint | mean calls | log(estimate / p(C)), nats | in s.e. | as a multiple of the budget | arms beyond 2 s.e. |
+|---|---|---|---|---|---|---|
+| none (sequential) | counting | 64.0 | -0.003 ± 0.003 | -1.1 |  | 0% |
+| none (sequential) | dyck | 64.0 | -0.002 ± 0.004 | -0.4 |  | 5% |
+| none (sequential) | forbidden | 64.0 | +0.006 ± 0.007 | +0.9 |  | 0% |
+| none (sequential) | window | 64.0 | +0.001 ± 0.002 | +0.7 |  | 10% |
+| none (sequential) | two_window | 64.0 | -0.005 ± 0.003 | -1.8 |  | 5% |
+| B = 0.03 | counting | 13.6 | +0.016 ± 0.004 | +4.4 | 0.5 | 14% |
+| B = 0.03 | dyck | 13.2 | -0.005 ± 0.005 | -1.0 | 0.2 | 14% |
+| B = 0.03 | forbidden | 16.4 | -0.053 ± 0.009 | -6.2 | 1.8 | 24% |
+| B = 0.03 | window | 14.3 | -0.005 ± 0.002 | -2.6 | 0.2 | 14% |
+| B = 0.03 | two_window | 14.5 | -0.007 ± 0.002 | -3.0 | 0.2 | 5% |
+| B = 0.3 | counting | 8.5 | +0.066 ± 0.003 | +19.0 | 0.2 | 67% |
+| B = 0.3 | dyck | 7.6 | -0.016 ± 0.005 | -3.1 | 0.1 | 76% |
+| B = 0.3 | forbidden | 10.5 | -0.387 ± 0.011 | -36.3 | 1.3 | 100% |
+| B = 0.3 | window | 8.6 | -0.068 ± 0.003 | -24.0 | 0.2 | 76% |
+| B = 0.3 | two_window | 8.7 | -0.031 ± 0.003 | -11.9 | 0.1 | 52% |
+
+- The sequential arms are unbiased within noise, as they must be.
+- At B = 0.03 the bias is at most 1.6% on four constraints and 5.3% on forbidden, at 13 to 16 calls instead of 64.
+- At B = 0.3 it is 2 to 7% on four constraints and 39% (in log) on forbidden, at 8 to 10 calls.
+- In nats the bias is 0.1 to 0.5 of the budget, except on forbidden, where it is 1.3 to 1.8 times the budget.
+- Pooling hides biases of opposite sign between orders: on Dyck at B = 0.3 individual orders are off by +14% and -14%
+  (section 36i), which pools to -1.6%.
+- Not established: why forbidden exceeds its budget. Candidate: the kernel measures the model's average dependence,
+  and conditioning on a rare event (p(C) of e^-8 to e^-14 here) puts the particles in atypical states. Untested.
+
+Relative RMS error of the estimate of p(C) at equal total denoiser calls, constraint-first order, geometric mean over
+chains; lower is better. Error squared = bias squared (noise-corrected) + spread squared scaled to the number of
+particles the budget buys. First three columns: the calls that 16 sequential particles cost; last three: 16 times that.
+
+| constraint | sequential | B = 0.03 | B = 0.3 | sequential, 16x calls | B = 0.03, 16x | B = 0.3, 16x |
+|---|---|---|---|---|---|---|
+| counting | 0.269 | 0.085 | 0.091 | 0.067 | 0.037 | 0.055 |
+| dyck | 0.231 | 0.110 | 0.158 | 0.058 | 0.030 | 0.117 |
+| forbidden | 0.272 | 0.265 | 0.406 | 0.068 | 0.087 | 0.325 |
+| window | 0.089 | 0.043 | 0.109 | 0.022 | 0.014 | 0.097 |
+| two_window | 0.090 | 0.037 | 0.051 | 0.022 | 0.014 | 0.037 |
+
+- B = 0.03 is at or below the sequential error on four of five constraints at both budgets; on forbidden it is level
+  at the smaller budget and worse at the larger.
+- B = 0.3 is worse than sequential at the larger budget on four of five constraints (counting is the exception).
+- This is the estimate of p(C) only. Sample quality needs enough particles that noise sits below the bias; not run.
+- Consequence for reporting: `cost` (calls x spread squared) ignores this bias and must not be used alone to rank
+  budgeted arms.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
