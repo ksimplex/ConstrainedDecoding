@@ -6,6 +6,8 @@ import torch
 from .arms import ARM_SETS, Cell
 from .cells import MODELS, CONSTRAINTS, make_model, make_constraint
 from .metrics import metrics, Footprint
+from .suites import SUITES
+from .summary import provenance
 
 
 def run_cell(job):
@@ -93,12 +95,19 @@ def main():
     ap.add_argument("--resample-ks", dest="resample_ks", type=int, nargs="+", default=None)
     ap.add_argument("--resample-modes", dest="resample_modes", nargs="+", default=None, help="subset of the resampling modes, by name")
     ap.add_argument("--only", nargs="+", default=None, help="run only the arms whose name starts with one of these prefixes")
+    ap.add_argument("--suite", choices=tuple(SUITES), default=None, help="a named set of cells with its run settings (pulib/suites.py); "
+                    "flags given explicitly still override it")
     a = vars(ap.parse_args())
+    if a["suite"]:                                 # the suite supplies every setting that was not given on the command line
+        given = {x.split("=")[0] for x in sys.argv[1:] if x.startswith("--")}
+        flag = dict(N="--N", models="--models", constraints="--constraints", nrun="--nrun", K="--K", pilot="--pilot")
+        a.update({k: v for k, v in SUITES[a["suite"]].items() if flag[k] not in given})
     a["partial"] = os.path.splitext(a["out"])[0] + ".partial" if a["resume"] else None
     if a["partial"]:
         os.makedirs(a["partial"], exist_ok=True)
     jobs = [(m, c, N, a) for N in a["N"] for m in a["models"] for c in a["constraints"]]
     rows, metas, zall, t0 = [], [], {}, time.time()
+    prov = provenance()                            # code version of this run; a resumed run keeps the first one
     zpath = os.path.splitext(a["out"])[0] + ".logZ.npz"
     if a["resume"] and os.path.exists(a["out"]):          # keep finished cells; a cell is written only when complete
         prev = json.load(open(a["out"]))
@@ -106,6 +115,10 @@ def main():
         if not same:
             raise SystemExit("--resume: the existing file was made with different settings")
         rows, metas = prev["rows"], prev["cells"]
+        prov = prev.get("provenance") or prov
+        if prev.get("provenance") and prev["provenance"].get("commit") != provenance()["commit"]:
+            print(f"note: resuming a run started at commit {prev['provenance'].get('commit')} with code at {provenance()['commit']}", flush=True)
+            prov = dict(prov, resumed_at=provenance()["commit"])
         if os.path.exists(zpath):
             zall = dict(np.load(zpath))
         have = {(c["model"], c["constraint"], c["N"]) for c in metas}
@@ -114,7 +127,7 @@ def main():
     def collect(res):
         rows.extend(res[0]); metas.append(res[1]); zall.update(res[2])
         np.savez_compressed(zpath + ".tmp.npz", **zall); os.replace(zpath + ".tmp.npz", zpath)
-        json.dump(dict(args=a, rows=rows, cells=metas, wall_seconds=round(time.time() - t0, 1)), open(a["out"], "w"), indent=1)
+        json.dump(dict(args=a, provenance=prov, rows=rows, cells=metas, wall_seconds=round(time.time() - t0, 1)), open(a["out"], "w"), indent=1)
         print(f"[{time.time() - t0:7.0f}s] done {res[1]['model']} {res[1]['constraint']} N={res[1]['N']} "
               f"({sum(r['seconds'] for r in res[0]):.0f}s of arms)", flush=True)
     if a["workers"] <= 1:

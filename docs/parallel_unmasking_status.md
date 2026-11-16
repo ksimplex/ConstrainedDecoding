@@ -894,6 +894,25 @@ a diffusion language model is the standard benchmark) with overall numbers. Proo
   route wrapper when that is written.
 - `forced_first` is on by default, so the `random sequential` arm of section 27 reveals forced partners first.
 
+## 36a. Suites, standard report and results log (2026-11-16) [verified]
+
+- **Suites** (`pulib/suites.py`): `core64` (4 models x 4 whole-sequence constraints), `long256` (4 models x 4 long
+  constraints), `hidden256` (three hidden chains x 4 long constraints: the evaluation set), `long1024`, `smoke`.
+  `compare.py --suite NAME`.
+- **Provenance** in every new output: commit, dirty flag, torch version, platform, start time.
+- **Standard summary** (`pulib/summary.py`, `report.py`): calls, spread of Z-hat with a 90% bootstrap interval over
+  runs, Z-hat / p(C), marginal TV, spread of r, cost = calls x spread^2; ratios to a baseline arm; cell-by-cell
+  comparison of two outputs or two arms, a difference being called clear when the intervals are disjoint.
+- **Log** `results/parallel_unmasking/log.jsonl`: one line per (run, cell, arm) with settings and commit;
+  `report.py --query field=value ...` lists every logged setting of a cell. Backfilled from 22 earlier outputs
+  (3,387 results, no commit recorded for those); their per-run files are now in the repo.
+- **Checked against earlier reports.** The summary reproduces the section-31 values (`copy_block`, `lex`: 0.40, 0.12,
+  0.11 at theta = 0; sequential 0.09). The same arm run in three studies (`fix`, `interact`, `seqorder`) has identical
+  numbers, as the named random streams imply.
+- **What the intervals add.** On `copy_block` with `lex`, pull-in against plain is clear (0.12 [0.11, 0.14] against
+  0.40 [0.33, 0.46]); the guard on top of the pull-in is not resolved (0.11 [0.10, 0.12] against 0.12 [0.11, 0.14]).
+  The bootstrap interval is too narrow under heavy tails; read it with `z_se_unreliable`.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
