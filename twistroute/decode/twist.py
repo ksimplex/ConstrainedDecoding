@@ -70,7 +70,7 @@ class _Particles:
             self.psi = self.psi[flat]
 
 
-def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.0):
+def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.0, chain=None):
     """One proposal step from state s: the step-exact proposal, or with probability mix_native per particle the
     native kernel (same reveal set, tokens from the unrestricted predictions). Returns (x2, y2, z_old, log_ratio)
     with z_old = Z(x2; x) and log_ratio = log(M(x2|x) / kappa(x2|x)), which is z_old - Z(x; x) for the
@@ -78,10 +78,20 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
 
     tau != 1 (calibrated twist): the twist sums the route under q ∝ p^tau at masked positions. The proposal is the
     locally optimal one for that twist, M(x'|x) ∝ kappa(x'|x) Z_q(x'; x): y is drawn with the true class law p at
-    the reveal set r and q elsewhere, so log(M / kappa) = Z_q(x'; x) - Z_mix(x; x) and z_old = Z_q(x'; x)."""
+    the reveal set r and q elsewhere, so log(M / kappa) = Z_q(x'; x) - Z_mix(x; x) and z_old = Z_q(x'; x).
+
+    chain (a decode.chain_twist.ChainTwist): the classes at the reveal set are drawn from the chain law given the
+    constraint instead of the product law, M(x'|x) = P_chain(classes at r, C) / P_chain(C) times the model's law of
+    the token within its class. Then log(M / kappa) = log P_chain(classes at r, C) - log P_chain(C) - the sum over r
+    of the model's class log-probabilities. The reveal set is chosen without seeing the draw, as for the product."""
     P = s.x.shape[0]
     view = lambda: RevealState(s.x, s.ycls, s.lw, den.mask_id, classes, route)   # for policy schedules only
-    if tau != 1.0:
+    log_chain_c = None
+    if chain is not None:
+        lwc = clamp_revealed(s.lw, s.x, s.ycls, den.mask_id)
+        y, log_chain_c = chain.sample(lwc, gen)                             # y ~ chain law given C
+        r, rvalid = choose_reveals(schedule, s.x == den.mask_id, t, T, gen, view)
+    elif tau != 1.0:
         r, rvalid = choose_reveals(schedule, s.x == den.mask_id, t, T, gen, view)
         lwq = tempered_class_logw(s.lw, tau)
         inr = torch.zeros(s.x.shape, dtype=torch.bool, device=s.x.device)
@@ -113,9 +123,17 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
         z_old = route.logZ(clamp_revealed(lwq, x2, y2, den.mask_id))        # Z_q(x'; x)
         return x2, y2, z_old, z_old - route.logZ(lwc)
     z_old = route.logZ(clamp_revealed(s.lw, x2, y2, den.mask_id))           # Z(x'; x)
-    if mix_native <= 0:
+    if chain is not None:
+        keep = torch.ones_like(r, dtype=torch.bool) if rvalid is None else rvalid
+        native = torch.gather(s.lw, 1, r[..., None].expand(-1, -1, s.lw.shape[-1])).gather(2, cr[..., None]).squeeze(-1).double()
+        native = torch.where(keep, native, torch.zeros_like(native)).sum(-1)   # the model's class log-probabilities at r
+        step = torch.nan_to_num(chain.log_clamped(lwc, r, cr, rvalid) - log_chain_c - native, nan=NEG_INF, neginf=NEG_INF)
+        if mix_native <= 0:
+            return x2, y2, z_old, step
+    elif mix_native <= 0:
         return x2, y2, z_old, None
-    step = torch.nan_to_num(z_old - s.eta, nan=NEG_INF, neginf=NEG_INF)
+    else:
+        step = torch.nan_to_num(z_old - s.eta, nan=NEG_INF, neginf=NEG_INF)
     log_ratio = torch.logaddexp(math.log1p(-mix_native) + step, torch.full_like(step, math.log(mix_native)))
     return x2, y2, z_old, log_ratio
 

@@ -69,6 +69,8 @@ class ChainTwist:
             raise ValueError("temp must lie in (0, 1]")
         self.temp = float(temp)
         self.active = None if active is None else torch.as_tensor(active, dtype=torch.bool, device=device)
+        self.delta = torch.full((self.Q, self.A), -1, dtype=torch.long, device=device)   # next state, -1 = no move
+        self.delta[self.src, self.sym] = self.dst
 
     def transitions(self, mu):
         """(B, N, A) marginals -> (B, N - 1, A, A) row-stochastic transitions Q_i(a, b)."""
@@ -122,3 +124,61 @@ class ChainTwist:
             theta = torch.zeros(lwc.shape, dtype=torch.float64, device=lwc.device, requires_grad=True)
             g, = torch.autograd.grad(self.log_chain(lwc.detach(), theta, Qc).sum(), theta)
         return torch.nan_to_num(g, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
+
+    def sample(self, lwc, gen=None, chunk=1024):
+        """Draw class sequences from the chain law given the constraint. Returns (y (B, N) long, log P_chain(C) (B,)).
+        One backward pass stores, for every position, class and automaton state, the chance of ending in an
+        accepting state; a forward sweep then draws position by position. A row whose constraint has no mass under
+        the chain law returns log P_chain(C) = -inf and an arbitrary y."""
+        ys, lcs = [], []
+        for lo in range(0, lwc.shape[0], chunk):
+            y, lc = self._sample(lwc[lo:lo + chunk], gen); ys.append(y); lcs.append(lc)
+        return torch.cat(ys), torch.cat(lcs)
+
+    def _sample(self, lwc, gen):
+        w = torch.exp(lwc.double()); mu = w / w.sum(-1, keepdim=True).clamp_min(1e-300)
+        Qc = self.transitions(mu); B, N, A = mu.shape; Q, dev = self.Q, mu.device
+        nxt = self.delta.T                                                   # (A, Q): state after reading class a in state q
+        ok = (nxt >= 0).to(torch.float64)[None]; idx = nxt.clamp_min(0)[None].expand(B, A, Q)
+
+        def read(v, i):                 # v[b, a, q']: value by the state after reading a at i -> by the state before
+            if self.active is not None and not bool(self.active[i]):
+                return v
+            return torch.gather(v, 2, idx) * ok
+
+        bm = torch.zeros(B, N, A, Q, dtype=torch.float64, device=dev)       # P(accept | class a at i, state q before reading it), scaled
+        bm[:, N - 1] = read(self.F[None, None, :].expand(B, A, Q), N - 1)
+        logs = torch.zeros(B, dtype=torch.float64, device=dev)
+        for i in range(N - 2, -1, -1):
+            g = torch.einsum("bac,bcq->baq", Qc[:, i], bm[:, i + 1])
+            sc = g.amax((1, 2)); logs = logs + torch.log(sc); g = g / sc.clamp_min(1e-300)[:, None, None]
+            bm[:, i] = read(g, i)
+        rows = torch.arange(B, device=dev)
+
+        def draw(p):
+            tot = p.sum(-1, keepdim=True)
+            p = torch.where(tot > 0, p, torch.ones_like(p))                  # dead row: arbitrary class
+            return torch.multinomial(p, 1, generator=gen).squeeze(-1)
+
+        def move(q, c, i):
+            if self.active is not None and not bool(self.active[i]):
+                return q
+            return self.delta[q, c].clamp_min(0)
+
+        p0 = mu[:, 0] * bm[:, 0, :, self.q0]
+        logc = logs + torch.log(p0.sum(-1))
+        y = torch.zeros(B, N, dtype=torch.long, device=dev)
+        q = torch.full((B,), self.q0, dtype=torch.long, device=dev)
+        y[:, 0] = draw(p0); q = move(q, y[:, 0], 0)
+        for i in range(N - 1):
+            y[:, i + 1] = draw(Qc[rows, i, y[:, i]] * bm[rows, i + 1, :, q]); q = move(q, y[:, i + 1], i + 1)
+        return y, logc
+
+    def log_clamped(self, lwc, r, cr, rvalid=None):
+        """log P_chain(classes cr at positions r, and C): (B,) float64. r, cr (B, n) long; rvalid (B, n) bool marks
+        the columns that count (None = all). The chain law itself is unchanged: its transitions come from lwc."""
+        theta = torch.zeros(lwc.shape, dtype=torch.float64, device=lwc.device)
+        keep = torch.ones_like(r, dtype=torch.bool) if rvalid is None else rvalid
+        b = torch.arange(r.shape[0], device=r.device)[:, None].expand_as(r)[keep]
+        theta[b, r[keep]] = float("-inf"); theta[b, r[keep], cr[keep]] = 0.0
+        return self.log_chain(lwc, theta)

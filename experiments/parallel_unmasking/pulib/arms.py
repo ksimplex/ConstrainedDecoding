@@ -248,6 +248,22 @@ def calibrate(c):
     return arms
 
 
+@arm_set("chainprop")
+def chainprop(c):
+    """The chain twist as the proposal. Three schedules (uniformly random order one token per step, `lex` one token
+    per step, `lex` budgeted) by three samplers: product proposal with the product twist; product proposal with the
+    chain twist as the intermediate twist (the earlier use); chain proposal with the chain twist as the
+    intermediate twist. Each without resampling and with defensive resampling. Automaton constraints only."""
+    N, n, kg, tw = c.N, c.nrun, c.kernel("graded"), c.chain_twist()
+    scheds = (("fixed 1/step", lambda: "fixed"), ("lex sequential", lambda: c.policy(kg, 0.0, "lex", max_set=1)),
+              ("lex B=0.03 +pull", lambda: c.policy(kg, 0.0, "lex", B=0.03, pull_forced=8)))
+    samplers = (("product proposal, product twist", dict()), ("product proposal, chain twist", dict(twist=tw)),
+                ("chain proposal, chain twist", dict(twist=tw, proposal_twist=tw)))
+    res = (("off", dict(ess_min=0.0)), ("defensive", dict()))
+    return [Arm(f"{sn} | {pn} | resampling {rn}", mk(), N, n, smc=dict(smc, **kw))
+            for sn, mk in scheds for pn, kw in samplers for rn, smc in res]
+
+
 AXIS_ORDERS = ("cheapest", "estimate", "confident", "lex", "sum", "separator", "random")
 AXIS_BUDGETS = (0.03, 0.3)
 
