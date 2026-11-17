@@ -1,0 +1,411 @@
+{
+ "args": {
+  "routes": "json_mode_routes",
+  "tokenizer": "/home/ksanj/orcd/pool/cfg-twister/hf/hub/models--GSAI-ML--LLaDA-8B-Instruct/snapshots/08b83a6feb34df1a6011b80c3c00c7563e963b07/tokenizer.json",
+  "stage": "compare",
+  "synthetic": false,
+  "datapoints": [
+   17,
+   76,
+   37,
+   7
+  ],
+  "max_n": 160,
+  "limit": null,
+  "pilot_n": 8,
+  "pilot": "llada_pilot.npz",
+  "nrun": 8,
+  "K": 4,
+  "rpb": 4,
+  "match": 5,
+  "mix": 0.1,
+  "lam": 1.0,
+  "max_rows": 16,
+  "seed": 0,
+  "out": "llada_smoke.json"
+ },
+ "smoke": {
+  "7": {
+   "N": 41,
+   "classes": 144,
+   "states": 76,
+   "prefix_tokens": 167,
+   "rows": 16,
+   "seconds_first_call": 2.151,
+   "seconds_call": 0.075,
+   "seconds_route_pass": 0.4607,
+   "log_product_twist_at_start": -56.771677237442766,
+   "seconds_unconstrained_decode_2": 2.9,
+   "unconstrained_text": "```json\n{\n\t(food service request): \"vegetarian meal\",\n\n  { \n    Special Instructions (Gluten-FreeTo branch)  ).\n  }\n}",
+   "unconstrained_matches": false,
+   "unconstrained_parses": false,
+   "seconds_constrained_2runs": 7.6,
+   "logZ": [
+    -20.24857903390794,
+    -4.617772286874869
+   ],
+   "constrained_text": "{ \"seatNumber\": \"codeshareLH21012A\", \"serviceType\": \"vegetarian_meal\", \"specialInstructions\": \"gluten_free\" }",
+   "constrained_matches": true,
+   "constrained_parses": true,
+   "reference": "{\"seatNumber\": \"12A\", \"serviceType\": \"vegetarian meal\", \"specialInstructions\": \"gluten-free\"}"
+  },
+  "17": {
+   "N": 27,
+   "classes": 74,
+   "states": 31,
+   "prefix_tokens": 214,
+   "rows": 16,
+   "seconds_first_call": 0.09,
+   "seconds_call": 0.384,
+   "seconds_route_pass": 0.0018,
+   "log_product_twist_at_start": -14.486047727797837,
+   "seconds_unconstrained_decode_2": 1.4,
+   "unconstrained_text": "```{\n  \"data\": [1, 2, 3, 4, 5]\n}```",
+   "unconstrained_matches": false,
+   "unconstrained_parses": false,
+   "seconds_constrained_2runs": 5.0,
+   "logZ": [
+    -7.017512188889359,
+    -4.2833220782668455
+   ],
+   "constrained_text": "{\"data\": [1, 2, 3, 4, 5]}",
+   "constrained_matches": true,
+   "constrained_parses": true,
+   "reference": "{\"data\": [1, 2, 3, 4, 5]}"
+  },
+  "37": {
+   "N": 35,
+   "classes": 107,
+   "states": 53,
+   "prefix_tokens": 309,
+   "rows": 16,
+   "seconds_first_call": 0.132,
+   "seconds_call": 0.56,
+   "seconds_route_pass": 0.0022,
+   "log_product_twist_at_start": -67.46165236656215,
+   "seconds_unconstrained_decode_2": 2.5,
+   "unconstrained_text": "```json\n{\n  \"isMember\": true,\n  \"membershipNumber\": \"1234567890\"\n}",
+   "unconstrained_matches": false,
+   "unconstrained_parses": false,
+   "seconds_constrained_2runs": 9.7,
+   "logZ": [
+    -3.7832988844905984,
+    -9.966400481317972
+   ],
+   "constrained_text": "{ \"isMember\": true, \"membershipNumber\": \"1234567890\" }",
+   "constrained_matches": true,
+   "constrained_parses": true,
+   "reference": "{\"isMember\": true, \"membershipNumber\": \"1234567890\"}"
+  },
+  "68": {
+   "N": 41,
+   "classes": 124,
+   "states": 79,
+   "prefix_tokens": 228,
+   "rows": 16,
+   "seconds_first_call": 0.1,
+   "seconds_call": 0.427,
+   "seconds_route_pass": 0.0025,
+   "log_product_twist_at_start": -66.88104084609196,
+   "seconds_unconstrained_decode_2": 2.5,
+   "unconstrained_text": "```json\n{\n  \"baseCurrency\": \"JPY\",\n  \"targetCurrency\": \"AUD\",\n  \"exchangeRate\": 0.0123\n}\n```",
+   "unconstrained_matches": false,
+   "unconstrained_parses": false,
+   "seconds_constrained_2runs": 8.5,
+   "logZ": [
+    -57.61453987031479,
+    -36.54339919864178
+   ],
+   "constrained_text": "{ \"baseCurrency\": \"Japanese Yen (JPY\uff09\", \"targetCurrency\": \"Australian Dollar (AUD)\", \"exchangeRate\": 0.0123}",
+   "constrained_matches": true,
+   "constrained_parses": true,
+   "reference": "{\"baseCurrency\": \"JPY\", \"targetCurrency\": \"AUD\", \"exchangeRate\": 0.0123}"
+  },
+  "76": {
+   "N": 32,
+   "classes": 85,
+   "states": 56,
+   "prefix_tokens": 208,
+   "rows": 16,
+   "seconds_first_call": 0.092,
+   "seconds_call": 0.388,
+   "seconds_route_pass": 0.0023,
+   "log_product_twist_at_start": -43.68077130674592,
+   "seconds_unconstrained_decode_2": 1.6,
+   "unconstrained_text": "{\"firstName\": {\"value\": \"Alice\"}, \"lastName\": {\"value\": \"Johnson\"}, \"age\": {\"value\": 35}}",
+   "unconstrained_matches": false,
+   "unconstrained_parses": true,
+   "seconds_constrained_2runs": 6.1,
+   "logZ": [
+    -44.92642191676453,
+    -53.692388995434285
+   ],
+   "constrained_text": "{\"firstName\": \"Alice gamer  :type\\ndoe\", \"lastName\": \"Johnson\", \"age\": 35}",
+   "constrained_matches": true,
+   "constrained_parses": true,
+   "reference": "{\"firstName\": \"Alice\", \"lastName\": \"Johnson\", \"age\": 35}"
+  }
+ },
+ "pilot": {
+  "0": {
+   "N": 47,
+   "n": 8,
+   "seconds": 11.3,
+   "matches": 0.0,
+   "example": "```json\n{\n  \"ssid\": \"OfficeNetSecure\",\n  \"securityProtocol\": \"WPA2-Enterprise\",\n  \"bandwidth\": \"1300 Mbps\"\n}\n```"
+  },
+  "7": {
+   "N": 41,
+   "n": 8,
+   "seconds": 6.4,
+   "matches": 0.0,
+   "example": "```json\n{\n    \"seatNumber\": \"12A\",\n    \"serviceType\": \" vegetarian_meal\",\n    \"specialInstructions\": \" gluten-free\n}\"\n```"
+  },
+  "10": {
+   "N": 59,
+   "n": 8,
+   "seconds": 16.1,
+   "matches": 0.0,
+   "example": "```json\n{\n  \"capitalGains\": 1250000.385,\n  \"interestIncome\": 375000.0,\n  \"totalReturn\": 0.0240\n}\n```"
+  },
+  "17": {
+   "N": 27,
+   "n": 8,
+   "seconds": 4.9,
+   "matches": 0.0,
+   "example": "{'data': {'array': [1, 2, 3, 4, 5]}}"
+  },
+  "24": {
+   "N": 48,
+   "n": 8,
+   "seconds": 16.5,
+   "matches": 0.0,
+   "example": "```\n{\n  \"storage\": \"/dev/sda1\",\n  \"fstype\": \"ext4\",\n  \"options\": \"rw,noatime\",\n  \"readonly\": false\n}\n```"
+  },
+  "36": {
+   "N": 60,
+   "n": 8,
+   "seconds": 16.8,
+   "matches": 0.0,
+   "example": "<json>\n```\n{\n  \"drugID\": \"PH-112233\",\n  \"quantityAvailable\": 150,\n  \"location\": \"Warehouse A\",\n  \"reorderThreshold\": 50\n}\n```"
+  },
+  "37": {
+   "N": 35,
+   "n": 8,
+   "seconds": 9.4,
+   "matches": 0.0,
+   "example": "```json\n{\n  \"isMember\": true,\n  \"membershipNumber\": \"123456789\"\n}\n```"
+  },
+  "40": {
+   "N": 56,
+   "n": 8,
+   "seconds": 13.8,
+   "matches": 0.0,
+   "example": "```json\n{\n  \"wireLength\": 200,\n  \"insulationType\": \"PVC\",\n  \"voltageRating\": 600.0,\n  \"manufacturer\": \"CopperWire Inc.\"\n}\n```"
+  },
+  "44": {
+   "N": 60,
+   "n": 8,
+   "seconds": 16.0,
+   "matches": 0.0,
+   "example": "```json\n{\n  \"siteName\": \"Olympic Dam\",\n  \"location\": \"South Australia\",\n  \"mineralType\": [\"uranium\", \"gold\", \"gold\", \"gold\"],\n  \"operationalStatus\": \"Active\"\n}\n```"
+  },
+  "46": {
+   "N": 45,
+   "n": 8,
+   "seconds": 10.8,
+   "matches": 0.0,
+   "example": "{'chest': 38, 'waist': 32, 'hips': 40, 'inseam': 30}"
+  },
+  "56": {
+   "N": 56,
+   "n": 8,
+   "seconds": 14.6,
+   "matches": 0.0,
+   "example": "```json\n{\n  \"airlineCode\": \"SKW\",\n  \"companyName\": \"Skyward Airlines\",\n  \"allianceMembership\": \"Global Sky Alliance\",\n  \"fleetSize\": 150\n}\n```"
+  },
+  "57": {
+   "N": 60,
+   "n": 8,
+   "seconds": 16.0,
+   "matches": 0.0,
+   "example": "{data: {\"itemId\": \"LS-314159\", \"itemName\": \"Taq Polymerase\", \"quantity\": 40, \"reorderLevel\": 10}}"
+  },
+  "68": {
+   "N": 41,
+   "n": 8,
+   "seconds": 8.3,
+   "matches": 0.0,
+   "example": "```json\n{\n  \"baseCurrency\": \"JPY\",\n  \"targetCurrency\": \"AUD\",\n  \"exchangeRate\": 0.0123\n}\n```"
+  },
+  "69": {
+   "N": 57,
+   "n": 8,
+   "seconds": 15.1,
+   "matches": 0.0,
+   "example": "```json\n  {\n    \"lesseeName\": \"Harper & Associates\",\n    \"assetType\": \"Office Computers\",\n    \"leaseTerm\": 24,\n    \"monthlyPayment\": 1200\n  }\n```"
+  }
+ },
+ "compare": {
+  "7": {
+   "table": {
+    "pilot_sequences": 104,
+    "pairs": 5104.0,
+    "seen_entries": 116,
+    "classes": 144,
+    "frequent_classes": 11,
+    "agreement_with_reference_answers": 0.5112786881750004,
+    "min_entry": 0.00011008080354235946,
+    "max_over_min_in_row": 617.8839479392625
+   },
+   "product": {
+    "N": 41,
+    "n": 8,
+    "log_mean_Z": -7.800302309399925,
+    "mean_logZ": -10.389293387265102,
+    "sd_logZ": 3.8806962933402014,
+    "spread": 1.5097160531678568,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.375,
+    "seconds": 27.1,
+    "denoiser_batches": 82,
+    "example": "{ \"seatNumber\": \"LH21012\", \"serviceType\": \"vegetarian meal\", \"specialInstructions\": \"This meal must be vegetarian and also gluten-free\" }"
+   },
+   "matched chain": {
+    "N": 41,
+    "n": 8,
+    "log_mean_Z": -7.652457426072262,
+    "mean_logZ": -10.857376925615771,
+    "sd_logZ": 4.368525361878189,
+    "spread": 1.5273647310255964,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.375,
+    "seconds": 29.8,
+    "denoiser_batches": 82,
+    "example": "{ \"seatNumber\": \"LH210-52B-12A\", \"serviceType\": \"vegetarian_meal\", \"specialInstructions\": \"gluten-free\" }"
+   }
+  },
+  "17": {
+   "table": {
+    "pilot_sequences": 104,
+    "pairs": 5216.0,
+    "seen_entries": 134,
+    "classes": 74,
+    "frequent_classes": 13,
+    "agreement_with_reference_answers": 0.591433599199516,
+    "min_entry": 0.00017903483131297233,
+    "max_over_min_in_row": 510.02290076335873
+   },
+   "product": {
+    "N": 27,
+    "n": 8,
+    "log_mean_Z": -6.6398793118059976,
+    "mean_logZ": -11.196526372259985,
+    "sd_logZ": 4.245503598378281,
+    "spread": 2.5855302431644307,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.25,
+    "seconds": 21.6,
+    "denoiser_batches": 54,
+    "example": "{\"data\": \"Hello, 5, [1, 2, 3, 4, 5]\"}"
+   },
+   "matched chain": {
+    "N": 27,
+    "n": 8,
+    "log_mean_Z": -10.657073094913983,
+    "mean_logZ": -12.044365171976171,
+    "sd_logZ": 2.635388725221094,
+    "spread": 1.3124753838965315,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.0,
+    "seconds": 22.2,
+    "denoiser_batches": 54,
+    "example": "{\"data\": \"An array of integers of [1, 2, 3, 4, 5]\"}"
+   }
+  },
+  "37": {
+   "table": {
+    "pilot_sequences": 104,
+    "pairs": 5152.0,
+    "seen_entries": 100,
+    "classes": 107,
+    "frequent_classes": 11,
+    "agreement_with_reference_answers": 0.5300473274174031,
+    "min_entry": 0.00013583727035680723,
+    "max_over_min_in_row": 626.5420587615232
+   },
+   "product": {
+    "N": 35,
+    "n": 8,
+    "log_mean_Z": -7.804258066579756,
+    "mean_logZ": -9.39729407831356,
+    "sd_logZ": 3.8494302781273193,
+    "spread": 1.0556624908612189,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.875,
+    "seconds": 40.2,
+    "denoiser_batches": 70,
+    "example": "{\"isMember\": true, \"membershipNumber\": \"1234567890\"}"
+   },
+   "matched chain": {
+    "N": 35,
+    "n": 8,
+    "log_mean_Z": -6.410246569602948,
+    "mean_logZ": -7.698155401624069,
+    "sd_logZ": 1.7983859222093528,
+    "spread": 1.4788035314925505,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.75,
+    "seconds": 41.5,
+    "denoiser_batches": 70,
+    "example": "{\"isMember\": true, \"membershipNumber\": \"2314567890\uff0c\u7981\u6b62(4567890)\"}"
+   }
+  },
+  "76": {
+   "table": {
+    "pilot_sequences": 112,
+    "pairs": 5424.0,
+    "seen_entries": 142,
+    "classes": 85,
+    "frequent_classes": 13,
+    "agreement_with_reference_answers": 0.579348533755392,
+    "min_entry": 0.00016678453419794197,
+    "max_over_min_in_row": 515.0765333051833
+   },
+   "product": {
+    "N": 32,
+    "n": 8,
+    "log_mean_Z": -4.024673731132604,
+    "mean_logZ": -12.098530112846412,
+    "sd_logZ": 6.83488650297659,
+    "spread": 2.7689563303837947,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.25,
+    "seconds": 25.6,
+    "denoiser_batches": 64,
+    "example": "{\"firstName\": \"Alice\", \"lastName\": \"Johnson\", \"age\": 35}"
+   },
+   "matched chain": {
+    "N": 32,
+    "n": 8,
+    "log_mean_Z": -7.411716298565144,
+    "mean_logZ": -11.993596958009807,
+    "sd_logZ": 5.7695459101993265,
+    "spread": 2.075743621570389,
+    "matches": 1.0,
+    "parses": 1.0,
+    "exact_reference": 0.25,
+    "seconds": 26.5,
+    "denoiser_batches": 64,
+    "example": "{\"firstName\":\"Alice\", \"lastName\":\"last.none-peopleName/ersonson\", \"age\":35}"
+   }
+  }
+ }
+}

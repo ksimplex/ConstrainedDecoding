@@ -1,0 +1,48 @@
+Loading checkpoint shards:   0%|          | 0/6 [00:00<?, ?it/s]Loading checkpoint shards:  17%|█▋        | 1/6 [00:01<00:07,  1.40s/it]Loading checkpoint shards:  33%|███▎      | 2/6 [00:02<00:03,  1.04it/s]Loading checkpoint shards:  50%|█████     | 3/6 [00:04<00:04,  1.58s/it]Loading checkpoint shards:  67%|██████▋   | 4/6 [00:07<00:04,  2.07s/it]Loading checkpoint shards:  83%|████████▎ | 5/6 [00:08<00:01,  1.70s/it]Loading checkpoint shards: 100%|██████████| 6/6 [00:09<00:00,  1.46s/it]Loading checkpoint shards: 100%|██████████| 6/6 [00:09<00:00,  1.54s/it]
+[    69s] datapoint 7: N 41, classes 144, states 76; call 0.075 s for 16 rows; log twist at start -56.77; unconstrained matches False; constrained matches True, parses True, log Z [-20.24857903390794, -4.617772286874869]
+    unconstrained: '```json\n{\n\t(food service request): "vegetarian meal",\n\n  { \n    Special Instructions (Gluten-FreeTo branch)  ).\n  }\n}'
+    constrained:   '{ "seatNumber": "codeshareLH21012A", "serviceType": "vegetarian_meal", "specialInstructions": "gluten_free" }'
+    reference:     '{"seatNumber": "12A", "serviceType": "vegetarian meal", "specialInstructions": "gluten-free"}'
+[    76s] datapoint 17: N 27, classes 74, states 31; call 0.384 s for 16 rows; log twist at start -14.49; unconstrained matches False; constrained matches True, parses True, log Z [-7.017512188889359, -4.2833220782668455]
+    unconstrained: '```{\n  "data": [1, 2, 3, 4, 5]\n}```'
+    constrained:   '{"data": [1, 2, 3, 4, 5]}'
+    reference:     '{"data": [1, 2, 3, 4, 5]}'
+[    89s] datapoint 37: N 35, classes 107, states 53; call 0.56 s for 16 rows; log twist at start -67.46; unconstrained matches False; constrained matches True, parses True, log Z [-3.7832988844905984, -9.966400481317972]
+    unconstrained: '```json\n{\n  "isMember": true,\n  "membershipNumber": "1234567890"\n}'
+    constrained:   '{ "isMember": true, "membershipNumber": "1234567890" }'
+    reference:     '{"isMember": true, "membershipNumber": "1234567890"}'
+[   101s] datapoint 68: N 41, classes 124, states 79; call 0.427 s for 16 rows; log twist at start -66.88; unconstrained matches False; constrained matches True, parses True, log Z [-57.61453987031479, -36.54339919864178]
+    unconstrained: '```json\n{\n  "baseCurrency": "JPY",\n  "targetCurrency": "AUD",\n  "exchangeRate": 0.0123\n}\n```'
+    constrained:   '{ "baseCurrency": "Japanese Yen (JPY）", "targetCurrency": "Australian Dollar (AUD)", "exchangeRate": 0.0123}'
+    reference:     '{"baseCurrency": "JPY", "targetCurrency": "AUD", "exchangeRate": 0.0123}'
+[   110s] datapoint 76: N 32, classes 85, states 56; call 0.388 s for 16 rows; log twist at start -43.68; unconstrained matches False; constrained matches True, parses True, log Z [-44.92642191676453, -53.692388995434285]
+    unconstrained: '{"firstName": {"value": "Alice"}, "lastName": {"value": "Johnson"}, "age": {"value": 35}}'
+    constrained:   '{"firstName": "Alice gamer  :type\\ndoe", "lastName": "Johnson", "age": 35}'
+    reference:     '{"firstName": "Alice", "lastName": "Johnson", "age": 35}'
+done in 110s
+Loading checkpoint shards:   0%|          | 0/6 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 2/6 [00:00<00:00, 12.22it/s]Loading checkpoint shards:  67%|██████▋   | 4/6 [00:00<00:00, 12.36it/s]Loading checkpoint shards: 100%|██████████| 6/6 [00:00<00:00, 12.75it/s]Loading checkpoint shards: 100%|██████████| 6/6 [00:00<00:00, 12.62it/s]
+[    17s] pilot 0: 8 samples of 47 tokens in 11 s; unconstrained samples matching the schema: 0.0
+[    23s] pilot 7: 8 samples of 41 tokens in 6 s; unconstrained samples matching the schema: 0.0
+[    39s] pilot 10: 8 samples of 59 tokens in 16 s; unconstrained samples matching the schema: 0.0
+[    44s] pilot 17: 8 samples of 27 tokens in 5 s; unconstrained samples matching the schema: 0.0
+[    61s] pilot 24: 8 samples of 48 tokens in 16 s; unconstrained samples matching the schema: 0.0
+[    78s] pilot 36: 8 samples of 60 tokens in 17 s; unconstrained samples matching the schema: 0.0
+[    87s] pilot 37: 8 samples of 35 tokens in 9 s; unconstrained samples matching the schema: 0.0
+[   101s] pilot 40: 8 samples of 56 tokens in 14 s; unconstrained samples matching the schema: 0.0
+[   117s] pilot 44: 8 samples of 60 tokens in 16 s; unconstrained samples matching the schema: 0.0
+[   128s] pilot 46: 8 samples of 45 tokens in 11 s; unconstrained samples matching the schema: 0.0
+[   142s] pilot 56: 8 samples of 56 tokens in 15 s; unconstrained samples matching the schema: 0.0
+[   158s] pilot 57: 8 samples of 60 tokens in 16 s; unconstrained samples matching the schema: 0.0
+[   167s] pilot 68: 8 samples of 41 tokens in 8 s; unconstrained samples matching the schema: 0.0
+[   182s] pilot 69: 8 samples of 57 tokens in 15 s; unconstrained samples matching the schema: 0.0
+done in 182s
+Loading checkpoint shards:   0%|          | 0/6 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 2/6 [00:00<00:00, 11.66it/s]Loading checkpoint shards:  67%|██████▋   | 4/6 [00:00<00:00, 11.74it/s]Loading checkpoint shards: 100%|██████████| 6/6 [00:00<00:00, 11.93it/s]Loading checkpoint shards: 100%|██████████| 6/6 [00:00<00:00, 11.87it/s]
+[    32s]   7 N  41 A 144 product        log Z    -7.80  mean log Z   -10.39  sd log Z 3.88  spread 1.51  matches 1.0  equals reference 0.375  27 s  (table agreement 0.51)
+[    62s]   7 N  41 A 144 matched chain  log Z    -7.65  mean log Z   -10.86  sd log Z 4.37  spread 1.53  matches 1.0  equals reference 0.375  30 s  (table agreement 0.51)
+[    84s]  17 N  27 A  74 product        log Z    -6.64  mean log Z   -11.20  sd log Z 4.25  spread 2.59  matches 1.0  equals reference 0.25  22 s  (table agreement 0.59)
+[   106s]  17 N  27 A  74 matched chain  log Z   -10.66  mean log Z   -12.04  sd log Z 2.64  spread 1.31  matches 1.0  equals reference 0.0  22 s  (table agreement 0.59)
+[   146s]  37 N  35 A 107 product        log Z    -7.80  mean log Z    -9.40  sd log Z 3.85  spread 1.06  matches 1.0  equals reference 0.875  40 s  (table agreement 0.53)
+[   187s]  37 N  35 A 107 matched chain  log Z    -6.41  mean log Z    -7.70  sd log Z 1.80  spread 1.48  matches 1.0  equals reference 0.75  42 s  (table agreement 0.53)
+[   213s]  76 N  32 A  85 product        log Z    -4.02  mean log Z   -12.10  sd log Z 6.83  spread 2.77  matches 1.0  equals reference 0.25  26 s  (table agreement 0.58)
+[   240s]  76 N  32 A  85 matched chain  log Z    -7.41  mean log Z   -11.99  sd log Z 5.77  spread 2.08  matches 1.0  equals reference 0.25  26 s  (table agreement 0.58)
+done in 240s

@@ -6,7 +6,9 @@ Routes come from json_mode_compile.py (.npz + .json). Stages, each resumable and
            product twist; the decoded text, whether it matches the pattern and parses.
   pilot    unconstrained samples of the model for every selected prompt, one token per step in uniformly random order
            (the reference process): the corpus the pair tables are collapsed from. Saved as token ids.
-  compare  per datapoint, one token per step in uniformly random order, K particles, nrun runs: product proposal and
+  compare  per datapoint, one token per step, K particles, nrun runs, for each order in --orders (uniformly random, or
+           a CouplingPolicy priority such as `sum`, whose distance kernel is fitted per prompt from --traces
+           unconstrained traces): product proposal and
            twist; chain proposal and twist with matched marginals and a defensive share of the product proposal, with
            the pair table (a) collapsed from the pilot corpus of the OTHER prompts (lam = 1) and (b) probed from the
            denoiser's own conditionals in this prompt (decode.chain_twist.probe_pair_kernel; its cost is recorded). Reported: mean and spread of
@@ -23,7 +25,7 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from twistroute.compile.automata import WDFA                                                       # noqa: E402
 from twistroute.compile.tokens import pair_ratio_table                                             # noqa: E402
-from twistroute.decode import twisted_smc, ChainTwist, probe_pair_kernel                           # noqa: E402
+from twistroute.decode import twisted_smc, ChainTwist, probe_pair_kernel, CouplingPolicy, fit_distance_kernel, COUNT_EDGES   # noqa: E402
 from twistroute.decode.native import native_sample                                                 # noqa: E402
 from twistroute.models.classes import TokenClasses                                                 # noqa: E402
 from twistroute.torch_routes import torch_route                                                    # noqa: E402
@@ -72,6 +74,8 @@ def main():
     ap.add_argument("--nrun", type=int, default=16); ap.add_argument("--K", type=int, default=4); ap.add_argument("--runs-per-batch", dest="rpb", type=int, default=4)
     ap.add_argument("--probe-stride", dest="probe_stride", type=int, default=1); ap.add_argument("--probe-top", dest="probe_top", type=int, default=4)
     ap.add_argument("--tables", nargs="+", default=["counted", "probed"], choices=("counted", "probed"))
+    ap.add_argument("--orders", nargs="+", default=["random", "sum"], choices=("random", "sum", "lex", "bound"), help="random = uniformly random, one token per step; the others are CouplingPolicy priorities, one token per step")
+    ap.add_argument("--traces", type=int, default=8, help="unconstrained traces for the schedule's distance kernel (one decode of this batch per prompt)")
     ap.add_argument("--match", type=int, default=5); ap.add_argument("--mix", type=float, default=0.1); ap.add_argument("--lam", type=float, default=1.0)
     ap.add_argument("--max-rows", dest="max_rows", type=int, default=16); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", default="llada_json.json")
     a = ap.parse_args(); man, arr = load_routes(a.routes); t00 = time.time()
@@ -158,7 +162,7 @@ def main():
             big = rowsum >= 50; lr = np.log(Kt[np.ix_(big, big)] / Kt[np.ix_(big, big)].mean(1, keepdims=True)); lg = np.log(Kg[np.ix_(big, big)] / Kg[np.ix_(big, big)].mean(1, keepdims=True))
             agree = float(np.corrcoef(lr.ravel(), lg.ravel())[0, 1]) if big.sum() >= 2 else float("nan")
             res["compare"][key]["table"] = dict(pilot_sequences=len(others), pairs=tinfo["pairs"], seen_entries=tinfo["seen_entries"], classes=r["classes"], frequent_classes=int(big.sum()),
-                                                agreement_with_reference_answers=agree, min_entry=float(Kt.min()), max_over_min_in_row=float((Kt.max(1) / Kt.min(1)).max()))
+                                                agreement_with_reference_answers=agree, log10_min_entry=float(np.log10(Kt.min())), max_over_min_in_row=float((Kt.max(1) / Kt.min(1)).max()))
             arms = [("product", dict())]
             if "counted" in a.tables:
                 tw = ChainTwist(d, torch.as_tensor(Kt), device=dev, match=a.match)
@@ -169,13 +173,26 @@ def main():
                 pinfo.update(seconds=round(time.time() - t0, 1), denoiser_calls=den.calls - c0); res["compare"][key]["probe"] = pinfo
                 tp = ChainTwist(d, Kp, device=dev, match=a.match)
                 arms.append(("matched chain, probed table", dict(twist=tp, proposal_twist=tp, proposal_mix=a.mix)))
+            kern = None
+            if any(o != "random" for o in a.orders):
+                t0 = time.time(); c0 = den.calls
+                kern, _ = fit_distance_kernel(den, N, a.traces, G(7), device=dev, count_edges=COUNT_EDGES)
+                res["compare"][key]["distance_kernel"] = dict(traces=a.traces, seconds=round(time.time() - t0, 1), denoiser_calls=den.calls - c0)
+            sched = {"random": lambda: "fixed"}
+            for o in a.orders:
+                if o != "random":
+                    sched[o] = lambda o=o: CouplingPolicy(kern, 0.0, priority=o, mixed=False, max_set=1)
+            arms = [(f"{o} | {pn}", dict(kw, schedule=sched[o]())) for o in a.orders for pn, kw in arms]
             for name, kw in arms:
                 if name in res["compare"][key]:
                     continue
-                t0 = time.time(); lz, toks, lws = [], [], []; c0 = den.calls
+                t0 = time.time(); lz, toks, lws, nres = [], [], [], []; c0 = den.calls
                 try:
                     for b in range(0, a.nrun, a.rpb):
+                        if "schedule" in kw and not isinstance(kw["schedule"], str):
+                            kw = dict(kw, schedule=sched[name.split(" | ")[0]]())           # a fresh policy object per batch
                         o = twisted_smc(den, cl, route, N, N, nrun=min(a.rpb, a.nrun - b), K=a.K, gen=G(1000 + b), return_particles=True, **kw)
+                        nres.append(float(np.mean(o["n_res"])) if "n_res" in o else float("nan"))
                         lz.append(np.asarray(o["logZ"], dtype=np.float64)); toks.append(o["tokens"]); lws.append(o["logw"])
                 except Exception as e:
                     res["compare"][key][name + "|error"] = f"{type(e).__name__}: {str(e)[:300]}"; save(); print(f"[{time.time() - t00:6.0f}s] {key} {name} FAILED {type(e).__name__}: {str(e)[:200]}", flush=True); continue
@@ -185,9 +202,10 @@ def main():
                 res["compare"][key][name] = dict(N=N, n=int(fin.sum()), log_mean_Z=float(lz[fin].max() + math.log(z.mean())), mean_logZ=float(lz[fin].mean()), sd_logZ=float(lz[fin].std(ddof=1)),
                                                  spread=float(z.std(ddof=1) / z.mean()), matches=float(np.mean([bool(c[1]) for c in chk])) if tokfile is not None else None,
                                                  parses=float(np.mean([bool(c[2]) for c in chk])) if tokfile is not None else None, exact_reference=float(np.mean([c[0].strip() == r["completion"].strip() for c in chk])) if tokfile is not None else None,
-                                                 seconds=round(time.time() - t0, 1), denoiser_batches=den.calls - c0, example=chk[0][0][:300] if chk else "")
+                                                 seconds=round(time.time() - t0, 1), denoiser_batches=den.calls - c0, resamplings=float(np.nanmean(nres)) if nres else None,
+                                                 logZ=[float(v) for v in lz], example=chk[0][0][:300] if chk else "")
                 save(); s = res["compare"][key][name]
-                print(f"[{time.time() - t00:6.0f}s] {key:>3s} N {N:3d} A {r['classes']:3d} {name:28s} log Z {s['log_mean_Z']:8.2f}  mean log Z {s['mean_logZ']:8.2f}  sd log Z {s['sd_logZ']:.2f}  spread {s['spread']:.2f}  "
+                print(f"[{time.time() - t00:6.0f}s] {key:>3s} N {N:3d} A {r['classes']:3d} {name:38s} log Z {s['log_mean_Z']:8.2f}  mean log Z {s['mean_logZ']:8.2f}  sd log Z {s['sd_logZ']:.2f}  spread {s['spread']:.2f}  "
                       f"matches {s['matches']}  equals reference {s['exact_reference']}  {s['seconds']:.0f} s  (table agreement {agree:.2f})", flush=True)
     print(f"done in {time.time() - t00:.0f}s")
 
