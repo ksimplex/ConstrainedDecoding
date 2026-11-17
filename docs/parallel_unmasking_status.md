@@ -2701,7 +2701,11 @@ sample's KL if log-weights are normal and the large-particle formula holds. Neit
 
 - Ideal greedy here is the lower of its two values (ratio formula, matched). It uses the exact twist and is not the best order;
   at 10 to 12 positions it was within 0.01 nats of the optimum with the chain proposal, at 64 the optimum is unknown.
-- The gap to ideal greedy is at most about a factor 3 in particles, and it is a few particles on the windows.
+- With the best simple rule per constraint the gap to ideal greedy is at most a factor 2.4 in particles on the hidden chain.
+  With one rule everywhere it is larger: `sum` 3.6 times on forbidden (38 against 11 particles), `lex` 2.4 times on forbidden and
+  1.9 times on counting. On the windows the ratios are larger on the stress oracle but the counts are 6 particles or fewer.
+- `sum` and `lex` are close as a single rule: summed over the five constraints, 83 against 72 particles on the hidden chain and
+  49 against 51 on the stress oracle; the worst single case is 38 for `sum` and 26 for `lex`.
 - Compute is steps times particles; the order touches only particles. The parallel schedule touches steps (section 36y: 1.3 to 10
   times at 8 to 10 positions with the chain proposal), untested at scale.
 - Differences below about 0.03 nats are not resolved. One length only.
