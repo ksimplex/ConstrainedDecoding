@@ -2801,6 +2801,26 @@ Figure: [matched_arms_N64_heatmap.png]({{artifact:ec965b89-b733-4e14-b459-1cfb1f
 - Wall time per arm (median, laptop, shared with other runs): product 49 s, chain 65 s, matched chain 123 s.
   The 30 matching sweeps are the extra cost; fewer sweeps are untested in the sampler.
 
+**How many matching sweeps** (arm set `sweeps`: `lex` one token per step, chain proposal, 16 particles, 200 runs; RMS of log(Z_hat / p(C)), lower is better).
+
+| model | constraint | 0 sweeps (ratio formula) | 2 | 5 | 10 | 30 |
+|---|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.190 | 0.141 | 0.116 | 0.123 | 0.111 |
+| hidden_0.85 | dyck | 0.173 | 0.150 | 0.146 | 0.136 | 0.145 |
+| hidden_0.85 | forbidden | 0.169 | 0.166 | 0.162 | 0.182 | 0.177 |
+| hidden_0.85 | window | 0.111 | 0.053 | 0.051 | 0.054 | 0.050 |
+| hidden_0.85 | two_window | 0.119 | 0.075 | 0.076 | 0.077 | 0.069 |
+| latent_0.6_w0.5 | counting | 0.194 | 0.163 | 0.173 | 0.179 | 0.184 |
+| latent_0.6_w0.5 | dyck | 0.109 | 0.087 | 0.085 | 0.094 | 0.089 |
+| latent_0.6_w0.5 | forbidden | 0.178 | 0.152 | 0.152 | 0.173 | 0.182 |
+| latent_0.6_w0.5 | window | 0.083 | 0.067 | 0.061 | 0.069 | 0.063 |
+| latent_0.6_w0.5 | two_window | 0.086 | 0.045 | 0.054 | 0.052 | 0.050 |
+
+- Error relative to 30 sweeps, median over the ten cells (worst cell): 0 sweeps 1.28 (2.20); 2 sweeps 1.00 (1.26); 5 sweeps 0.99 (1.11); 10 sweeps 1.05 (1.12).
+- Median wall time per arm: 64 s, 65 s, 75 s, 85 s, 126 s.
+- Two to five sweeps give the benefit of thirty at close to the cost of the ratio formula. Entries carry about 5% standard error, so 2, 5, 10 and 30 are not separated.
+  Five sweeps is the proposed setting; the default of the library is unchanged (0) until agreed.
+
 ## 36ai. The particle rule was wrong: the error of the returned sample falls as 1/K^2 (local, 2026-11-17) [exact at 8 to 10 positions, no resampling; 15 cases]
 
 The rule used so far for the number of particles K at a tolerance on the KL of the returned sample's law was chi2 / (2K)

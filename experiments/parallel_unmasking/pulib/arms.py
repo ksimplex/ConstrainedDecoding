@@ -277,6 +277,18 @@ def matched(c):
     return [Arm(f"{sn} | {pn}", mk(), N, n, smc=dict(kw)) for sn, mk in scheds for pn, kw in samplers]
 
 
+@arm_set("sweeps")
+def sweeps(c):
+    """How many matching sweeps the chain law needs in the sampler: `lex` one token per step, chain proposal with
+    0 (ratio formula), 2, 5, 10 and 30 sweeps. Automaton constraints only."""
+    N, n, kg = c.N, c.nrun, c.kernel("graded")
+    out = []
+    for m in (0, 2, 5, 10, 30):
+        tw = c.chain_twist(match=m)
+        out.append(Arm(f"lex sequential | match {m}", c.policy(kg, 0.0, "lex", max_set=1), N, n, smc=dict(twist=tw, proposal_twist=tw)))
+    return out
+
+
 @arm_set("chainref")
 def chainref(c):
     """What should the weights take as the model's law of positions revealed together? Four parallel schedules (`lex` at
