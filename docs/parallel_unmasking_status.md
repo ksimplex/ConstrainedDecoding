@@ -2939,6 +2939,37 @@ neighbour; log p = mean log-probability per token scored along fresh uniformly r
 
 - The chain twist adds 50 to 90% wall time over the product twist on this 130M-parameter denoiser; matching adds a few percent on the GPU. Not profiled.
 
+## 36al. Related work: a chain over co-revealed positions without constraints (Domino), and tabled items (read 2026-11-17) [paper read: sections 1 to 4 and the architecture appendix; experiments skimmed]
+
+Ahmed, Chebbah, Dinh, Patterson and Venkateswara, *Domino: Joint Unmasking via First-order Markov Chain for Few-Step Masked Diffusion*, arXiv:2611.18645.
+
+**What it does.**
+
+- The tokens revealed in one step are drawn along a first-order Markov chain over the revealed positions in index order: the first from the
+  denoiser's prediction, each later one from a transition given its predecessor's token (their Eq. 8). Unconstrained few-step generation.
+- Transitions are at token level and depend on the state: softmax over b of [denoiser logit of b + psi_ij(a, b)], with a low-rank potential
+  psi computed by a small trained module from the frozen denoiser's hidden states at the two positions and their gap (Eq. 9). At initialisation it is the product kernel.
+- Their Proposition 2: the error of the best chain is the total correlation of the revealed set minus the mutual information along consecutive
+  pairs; the optimal potential is the pointwise mutual information of the two tokens given the state (Remark 3).
+- Only the first position keeps the denoiser's marginal; later marginals are whatever the trained transitions give. No importance weights, no hard constraint.
+
+**Relation to this work.**
+
+- Our pilot table is the state-independent, class-level version of their potential, and our earlier ratio formula has the same form as their
+  transition (logit plus log table, renormalised over b). They fit the transitions to data; we keep the table fixed and match the marginals instead (section 36ac).
+- Their Proposition 2 gives the co-reveal bias under a chain reference in closed form (total correlation minus consecutive mutual information); useful for the parallel schedule.
+- Ours and not theirs: the constraint is summed out exactly through the chain, the sampler's weights keep the exact constrained law as the target, nothing is trained.
+- Decision (user): do not pursue an unconstrained chain copula. Learned, state-dependent transitions as the dependence source are a possible later optimisation, at the bottom of the queue.
+
+**Other related lines found in the same search (not read):** tensor-train joint with fine-tuning (TTD, Kim & Sung 2026); a tractable correlated output layer (CoDD);
+attention-based selection of weakly dependent reveal sets (DAPD, arXiv:2603.12996; ADAS, arXiv:2606.10829); DOS (arXiv:2603.15340); learned pairwise mutual information (arXiv:2605.20187).
+
+**Tabled (2026-11-17).**
+
+- Why matching makes ideal greedy worse (9 of 10 cells at 64 positions; about 50% on forbidden) and does not help forbidden under `sum` at the sampler level. Not investigated.
+- Tuning the relative weight of the two terms of `sum`: not done and not planned; both terms are in nats.
+- Dream-7B as a second model: at final evaluations.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
