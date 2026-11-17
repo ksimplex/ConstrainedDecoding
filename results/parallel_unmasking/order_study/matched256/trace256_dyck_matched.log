@@ -1,0 +1,3 @@
+random     KL 0.373 (weights 0.391 +- 0.088) | error paid in each quarter of the decode: 0.202 0.090 0.053 0.027 | spread ratio at steps 0, 8, 16, 32, 48: 6.41 5.78 5.12 4.11 3.41 | 551.8 s
+lex        KL 0.419 (weights 0.276 +- 0.089) | error paid in each quarter of the decode: 0.230 0.074 0.044 0.071 | spread ratio at steps 0, 8, 16, 32, 48: 6.41 6.27 6.13 5.92 5.79 | 538.2 s
+sum        KL 0.321 (weights 0.274 +- 0.082) | error paid in each quarter of the decode: 0.224 0.066 0.030 0.002 | spread ratio at steps 0, 8, 16, 32, 48: 6.41 5.79 4.89 3.63 2.90 | 555.1 s
