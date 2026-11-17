@@ -256,3 +256,22 @@ def test_matched_chain_law_keeps_the_marginals():
             assert worst > 1e-3                                             # the ratio formula drifts
         else:
             assert worst < tol
+
+
+def test_pair_kernel_without_an_exact_sampler():
+    """A denoiser with no .sample (a real model) is sampled one token per step; the fitted table must agree with the
+    one from exact samples up to sampling noise (regression: the class sequences were once mapped to classes twice)."""
+    N, A = 12, 3
+    den = noisy_hmm(N, A, 0.85, 0.3, seed=1, concentration=2.0); cl = den.classes()
+
+    class NoSampler:                                       # the same model, hiding its exact sampler
+        def __init__(self, d):
+            self._d = d
+        def __getattr__(self, k):
+            if k == "sample":
+                raise AttributeError(k)
+            return getattr(self._d, k)
+
+    Ka = fit_pair_kernel(den, cl, 6000, torch.Generator().manual_seed(0))
+    Kb = fit_pair_kernel(NoSampler(den), cl, 6000, torch.Generator().manual_seed(1), N=N)
+    assert float((Ka - Kb).abs().max()) < 0.03 and float((Kb.diagonal() - Kb.mean(1)).min()) > 0.1

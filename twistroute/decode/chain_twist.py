@@ -37,12 +37,11 @@ def fit_pair_kernel(den, classes, n, gen=None, smooth=1e-3, N=None):
     from n sequences drawn from the model (den.sample when the model has an exact sampler, else one token per step,
     which costs N denoiser calls on a batch of n; N defaults to den.N)."""
     if hasattr(den, "sample"):
-        x = den.sample(n, gen)
+        y = classes.token_class[den.sample(n, gen)]
     else:
         from .native import native_sample
         N = den.N if N is None else N
-        x = native_sample(den, classes, N, N, n, gen)
-    y = classes.token_class[x]
+        y = native_sample(den, classes, N, N, n, gen)      # already class sequences (mapping them again was a bug)
     A = classes.A
     J = torch.bincount((y[:, :-1] * A + y[:, 1:]).reshape(-1), minlength=A * A).double().view(A, A) + smooth
     return J / J.sum(-1, keepdim=True)
