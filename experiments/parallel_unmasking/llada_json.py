@@ -74,7 +74,9 @@ def main():
     ap.add_argument("--nrun", type=int, default=16); ap.add_argument("--K", type=int, default=4); ap.add_argument("--runs-per-batch", dest="rpb", type=int, default=4)
     ap.add_argument("--probe-stride", dest="probe_stride", type=int, default=1); ap.add_argument("--probe-top", dest="probe_top", type=int, default=4)
     ap.add_argument("--tables", nargs="+", default=["counted", "probed"], choices=("counted", "probed"))
-    ap.add_argument("--orders", nargs="+", default=["random", "sum"], choices=("random", "sum", "lex", "bound"), help="random = uniformly random, one token per step; the others are CouplingPolicy priorities, one token per step")
+    ap.add_argument("--orders", nargs="+", default=["random", "sum"], choices=("random", "sum", "lex", "bound", "confident"),
+                    help="random = uniformly random, one token per step; the others are CouplingPolicy priorities, one token per step (confident = lowest entropy of the constrained class marginals first, "
+                         "the confidence rule of Dang & Ermon at class level)")
     ap.add_argument("--traces", type=int, default=8, help="unconstrained traces for the schedule's distance kernel (one decode of this batch per prompt)")
     ap.add_argument("--match", type=int, default=5); ap.add_argument("--mix", type=float, default=0.1); ap.add_argument("--lam", type=float, default=1.0)
     ap.add_argument("--max-rows", dest="max_rows", type=int, default=16); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", default="llada_json.json")
