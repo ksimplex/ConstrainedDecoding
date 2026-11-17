@@ -2298,12 +2298,119 @@ better, ± jackknife standard error; resampling off | defensive.
 - Forbidden: the chain proposal lowers the error on every schedule, by 2.0 to 2.5, 1.4 to 1.5, 2.0 to 2.1 times (random order, lex, budgeted lex).
 - Dyck: by 1.5 to 2.2, 1.4 to 1.5, 1.2 to 1.3 times on the same three schedules.
 - Counting: no change on any schedule (within one to two standard errors).
-- Windows: under lex the chain proposal is slightly worse, 1.29 to 1.30 times the product proposal's error on window and 1.30 to 1.32 on two_window (2 to 3 standard errors); in random order it is level or better.
+- Windows: under lex (one token per step, and budgeted) the chain proposal is slightly worse; one token per step it is 1.29 to 1.30 times the product proposal's error on window and 1.30 to 1.32 on two_window (2 to 3 standard errors); in random order it is level or better.
 - The gain carries to the budgeted schedule, where several positions are drawn jointly from the chain law per step.
 - Cost on the oracle (where the model is free): the chain-proposal arms take 0.6 to 3.4 times the wall time of the
   product arms (median 1.6). Not yet measured in denoiser calls on MDLM.
 - This matches the per-particle picture of section 36w: gains where the first-order chain carries the dependence the
   constraint reads (forbidden, Dyck), none on counting, where the error is in the long-range spread of the count.
+
+## 36y. Parallel reveals, exactly: steps against error at 8 to 10 positions (local, 2026-11-16) [exact; small size; the particle rule is a quoted large-K expansion]
+
+Script `experiments/parallel_unmasking/parallel_exact.py`; results `results/parallel_unmasking/parallel_exact/`.
+Objective agreed 2026-11-16: least compute (steps x particles) for a tolerance on the KL of a returned sample from the
+exact constrained law. A step reveals a set of positions drawn jointly from the proposal; the dependence between them
+under the model is ignored. Three laws over finished sequences follow from a rule (state -> set), all tabulated exactly:
+
+- *one particle*: the sampler's own law. Its KL from the target is additive over steps, as in section 36t, with the
+  step error KL(proposal's joint of the set || exact conditional of the set given C).
+- *bias*: the law the weights converge to is the parallel process given C, where the parallel process draws each set
+  from a *reference* law with no constraint (the product of the model's marginals, as in the sampler now). Its KL from
+  the target is the bias. No number of particles removes it. One token per step has none.
+- *spread*: chi-square of that limit against the sampler: the noise particles do remove.
+
+Particles for a tolerance eps: 1 if one particle already meets it; otherwise spread / (2 (eps - bias)); impossible if
+bias >= eps. The middle expression is a standard large-K expansion quoted from memory and not verified here.
+
+Rules: *sequential* (best one-token order, section 36s); *plan* (backward pass over states and sets minimising
+steps x mu + one-particle KL + lam x ignored dependence, with mu and lam swept; the ignored dependence of a step is
+KL(model's joint of the set || reference law of the set)); *greedy* (largest set whose step error is under a threshold,
+threshold swept); *repository* (`lex` and `sum`, sequential and at budgets 0.03 to 3). For each tolerance the best
+member of each family is reported. Checks: the one-particle KL from the backward pass equals the KL computed from the
+enumerated law of finished sequences to 1e-7 for every rule; the sequential rule has zero bias.
+
+**Everything in one step.** One-particle KL from the target, nats, lower is better. With the product reference the bias
+equals the product proposal's value; with the chain law as the reference it equals the chain proposal's value.
+
+| cell | product proposal | chain proposal |
+|---|---|---|
+| counting, hidden_0.85, N=8 | 0.6689 | 0.3411 |
+| counting, chain_0.85, N=8 | 1.7706 (in 2 steps; one step is not reachable with this proposal's support) | 0.0052 |
+| forbidden, hidden_0.85, N=8 | 1.4685 | 0.2431 |
+| window_small, hidden_0.85, N=8 | 1.1673 | 0.3901 |
+| dyck, hidden_0.85, N=10 | 0.6402 | 0.1212 |
+| dyck, chain_0.85, N=10 | 1.4938 (in 2 steps; one step is not reachable with this proposal's support) | 0.0001 |
+
+**Compute for a tolerance** (expected steps x particles, lower is better). Columns: best sequential order and best plan
+with the product proposal; the same with the chain proposal (chain law as reference); greedy and repository rules with
+the product proposal.
+
+*eps = 0.003 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 19.0 (8.0 x 2.4) | 18.0 (7.5 x 2.4) | 18.9 (8.0 x 2.4) | 17.5 (7.3 x 2.4) | 36.1 (7.8 x 4.6) | 47.8 (8.0 x 6.0) |
+| counting, chain_0.85, N=8 | 436 (8.0 x 54.5) | 280 (5.1 x 54.8) | 8.0 (8.0 x 1.0) | 2.0 (2.0 x 1.0) | not reachable | 520 (5.2 x 100.0) |
+| forbidden, hidden_0.85, N=8 | 285 (8.0 x 35.6) | 240 (5.8 x 41.0) | 18.0 (8.0 x 2.2) | 16.5 (7.1 x 2.3) | 360 (8.0 x 45.0) | 377 (8.0 x 47.2) |
+| window_small, hidden_0.85, N=8 | 60.4 (8.0 x 7.6) | 45.4 (5.7 x 7.9) | 35.6 (8.0 x 4.4) | 28.3 (6.1 x 4.6) | not reachable | 128 (8.0 x 16.0) |
+| dyck, hidden_0.85, N=10 | 213 (10.0 x 21.3) | 212 (9.9 x 21.4) | 10.0 (10.0 x 1.0) | 5.0 (5.0 x 1.0) | not reachable | 260 (10.0 x 26.0) |
+| dyck, chain_0.85, N=10 | 1177 (10.0 x 117.7) | 632 (4.5 x 138.9) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 886 (5.7 x 154.8) |
+
+*eps = 0.01 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 6.4 (6.4 x 1.0) | 8.0 (8.0 x 1.0) | 6.3 (6.3 x 1.0) | 10.1 (7.8 x 1.3) | 14.4 (8.0 x 1.8) |
+| counting, chain_0.85, N=8 | 131 (8.0 x 16.4) | 84.0 (5.1 x 16.4) | 8.0 (8.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 156 (5.2 x 30.0) |
+| forbidden, hidden_0.85, N=8 | 85.5 (8.0 x 10.7) | 68.4 (5.7 x 12.0) | 8.0 (8.0 x 1.0) | 5.4 (5.4 x 1.0) | 107 (7.8 x 13.6) | 113 (8.0 x 14.2) |
+| window_small, hidden_0.85, N=8 | 18.1 (8.0 x 2.3) | 13.1 (5.7 x 2.3) | 10.7 (8.0 x 1.3) | 7.9 (5.4 x 1.5) | not reachable | 35.7 (5.6 x 6.3) |
+| dyck, hidden_0.85, N=10 | 64.0 (10.0 x 6.4) | 61.3 (8.3 x 7.3) | 10.0 (10.0 x 1.0) | 3.6 (3.6 x 1.0) | not reachable | 77.9 (10.0 x 7.8) |
+| dyck, chain_0.85, N=10 | 353 (10.0 x 35.3) | 190 (4.5 x 41.7) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 266 (5.7 x 46.4) |
+
+*eps = 0.03 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 4.8 (4.8 x 1.0) | 8.0 (8.0 x 1.0) | 5.2 (4.1 x 1.3) | 5.8 (5.8 x 1.0) | 7.4 (7.4 x 1.0) |
+| counting, chain_0.85, N=8 | 43.6 (8.0 x 5.5) | 28.0 (5.1 x 5.5) | 8.0 (8.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 52.0 (5.2 x 10.0) |
+| forbidden, hidden_0.85, N=8 | 28.5 (8.0 x 3.6) | 22.0 (5.5 x 4.0) | 8.0 (8.0 x 1.0) | 4.3 (4.3 x 1.0) | 35.3 (7.8 x 4.5) | 33.9 (5.7 x 5.9) |
+| window_small, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 3.5 (3.5 x 1.0) | 8.0 (8.0 x 1.0) | 3.4 (3.4 x 1.0) | 3.5 (3.5 x 1.0) | 9.8 (5.6 x 1.7) |
+| dyck, hidden_0.85, N=10 | 21.3 (10.0 x 2.1) | 19.9 (7.2 x 2.8) | 10.0 (10.0 x 1.0) | 2.9 (2.9 x 1.0) | 11506 (8.3 x 1394.5) | 26.0 (10.0 x 2.6) |
+| dyck, chain_0.85, N=10 | 118 (10.0 x 11.8) | 63.2 (4.5 x 13.9) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | 383 (8.9 x 43.3) | 88.6 (5.7 x 15.5) |
+
+*eps = 0.1 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 2.8 (2.8 x 1.0) | 8.0 (8.0 x 1.0) | 3.0 (3.0 x 1.0) | 3.9 (3.9 x 1.0) | 6.4 (6.4 x 1.0) |
+| counting, chain_0.85, N=8 | 13.1 (8.0 x 1.6) | 7.7 (4.6 x 1.7) | 8.0 (8.0 x 1.0) | 1.0 (1.0 x 1.0) | 47.8 (7.9 x 6.0) | 15.6 (5.2 x 3.0) |
+| forbidden, hidden_0.85, N=8 | 8.6 (8.0 x 1.1) | 6.0 (4.4 x 1.4) | 8.0 (8.0 x 1.0) | 2.0 (2.0 x 1.0) | 9.9 (6.8 x 1.5) | 8.8 (5.7 x 1.5) |
+| window_small, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 2.9 (2.9 x 1.0) | 8.0 (8.0 x 1.0) | 2.0 (2.0 x 1.0) | 3.5 (3.5 x 1.0) | 5.6 (5.6 x 1.0) |
+| dyck, hidden_0.85, N=10 | 10.0 (10.0 x 1.0) | 3.1 (3.1 x 1.0) | 10.0 (10.0 x 1.0) | 2.0 (2.0 x 1.0) | 4.5 (4.5 x 1.0) | 9.3 (8.5 x 1.1) |
+| dyck, chain_0.85, N=10 | 35.3 (10.0 x 3.5) | 14.9 (3.0 x 5.0) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | 54.1 (7.8 x 6.9) | 26.6 (5.7 x 4.6) |
+
+Reading, at eps = 0.01:
+- Proposal: with one token per step the chain proposal needs 1.0, 16.4, 10.7, 1.7, 6.4, 35.3 times less compute than the product proposal (cells in table order).
+- Parallel plan on top of it: a further 1.3, 8.0, 1.5, 1.4, 2.8, 10.0 times. With the product proposal the plan gains 1.3, 1.6, 1.3, 1.4, 1.0, 1.9 times over its best sequential order.
+- Planning against greedy: with the product proposal the greedy family cannot reach eps = 0.01 in four of six cells
+  (its co-reveals accumulate bias) and costs 1.6 times the plan in the other two.
+- The repository's rules cost 1.3 to 2.7 times the plan with the product proposal at eps = 0.01.
+- The penalty on ignored dependence (lam > 0) matters at tight tolerance with the product proposal: at eps = 0.003 the best
+  plan uses lam >= 1 in every cell, and the plan without it is 1.05 to 1.8 times dearer. At loose tolerance lam = 0 is chosen.
+
+Two structural points that do not depend on the size:
+- The weights pull a co-revealed set towards the reference law of that set. With the product reference and the chain
+  proposal that is the wrong direction: on the Markov-chain model one joint draw from the chain law has KL 0.005
+  (counting) and 0.0001 (Dyck) from the target, and the law its weights converge to is 5.5 and 6.4 nats away. So when the
+  chain twist is the proposal for several positions at once, the reference has to change with it (or those steps go
+  unweighted). With the chain law as the reference the bias of everything-in-one-step falls from the product column to the chain column of the first table.
+- This makes the chain twist a second lever on the co-reveal bias itself, besides the choice of sets: it supplies the
+  dependence between co-revealed positions that the denoiser's marginals lack (the role a copula model plays in
+  Discrete Copula Diffusion, arXiv:2410.01949; to be checked against that paper before it is claimed).
+
+Limits: 8 to 10 positions, where one particle often already meets the tolerance, so the particle rule is exercised
+mainly with the product proposal; the plan family is a two-parameter sweep, not the exact optimum of the compute
+objective; the repository rules were designed for longer sequences; no hidden-chain cell beyond `hidden_0.85`.
 
 ## 36. Next steps (2026-11-16; replaces section 34)
 
@@ -2322,7 +2429,12 @@ job scripts and arm names keep working.
    and what the surrogate is on a language model (a chain over the constraint's classes fitted to pilot samples).
    Then: the same test at 32 to 64 positions against the measured orders of section 36i; the parallel form (co-reveal
    term in the same objective); the exact search at 12 to 14 positions on the cluster.
-   Also to decide (section 36w): move the chain twist into the proposal. At 64 positions it halves the KL on forbidden
+   Decided 2026-11-16 (user): tolerance on the KL of the returned sample, total over bias and noise; minimise compute;
+   chain twist into the proposal (done, section 36x); exact parallel search (first pass done, section 36y).
+   Open after section 36y: the chain law as the reference for co-revealed sets in the sampler (weights then use the
+   chain twist's ratio alone); verify the particle rule by sampling; the same search at 10 to 12 positions on the
+   cluster; the global-latent stress oracle; then a planner that scales.
+   Earlier note (section 36w): move the chain twist into the proposal. At 64 positions it halves the KL on forbidden
    and Dyck under any order and gives the best arm on every constraint with the ideal greedy order.
 1. Selection: exposure is refuted as the criterion (section 36b). Test the replacement: an order that minimises the
    stake paid beyond log(1 / p(C)), i.e. reveals where the proposal's marginal is accurate; measure KL = -E[log(W / p(C))]

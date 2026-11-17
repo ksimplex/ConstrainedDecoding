@@ -1,0 +1,2522 @@
+{
+ "counting|hidden_0.85|8|product|product": {
+  "fewest_steps": {
+   "rule": "plan mu=1 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.6688636149483638,
+   "bias": 0.668863614948364
+  },
+  "sequential": {
+   "kl_one": 0.007043554010363333,
+   "spread": 0.014213509790024892
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 18.951346386700354,
+    "rule": "sequential (best order)",
+    "steps": 7.999999999999996,
+    "particles": 2.3689182983375456
+   },
+   "plan0": {
+    "compute": 18.951346386700354,
+    "rule": "plan mu=0 lam=0",
+    "steps": 7.999999999999996,
+    "particles": 2.3689182983375456
+   },
+   "plan": {
+    "compute": 18.018110844526053,
+    "rule": "plan mu=0.001 lam=1",
+    "steps": 7.498279271591372,
+    "particles": 2.402966092872937
+   },
+   "greedy": {
+    "compute": 36.14729176566773,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.789611510219909,
+    "particles": 4.6404485921079335
+   },
+   "policy": {
+    "compute": 47.84570480540953,
+    "rule": "policy lex sequential",
+    "steps": 7.999999999999996,
+    "particles": 5.980713100676195
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 7.999999999999996,
+    "rule": "sequential (best order)",
+    "steps": 7.999999999999996,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 6.38034689191066,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.38034689191066,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 6.38034689191066,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.38034689191066,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 10.14990449733747,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.789611510219909,
+    "particles": 1.3030052248460497
+   },
+   "policy": {
+    "compute": 14.353711441623176,
+    "rule": "policy lex sequential",
+    "steps": 7.999999999999996,
+    "particles": 1.7942139302028979
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 7.999999999999996,
+    "rule": "sequential (best order)",
+    "steps": 7.999999999999996,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 5.5362326800539226,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 5.5362326800539226,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 4.811129799638888,
+    "rule": "plan mu=0.03 lam=1",
+    "steps": 4.811129799638888,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 5.752196933554285,
+    "rule": "greedy tau=0.01",
+    "steps": 5.752196933554285,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 7.37559031578121,
+    "rule": "policy lex B=0.03",
+    "steps": 7.37559031578121,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 7.999999999999996,
+    "rule": "sequential (best order)",
+    "steps": 7.999999999999996,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.807430482549882,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.807430482549882,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.807430482549882,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.807430482549882,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.9093128363046286,
+    "rule": "greedy tau=0.03",
+    "steps": 3.9093128363046286,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 6.398645198310289,
+    "rule": "policy sum B=0.03",
+    "steps": 6.398645198310289,
+    "particles": 1.0
+   }
+  }
+ },
+ "counting|hidden_0.85|8|chain|product": {
+  "fewest_steps": {
+   "rule": "plan mu=0.3 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.34107841852406806,
+   "bias": 0.668863614948364
+  },
+  "sequential": {
+   "kl_one": 0.0069015280494873574,
+   "spread": 0.01420374194934304
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 18.938322599123975,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 2.3672903248904964
+   },
+   "plan0": {
+    "compute": Infinity,
+    "rule": "plan mu=0 lam=0",
+    "steps": 7.95514088750592,
+    "particles": Infinity
+   },
+   "plan": {
+    "compute": 17.570078294422046,
+    "rule": "plan mu=0.001 lam=1",
+    "steps": 7.359855128160534,
+    "particles": 2.387285889255456
+   },
+   "greedy": {
+    "compute": 38.28682418902509,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.551165852508347,
+    "particles": 5.070319595259184
+   },
+   "policy": {
+    "compute": 115.58130085244169,
+    "rule": "policy sum sequential",
+    "steps": 8.0,
+    "particles": 14.44766260655521
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 6.290611142116487,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.290611142116487,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 6.290611142116487,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.290611142116487,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 7.029429248951143,
+    "rule": "greedy tau=0.003",
+    "steps": 7.029429248951143,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 34.67439025573212,
+    "rule": "policy sum sequential",
+    "steps": 8.0,
+    "particles": 4.334298781966515
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 5.255655903938236,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 5.255655903938236,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 5.255655903938236,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 5.255655903938236,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 4.744756709895622,
+    "rule": "greedy tau=0.01",
+    "steps": 4.744756709895622,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 9.062635542329561,
+    "rule": "policy sum B=0.03",
+    "steps": 6.447508933035551,
+    "particles": 1.4056026345143477
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.0741794402797695,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 3.0741794402797695,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.0741794402797695,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 3.0741794402797695,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.789299663289584,
+    "rule": "greedy tau=0.03",
+    "steps": 3.789299663289584,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 6.447508933035551,
+    "rule": "policy sum B=0.03",
+    "steps": 6.447508933035551,
+    "particles": 1.0
+   }
+  }
+ },
+ "counting|hidden_0.85|8|chain|chain": {
+  "fewest_steps": {
+   "rule": "plan mu=0.3 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.34107841852406806,
+   "bias": 0.34107841852406934
+  },
+  "sequential": {
+   "kl_one": 0.0069015280494873574,
+   "spread": 0.01420374194934304
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 18.938322599123975,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 2.3672903248904964
+   },
+   "plan0": {
+    "compute": Infinity,
+    "rule": "plan mu=0 lam=0",
+    "steps": 7.95514088750592,
+    "particles": Infinity
+   },
+   "plan": {
+    "compute": 17.501132416176368,
+    "rule": "plan mu=0.001 lam=1",
+    "steps": 7.312964123168611,
+    "particles": 2.3931653596836404
+   },
+   "greedy": {
+    "compute": 24.694466021887294,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.551165852508347,
+    "particles": 3.270285212141683
+   },
+   "policy": {
+    "compute": 115.58130085244169,
+    "rule": "policy sum sequential",
+    "steps": 8.0,
+    "particles": 14.44766260655521
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 6.290611142116487,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.290611142116487,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 6.290611142116487,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.290611142116487,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 7.029429248951143,
+    "rule": "greedy tau=0.003",
+    "steps": 7.029429248951143,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 34.67439025573212,
+    "rule": "policy sum sequential",
+    "steps": 8.0,
+    "particles": 4.334298781966515
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 5.255655903938236,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 5.255655903938236,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 5.175605533427408,
+    "rule": "plan mu=0.03 lam=1",
+    "steps": 4.063705655514622,
+    "particles": 1.2736172282566507
+   },
+   "greedy": {
+    "compute": 4.744756709895622,
+    "rule": "greedy tau=0.01",
+    "steps": 4.744756709895622,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 8.870824665206976,
+    "rule": "policy sum B=0.03",
+    "steps": 6.447508933035551,
+    "particles": 1.375853024375804
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.0741794402797695,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 3.0741794402797695,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.0,
+    "rule": "plan mu=0.3 lam=3",
+    "steps": 3.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.789299663289584,
+    "rule": "greedy tau=0.03",
+    "steps": 3.789299663289584,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 6.447508933035551,
+    "rule": "policy sum B=0.03",
+    "steps": 6.447508933035551,
+    "particles": 1.0
+   }
+  }
+ },
+ "counting|chain_0.85|8|product|product": {
+  "fewest_steps": {
+   "rule": "plan mu=3 lam=0",
+   "steps": 2.0,
+   "kl_one": 1.7705903916269854,
+   "bias": 0.8943316257107035
+  },
+  "sequential": {
+   "kl_one": 0.305010005487288,
+   "spread": 0.3271218049777107
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 436.16240663697,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 54.52030082962125
+   },
+   "plan0": {
+    "compute": 363.36952256575745,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 5.422599665949813,
+    "particles": 67.01020634945034
+   },
+   "plan": {
+    "compute": 279.94762356320194,
+    "rule": "plan mu=0.1 lam=10",
+    "steps": 5.110414927925786,
+    "particles": 54.77982267808281
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.937866634229131,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 519.7646534202802,
+    "rule": "policy sum B=0.03",
+    "steps": 5.19997283269703,
+    "particles": 99.95526325676933
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 130.8487219910863,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 16.35609024888579
+   },
+   "plan0": {
+    "compute": 93.28260861420532,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 5.422599665949813,
+    "particles": 17.20256230603852
+   },
+   "plan": {
+    "compute": 83.98428706895604,
+    "rule": "plan mu=0.1 lam=10",
+    "steps": 5.110414927925786,
+    "particles": 16.433946803423954
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.937866634229131,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 155.92939602607913,
+    "rule": "policy sum B=0.03",
+    "steps": 5.19997283269703,
+    "particles": 29.986578977029854
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 43.61624066369498,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 5.452030082961873
+   },
+   "plan0": {
+    "compute": 29.342633040774043,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 4.947077703259423,
+    "particles": 5.93130627833911
+   },
+   "plan": {
+    "compute": 27.994762356318247,
+    "rule": "plan mu=0.1 lam=10",
+    "steps": 5.110414927925786,
+    "particles": 5.4779822678079
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.937866634229131,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 51.97646534202593,
+    "rule": "policy sum B=0.03",
+    "steps": 5.19997283269703,
+    "particles": 9.995526325676531
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 13.084872199108448,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 1.635609024888556
+   },
+   "plan0": {
+    "compute": 8.239956856312642,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 4.947077703259423,
+    "particles": 1.6656210697648184
+   },
+   "plan": {
+    "compute": 7.675501984146577,
+    "rule": "plan mu=0.1 lam=1",
+    "steps": 4.604600334737024,
+    "particles": 1.6669203462117492
+   },
+   "greedy": {
+    "compute": 47.804463907059635,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.937866634229131,
+    "particles": 6.022331453758679
+   },
+   "policy": {
+    "compute": 15.592939602607727,
+    "rule": "policy sum B=0.03",
+    "steps": 5.19997283269703,
+    "particles": 2.9986578977029494
+   }
+  }
+ },
+ "counting|chain_0.85|8|chain|product": {
+  "fewest_steps": {
+   "rule": "plan mu=0.003 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.005196265664259374,
+   "bias": 5.48499504017744
+  },
+  "sequential": {
+   "kl_one": 0.000589747257969644,
+   "spread": 0.0011755508961213135
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.2769190539755164,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 3.2769190539755164,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.2769190539755164,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 3.2769190539755164,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 2.8140489814516343,
+    "rule": "greedy tau=0.001",
+    "steps": 2.8140489814516343,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 90.91357563050906,
+    "rule": "policy sum B=0.3",
+    "steps": 3.999999999999999,
+    "particles": 22.728393907627268
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.01",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 27.274072689151655,
+    "rule": "policy sum B=0.3",
+    "steps": 3.999999999999999,
+    "particles": 6.818518172287916
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.01",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 9.091357563050451,
+    "rule": "policy sum B=0.3",
+    "steps": 3.999999999999999,
+    "particles": 2.272839390762613
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.01",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.054254089367078,
+    "rule": "policy sum B=3",
+    "steps": 2.054254089367078,
+    "particles": 1.0
+   }
+  }
+ },
+ "counting|chain_0.85|8|chain|chain": {
+  "fewest_steps": {
+   "rule": "plan mu=0.003 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.005196265664259374,
+   "bias": 0.0051962656642601975
+  },
+  "sequential": {
+   "kl_one": 0.000589747257969644,
+   "spread": 0.0011755508961213135
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.2769190539755164,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 3.2769190539755164,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.0,
+    "rule": "plan mu=0.003 lam=1",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 2.8140489814516343,
+    "rule": "greedy tau=0.001",
+    "steps": 2.8140489814516343,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 550.8425110568496,
+    "rule": "policy lex sequential",
+    "steps": 8.0,
+    "particles": 68.8553138821062
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.01",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 165.25275331705026,
+    "rule": "policy lex sequential",
+    "steps": 8.0,
+    "particles": 20.656594164631283
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.01",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 7.94795037153645,
+    "rule": "policy sum B=0.3",
+    "steps": 3.999999999999999,
+    "particles": 1.986987592884113
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.01",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.054254089367078,
+    "rule": "policy sum B=3",
+    "steps": 2.054254089367078,
+    "particles": 1.0
+   }
+  }
+ },
+ "forbidden|hidden_0.85|8|product|product": {
+  "fewest_steps": {
+   "rule": "plan mu=1 lam=0",
+   "steps": 1.0,
+   "kl_one": 1.468468124924513,
+   "bias": 1.4684681249245133
+  },
+  "sequential": {
+   "kl_one": 0.1400952717067733,
+   "spread": 0.2138248315201987
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 285.09977536023837,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 35.63747192002979
+   },
+   "plan0": {
+    "compute": 260.8236429219323,
+    "rule": "plan mu=0.0003 lam=0",
+    "steps": 7.240580852822636,
+    "particles": 36.02247502287803
+   },
+   "plan": {
+    "compute": 239.6492633001223,
+    "rule": "plan mu=0.1 lam=100",
+    "steps": 5.84305776290577,
+    "particles": 41.014358068051
+   },
+   "greedy": {
+    "compute": 359.8006866360975,
+    "rule": "greedy tau=0.0001",
+    "steps": 8.000000000000004,
+    "particles": 44.97508582951217
+   },
+   "policy": {
+    "compute": 377.44199966558216,
+    "rule": "policy sum sequential",
+    "steps": 8.000000000000002,
+    "particles": 47.18024995819776
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 85.52993260807709,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 10.691241576009634
+   },
+   "plan0": {
+    "compute": 76.99485773870555,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 7.12195193341913,
+    "particles": 10.810920722086594
+   },
+   "plan": {
+    "compute": 68.38199796602746,
+    "rule": "plan mu=0.03 lam=10",
+    "steps": 5.719198566931594,
+    "particles": 11.956569992413304
+   },
+   "greedy": {
+    "compute": 106.70780676040268,
+    "rule": "greedy tau=0.001",
+    "steps": 7.838722168622851,
+    "particles": 13.612908387994274
+   },
+   "policy": {
+    "compute": 113.23259989968095,
+    "rule": "policy sum sequential",
+    "steps": 8.000000000000002,
+    "particles": 14.154074987460115
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 28.509977536026234,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 3.5637471920032784
+   },
+   "plan0": {
+    "compute": 23.476517886867605,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 5.822874342363607,
+    "particles": 4.0317747741982135
+   },
+   "plan": {
+    "compute": 22.024204371712628,
+    "rule": "plan mu=0.03 lam=3",
+    "steps": 5.484606742977953,
+    "particles": 4.015639662754424
+   },
+   "greedy": {
+    "compute": 35.279596414512305,
+    "rule": "greedy tau=0.003",
+    "steps": 7.809378327865657,
+    "particles": 4.517593454094367
+   },
+   "policy": {
+    "compute": 33.9203049591061,
+    "rule": "policy sum B=0.03",
+    "steps": 5.739526175731866,
+    "particles": 5.909948647421372
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.552993260807925,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0691241576009904
+   },
+   "plan0": {
+    "compute": 5.982296914923655,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 4.380189620481974,
+    "particles": 1.365762086406066
+   },
+   "plan": {
+    "compute": 5.982296914923655,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 4.380189620481974,
+    "particles": 1.365762086406066
+   },
+   "greedy": {
+    "compute": 9.934835407366814,
+    "rule": "greedy tau=0.03",
+    "steps": 6.8408318160747505,
+    "particles": 1.4522847037434394
+   },
+   "policy": {
+    "compute": 8.830648009671524,
+    "rule": "policy sum B=0.03",
+    "steps": 5.739526175731866,
+    "particles": 1.538567425131657
+   }
+  }
+ },
+ "forbidden|hidden_0.85|8|chain|product": {
+  "fewest_steps": {
+   "rule": "plan mu=0.3 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.2431313613571825,
+   "bias": 1.4684681249245133
+  },
+  "sequential": {
+   "kl_one": 0.006694522427636843,
+   "spread": 0.013478707067799967
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 17.971609423732538,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 2.246451177966567
+   },
+   "plan0": {
+    "compute": 22.218997121263595,
+    "rule": "plan mu=0 lam=0",
+    "steps": 7.9971098375579,
+    "particles": 2.7783783857655093
+   },
+   "plan": {
+    "compute": 15.74966366887464,
+    "rule": "plan mu=0.001 lam=3",
+    "steps": 6.782253091565061,
+    "particles": 2.3221875468584545
+   },
+   "greedy": {
+    "compute": 21.017141293192996,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.970208687479615,
+    "particles": 2.6369624833298007
+   },
+   "policy": {
+    "compute": 65.94507081080545,
+    "rule": "policy sum sequential",
+    "steps": 7.999999999999998,
+    "particles": 8.243133851350683
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 5.4443069576523015,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 5.4443069576523015,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 5.4443069576523015,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 5.4443069576523015,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 6.826327901875188,
+    "rule": "greedy tau=0.003",
+    "steps": 6.826327901875188,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 19.783521243242735,
+    "rule": "policy sum sequential",
+    "steps": 7.999999999999998,
+    "particles": 2.4729401554053423
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 4.254882214272445,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 4.254882214272445,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 4.254882214272445,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 4.254882214272445,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 4.977734541280783,
+    "rule": "greedy tau=0.01",
+    "steps": 4.977734541280783,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 5.863947671018063,
+    "rule": "policy sum B=0.03",
+    "steps": 5.863947671018063,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.112499705286109,
+    "rule": "greedy tau=0.03",
+    "steps": 3.112499705286109,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 4.426654889622589,
+    "rule": "policy sum B=0.3",
+    "steps": 4.426654889622589,
+    "particles": 1.0
+   }
+  }
+ },
+ "forbidden|hidden_0.85|8|chain|chain": {
+  "fewest_steps": {
+   "rule": "plan mu=0.3 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.2431313613571825,
+   "bias": 0.24313136135718266
+  },
+  "sequential": {
+   "kl_one": 0.006694522427636843,
+   "spread": 0.013478707067799967
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 17.971609423732538,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 2.246451177966567
+   },
+   "plan0": {
+    "compute": 17.98894407810795,
+    "rule": "plan mu=0 lam=0",
+    "steps": 7.9971098375579,
+    "particles": 2.249430662265517
+   },
+   "plan": {
+    "compute": 16.462854787258006,
+    "rule": "plan mu=0.001 lam=1",
+    "steps": 7.072704736557857,
+    "particles": 2.3276604072221097
+   },
+   "greedy": {
+    "compute": 20.990316333705486,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.970208687479615,
+    "particles": 2.633596829990052
+   },
+   "policy": {
+    "compute": 65.94507081080545,
+    "rule": "policy sum sequential",
+    "steps": 7.999999999999998,
+    "particles": 8.243133851350683
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 5.4443069576523015,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 5.4443069576523015,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 5.4443069576523015,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 5.4443069576523015,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 6.826327901875188,
+    "rule": "greedy tau=0.003",
+    "steps": 6.826327901875188,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 19.783521243242735,
+    "rule": "policy sum sequential",
+    "steps": 7.999999999999998,
+    "particles": 2.4729401554053423
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 4.254882214272445,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 4.254882214272445,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 4.254882214272445,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 4.254882214272445,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 4.977734541280783,
+    "rule": "greedy tau=0.01",
+    "steps": 4.977734541280783,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 5.863947671018063,
+    "rule": "policy sum B=0.03",
+    "steps": 5.863947671018063,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.112499705286109,
+    "rule": "greedy tau=0.03",
+    "steps": 3.112499705286109,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 4.426654889622589,
+    "rule": "policy sum B=0.3",
+    "steps": 4.426654889622589,
+    "particles": 1.0
+   }
+  }
+ },
+ "window_small|hidden_0.85|8|product|product": {
+  "fewest_steps": {
+   "rule": "plan mu=1 lam=0",
+   "steps": 1.0,
+   "kl_one": 1.1672849908007594,
+   "bias": 1.1672849908007596
+  },
+  "sequential": {
+   "kl_one": 0.023941365224276718,
+   "spread": 0.045307701698008795
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 60.41026893067827,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 7.551283616334784
+   },
+   "plan0": {
+    "compute": 60.41026893067827,
+    "rule": "plan mu=0 lam=0",
+    "steps": 8.0,
+    "particles": 7.551283616334784
+   },
+   "plan": {
+    "compute": 45.42557938366513,
+    "rule": "plan mu=0.001 lam=1",
+    "steps": 5.722723205337334,
+    "particles": 7.937755812005493
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 6.6765027047419485,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 127.74567404093438,
+    "rule": "policy sum sequential",
+    "steps": 8.0,
+    "particles": 15.968209255116797
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 18.123080679203504,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 2.265385084900438
+   },
+   "plan0": {
+    "compute": 18.123080679203504,
+    "rule": "plan mu=0 lam=0",
+    "steps": 8.0,
+    "particles": 2.265385084900438
+   },
+   "plan": {
+    "compute": 13.14042989832549,
+    "rule": "plan mu=0.003 lam=1",
+    "steps": 5.709332262123005,
+    "particles": 2.301570357973744
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 6.6765027047419485,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 35.658677769260755,
+    "rule": "policy sum B=0.03",
+    "steps": 5.639025875678699,
+    "particles": 6.3235527829474565
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.0,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.476674711223824,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 3.476674711223824,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.476674711223824,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 3.476674711223824,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.4509154410463037,
+    "rule": "greedy tau=0.03",
+    "steps": 3.4509154410463037,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 9.793488109117517,
+    "rule": "policy sum B=0.03",
+    "steps": 5.639025875678699,
+    "particles": 1.7367340255268464
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.0,
+    "rule": "sequential (best order)",
+    "steps": 8.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.9018308820926073,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.9018308820926073,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.9018308820926073,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.9018308820926073,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.4509154410463037,
+    "rule": "greedy tau=0.03",
+    "steps": 3.4509154410463037,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 5.639025875678699,
+    "rule": "policy sum B=0.03",
+    "steps": 5.639025875678699,
+    "particles": 1.0
+   }
+  }
+ },
+ "window_small|hidden_0.85|8|chain|product": {
+  "fewest_steps": {
+   "rule": "plan mu=0.3 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.3900952438945592,
+   "bias": 1.1672849908007596
+  },
+  "sequential": {
+   "kl_one": 0.010144518624425015,
+   "spread": 0.026697392725774094
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 35.59652363436722,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 4.449565454295902
+   },
+   "plan0": {
+    "compute": 35.59652363436722,
+    "rule": "plan mu=0 lam=0",
+    "steps": 8.000000000000002,
+    "particles": 4.449565454295902
+   },
+   "plan": {
+    "compute": 28.285862277875825,
+    "rule": "plan mu=0.001 lam=1",
+    "steps": 6.13643831772282,
+    "particles": 4.609491827886973
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 6.155034354633064,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 59.22190837263136,
+    "rule": "policy lex sequential",
+    "steps": 8.0,
+    "particles": 7.40273854657892
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 10.678957090309797,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.3348696362887245
+   },
+   "plan0": {
+    "compute": 10.678957090309797,
+    "rule": "plan mu=0 lam=0",
+    "steps": 8.000000000000002,
+    "particles": 1.3348696362887245
+   },
+   "plan": {
+    "compute": 7.732275268381775,
+    "rule": "plan mu=0.003 lam=1",
+    "steps": 5.2743197541763625,
+    "particles": 1.4660232274046583
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 6.155034354633064,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 16.258400386886002,
+    "rule": "policy sum B=0.03",
+    "steps": 5.5184017417219575,
+    "particles": 2.9462154347995595
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 4.0,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 4.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 4.0,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 4.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 4.052134036216873,
+    "rule": "greedy tau=0.01",
+    "steps": 4.052134036216873,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 5.5184017417219575,
+    "rule": "policy sum B=0.03",
+    "steps": 5.5184017417219575,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 2.0,
+    "rule": "greedy tau=0.1",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 5.5184017417219575,
+    "rule": "policy sum B=0.03",
+    "steps": 5.5184017417219575,
+    "particles": 1.0
+   }
+  }
+ },
+ "window_small|hidden_0.85|8|chain|chain": {
+  "fewest_steps": {
+   "rule": "plan mu=0.3 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.3900952438945592,
+   "bias": 0.3900952438945592
+  },
+  "sequential": {
+   "kl_one": 0.010144518624425015,
+   "spread": 0.026697392725774094
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 35.59652363436722,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 4.449565454295902
+   },
+   "plan0": {
+    "compute": 35.59652363436722,
+    "rule": "plan mu=0 lam=0",
+    "steps": 8.000000000000002,
+    "particles": 4.449565454295902
+   },
+   "plan": {
+    "compute": 28.285862277876646,
+    "rule": "plan mu=0.001 lam=1",
+    "steps": 6.13643831772282,
+    "particles": 4.6094918278871075
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 6.155034354633064,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 59.22190837263136,
+    "rule": "policy lex sequential",
+    "steps": 8.0,
+    "particles": 7.40273854657892
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 10.678957090309797,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.3348696362887245
+   },
+   "plan0": {
+    "compute": 10.678957090309797,
+    "rule": "plan mu=0 lam=0",
+    "steps": 8.000000000000002,
+    "particles": 1.3348696362887245
+   },
+   "plan": {
+    "compute": 7.8820974645685675,
+    "rule": "plan mu=0.003 lam=1",
+    "steps": 5.388654318251609,
+    "particles": 1.4627209316195247
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 6.155034354633064,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 17.76657251178896,
+    "rule": "policy lex sequential",
+    "steps": 8.0,
+    "particles": 2.22082156397362
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 4.0,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 4.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.4150217839344426,
+    "rule": "plan mu=0.03 lam=1",
+    "steps": 3.4150217839344426,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.0,
+    "rule": "greedy tau=0.03",
+    "steps": 3.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 5.5184017417219575,
+    "rule": "policy sum B=0.03",
+    "steps": 5.5184017417219575,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 8.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 8.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.0,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 2.0,
+    "rule": "greedy tau=0.1",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 5.5184017417219575,
+    "rule": "policy sum B=0.03",
+    "steps": 5.5184017417219575,
+    "particles": 1.0
+   }
+  }
+ },
+ "dyck|hidden_0.85|10|product|product": {
+  "fewest_steps": {
+   "rule": "plan mu=1 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.6401631649261829,
+   "bias": 0.640163164926182
+  },
+  "sequential": {
+   "kl_one": 0.06317721960350914,
+   "spread": 0.12797073036897677
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 213.28455061497024,
+    "rule": "sequential (best order)",
+    "steps": 9.999999999999996,
+    "particles": 21.32845506149703
+   },
+   "plan0": {
+    "compute": 341.08320317896704,
+    "rule": "plan mu=0 lam=0",
+    "steps": 9.634623528094753,
+    "particles": 35.40181950901991
+   },
+   "plan": {
+    "compute": 212.1781423109786,
+    "rule": "plan mu=0.001 lam=100",
+    "steps": 9.931266452090993,
+    "particles": 21.36466112701117
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 8.2512434853851,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 259.8197538437823,
+    "rule": "policy lex sequential",
+    "steps": 10.000000000000004,
+    "particles": 25.98197538437822
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 63.98536518448917,
+    "rule": "sequential (best order)",
+    "steps": 9.999999999999996,
+    "particles": 6.398536518448919
+   },
+   "plan0": {
+    "compute": 70.15681728065574,
+    "rule": "plan mu=0 lam=0",
+    "steps": 9.634623528094753,
+    "particles": 7.281739351421161
+   },
+   "plan": {
+    "compute": 61.285506789719385,
+    "rule": "plan mu=0.01 lam=10",
+    "steps": 8.348724930020403,
+    "particles": 7.340702598710437
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 8.2512434853851,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 77.94592615313424,
+    "rule": "policy lex sequential",
+    "steps": 10.000000000000004,
+    "particles": 7.79459261531342
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 21.32845506149621,
+    "rule": "sequential (best order)",
+    "steps": 9.999999999999996,
+    "particles": 2.132845506149622
+   },
+   "plan0": {
+    "compute": 21.4582142362385,
+    "rule": "plan mu=0 lam=0",
+    "steps": 9.634623528094753,
+    "particles": 2.2271979983095265
+   },
+   "plan": {
+    "compute": 19.88413289814078,
+    "rule": "plan mu=0.01 lam=3",
+    "steps": 7.227763487459034,
+    "particles": 2.75107686252351
+   },
+   "greedy": {
+    "compute": 11506.180353163474,
+    "rule": "greedy tau=0.0001",
+    "steps": 8.2512434853851,
+    "particles": 1394.4783442088014
+   },
+   "policy": {
+    "compute": 25.981975384378032,
+    "rule": "policy lex sequential",
+    "steps": 10.000000000000004,
+    "particles": 2.598197538437802
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 9.999999999999996,
+    "rule": "sequential (best order)",
+    "steps": 9.999999999999996,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.132064573458512,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 3.132064573458512,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.132064573458512,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 3.132064573458512,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 4.505376043989031,
+    "rule": "greedy tau=0.03",
+    "steps": 4.505376043989031,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 9.343839514450483,
+    "rule": "policy sum B=0.03",
+    "steps": 8.45730754958447,
+    "particles": 1.1048243734389878
+   }
+  }
+ },
+ "dyck|hidden_0.85|10|chain|product": {
+  "fewest_steps": {
+   "rule": "plan mu=0.1 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.12124141863047416,
+   "bias": 0.640163164926182
+  },
+  "sequential": {
+   "kl_one": 0.0008766624151365332,
+   "spread": 0.0017678026317846651
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 4.988902929014348,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 4.988902929014348,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 4.988902929014348,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 4.988902929014348,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.603737358070899,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 71.81979686240109,
+    "rule": "policy lex sequential",
+    "steps": 9.999999999999998,
+    "particles": 7.181979686240111
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.626965496906266,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 3.626965496906266,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.626965496906266,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 3.626965496906266,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 7.603737358070899,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.603737358070899,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 21.545939058720208,
+    "rule": "policy lex sequential",
+    "steps": 9.999999999999998,
+    "particles": 2.154593905872021
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.626965496906266,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 3.626965496906266,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.1757948561023186,
+    "rule": "plan mu=0.1 lam=1",
+    "steps": 3.1757948561023186,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.2967555821747236,
+    "rule": "greedy tau=0.01",
+    "steps": 3.2967555821747236,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 8.498879177537859,
+    "rule": "policy sum B=0.03",
+    "steps": 8.498879177537859,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.2762776866507126,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 2.2762776866507126,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.0,
+    "rule": "plan mu=1 lam=3",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 2.0,
+    "rule": "greedy tau=0.1",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.0,
+    "rule": "policy sum B=1",
+    "steps": 2.0,
+    "particles": 1.0
+   }
+  }
+ },
+ "dyck|hidden_0.85|10|chain|chain": {
+  "fewest_steps": {
+   "rule": "plan mu=0.1 lam=0",
+   "steps": 1.0,
+   "kl_one": 0.12124141863047416,
+   "bias": 0.12124141863047357
+  },
+  "sequential": {
+   "kl_one": 0.0008766624151365332,
+   "spread": 0.0017678026317846651
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 4.988902929014348,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 4.988902929014348,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 4.988902929014348,
+    "rule": "plan mu=0.001 lam=0",
+    "steps": 4.988902929014348,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.603737358070899,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 71.81979686240109,
+    "rule": "policy lex sequential",
+    "steps": 9.999999999999998,
+    "particles": 7.181979686240111
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.626965496906266,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 3.626965496906266,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 3.626965496906266,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 3.626965496906266,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 7.603737358070899,
+    "rule": "greedy tau=0.0001",
+    "steps": 7.603737358070899,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 21.545939058720208,
+    "rule": "policy lex sequential",
+    "steps": 9.999999999999998,
+    "particles": 2.154593905872021
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 3.626965496906266,
+    "rule": "plan mu=0.01 lam=0",
+    "steps": 3.626965496906266,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.9198272773250338,
+    "rule": "plan mu=0.1 lam=1",
+    "steps": 2.9198272773250338,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 3.2967555821747236,
+    "rule": "greedy tau=0.01",
+    "steps": 3.2967555821747236,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 8.498879177537859,
+    "rule": "policy sum B=0.03",
+    "steps": 8.498879177537859,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 10.000000000000002,
+    "rule": "sequential (best order)",
+    "steps": 10.000000000000002,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 2.2762776866507126,
+    "rule": "plan mu=0.03 lam=0",
+    "steps": 2.2762776866507126,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 2.0,
+    "rule": "plan mu=0.3 lam=3",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 2.0,
+    "rule": "greedy tau=0.1",
+    "steps": 2.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.0,
+    "rule": "policy sum B=1",
+    "steps": 2.0,
+    "particles": 1.0
+   }
+  }
+ },
+ "dyck|chain_0.85|10|product|product": {
+  "fewest_steps": {
+   "rule": "plan mu=1 lam=0",
+   "steps": 2.0,
+   "kl_one": 1.4938052069830454,
+   "bias": 0.9424497585213247
+  },
+  "sequential": {
+   "kl_one": 0.8063093221075369,
+   "spread": 0.7064233842842094
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 1177.3723071405677,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 117.73723071405678
+   },
+   "plan0": {
+    "compute": 1123.9157435386137,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.45831939536248,
+    "particles": 174.02603908776376
+   },
+   "plan": {
+    "compute": 631.7027746582105,
+    "rule": "plan mu=1 lam=100",
+    "steps": 4.5476190476190474,
+    "particles": 138.90846353740756
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 8.850418029039298,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 885.5770964761084,
+    "rule": "policy sum B=0.3",
+    "steps": 5.722183283588121,
+    "particles": 154.76209911277138
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 353.2116921421243,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 35.32116921421243
+   },
+   "plan0": {
+    "compute": 268.2283895207925,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.45831939536248,
+    "particles": 41.53222736450586
+   },
+   "plan": {
+    "compute": 189.51083239744284,
+    "rule": "plan mu=1 lam=100",
+    "steps": 4.5476190476190474,
+    "particles": 41.6725390612178
+   },
+   "greedy": {
+    "compute": Infinity,
+    "rule": "greedy tau=0.0001",
+    "steps": 8.850418029039298,
+    "particles": Infinity
+   },
+   "policy": {
+    "compute": 265.6731289428033,
+    "rule": "policy sum B=0.3",
+    "steps": 5.722183283588121,
+    "particles": 46.42862973382631
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 117.73723071403708,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 11.773723071403708
+   },
+   "plan0": {
+    "compute": 84.47417967226815,
+    "rule": "plan mu=0.003 lam=0",
+    "steps": 6.45831939536248,
+    "particles": 13.07990120973677
+   },
+   "plan": {
+    "compute": 63.17027746581235,
+    "rule": "plan mu=1 lam=100",
+    "steps": 4.5476190476190474,
+    "particles": 13.89084635373884
+   },
+   "greedy": {
+    "compute": 383.09900229381293,
+    "rule": "greedy tau=0.0001",
+    "steps": 8.850418029039298,
+    "particles": 43.28597824835149
+   },
+   "policy": {
+    "compute": 88.55770964759834,
+    "rule": "policy sum B=0.3",
+    "steps": 5.722183283588121,
+    "particles": 15.476209911274955
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 35.32116921421066,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 3.5321169214210664
+   },
+   "plan0": {
+    "compute": 23.73005423788955,
+    "rule": "plan mu=0.1 lam=0",
+    "steps": 4.317842199563153,
+    "particles": 5.495813218994057
+   },
+   "plan": {
+    "compute": 14.920585799963451,
+    "rule": "plan mu=1 lam=3",
+    "steps": 3.0,
+    "particles": 4.973528599987817
+   },
+   "greedy": {
+    "compute": 54.10377220557236,
+    "rule": "greedy tau=0.3",
+    "steps": 7.840356416020783,
+    "particles": 6.900677639477983
+   },
+   "policy": {
+    "compute": 26.567312894279212,
+    "rule": "policy sum B=0.3",
+    "steps": 5.722183283588121,
+    "particles": 4.642862973382435
+   }
+  }
+ },
+ "dyck|chain_0.85|10|chain|product": {
+  "fewest_steps": {
+   "rule": "plan mu=0.0001 lam=0",
+   "steps": 1.0,
+   "kl_one": 5.0043801886949144e-05,
+   "bias": 6.376093015482099
+  },
+  "sequential": {
+   "kl_one": 1.376140920335951e-06,
+   "spread": 2.749035062032945e-06
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 74.1673769878793,
+    "rule": "policy lex B=0.3",
+    "steps": 6.05050073875727,
+    "particles": 12.258056017213669
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.9740981706617466,
+    "rule": "policy sum B=3",
+    "steps": 2.9740981706617466,
+    "particles": 1.0
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.9740981706617466,
+    "rule": "policy sum B=3",
+    "steps": 2.9740981706617466,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.9740981706617466,
+    "rule": "policy sum B=3",
+    "steps": 2.9740981706617466,
+    "particles": 1.0
+   }
+  }
+ },
+ "dyck|chain_0.85|10|chain|chain": {
+  "fewest_steps": {
+   "rule": "plan mu=0.0001 lam=0",
+   "steps": 1.0,
+   "kl_one": 5.0043801886949144e-05,
+   "bias": 5.004380188678012e-05
+  },
+  "sequential": {
+   "kl_one": 1.376140920335951e-06,
+   "spread": 2.749035062032945e-06
+  },
+  "0.003": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 90.7004002522796,
+    "rule": "policy lex B=0.03",
+    "steps": 7.044853315795341,
+    "particles": 12.87470387054323
+   }
+  },
+  "0.01": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.9740981706617466,
+    "rule": "policy sum B=3",
+    "steps": 2.9740981706617466,
+    "particles": 1.0
+   }
+  },
+  "0.03": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.9740981706617466,
+    "rule": "policy sum B=3",
+    "steps": 2.9740981706617466,
+    "particles": 1.0
+   }
+  },
+  "0.1": {
+   "sequential": {
+    "compute": 10.0,
+    "rule": "sequential (best order)",
+    "steps": 10.0,
+    "particles": 1.0
+   },
+   "plan0": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "plan": {
+    "compute": 1.0,
+    "rule": "plan mu=0.0001 lam=0",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "greedy": {
+    "compute": 1.0,
+    "rule": "greedy tau=0.0001",
+    "steps": 1.0,
+    "particles": 1.0
+   },
+   "policy": {
+    "compute": 2.9740981706617466,
+    "rule": "policy sum B=3",
+    "steps": 2.9740981706617466,
+    "particles": 1.0
+   }
+  }
+ }
+}
