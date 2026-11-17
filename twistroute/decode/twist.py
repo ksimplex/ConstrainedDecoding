@@ -95,7 +95,7 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
     mixture, M / kappa = (1 - d) M_chain / kappa + d Z(x'; x) / Z(x; x), so a class sequence the constraint and the
     model allow has at least the share d of its product-proposal density whatever the pair table says."""
     P = s.x.shape[0]
-    view = lambda: RevealState(s.x, s.ycls, s.lw, den.mask_id, classes, route)   # for policy schedules only
+    view = lambda: RevealState(s.x, s.ycls, s.lw, den.mask_id, classes, route, lp=getattr(s, "lp", None))   # for policy schedules only
     log_chain_c = None
     if chain is not None:
         lwc = clamp_revealed(s.lw, s.x, s.ycls, den.mask_id)

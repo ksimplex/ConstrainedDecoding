@@ -45,3 +45,24 @@ def test_without_tolerance_nothing_changes():
     den, cl, d, route, truth, kern = setup(0.3)
     a, _ = run(den, cl, route, kern, None, nrun=200); b, pol = run(den, cl, route, kern, None, nrun=200)
     assert np.array_equal(np.asarray(a["tokens"]), np.asarray(b["tokens"])) and pol.forced_steps == 0
+
+
+def test_confidence_schedule_rules():
+    from twistroute.decode import ConfidenceSchedule
+    from twistroute.decode.native import native_sample
+    den, cl, d, route, truth, kern = setup(0.3)
+    for rule in ("token", "class", "entropy", "left"):
+        o = twisted_smc(den, cl, route, N, N, nrun=4000, K=2, gen=torch.Generator().manual_seed(3), return_particles=True, schedule=ConfidenceSchedule(1, None, rule))
+        z = np.exp(np.asarray(o["logZ"], dtype=np.float64) - truth.log_pC); se = z.std(ddof=1) / math.sqrt(len(z))
+        assert abs(z.mean() - 1) < 4 * se + 1e-9, (rule, z.mean(), se)              # one token per step: the estimate is unbiased whatever the order
+        assert all(d.accepts(r.tolist()) for r in np.asarray(o["tokens"]).reshape(-1, N)[:200])
+    seen = []
+    sch = ConfidenceSchedule(2, 4, "token"); orig = sch.reveal
+    def rec(st, t, T, gen=None):
+        idx, keep = orig(st, t, T, gen); seen.append(sorted(int(i) for i, k in zip(idx[0], keep[0]) if k)); return idx, keep
+    sch.reveal = rec
+    o = twisted_smc(den, cl, route, N, N // 2, nrun=3, K=1, gen=torch.Generator().manual_seed(4), return_particles=True, schedule=sch)
+    assert [len(x) for x in seen] == [2, 2, 2, 2] and all(i < 4 for x in seen[:2] for i in x) and all(i >= 4 for x in seen[2:] for i in x), seen
+    assert d.accepts(np.asarray(o["tokens"])[0, 0].tolist())
+    _, toks = native_sample(den, cl, N, N // 2, 5, torch.Generator().manual_seed(5), return_tokens=True, schedule=ConfidenceSchedule(2, 4, "model"))
+    assert tuple(toks.shape) == (5, N) and int((toks == den.mask_id).sum()) == 0

@@ -31,7 +31,7 @@ def native_sample(den, classes, N, T, B, gen=None, return_tokens=False, schedule
             if not (x == den.mask_id).any():
                 break
             lp = den.logits(x)
-            st = RevealState(x, classes.token_class[x], classes.class_logw(lp), den.mask_id, classes, route)
+            st = RevealState(x, classes.token_class[x], classes.class_logw(lp), den.mask_id, classes, route, lp=lp)
             r, valid = schedule.reveal(st, t, T, gen)
         rows = torch.gather(lp, 1, r[..., None].expand(-1, -1, lp.shape[-1]))
         tok = torch.multinomial(torch.exp(rows).reshape(-1, rows.shape[-1]), 1, generator=gen).reshape(B, -1)

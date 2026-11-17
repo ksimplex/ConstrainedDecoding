@@ -225,10 +225,11 @@ def fit_distance_kernel(den, N, n_traces, gen=None, device="cpu", count_edges=No
 class RevealState:
     """What a policy may look at: the particle states and their current predictions. Never the values that are
     about to be drawn."""
-    __slots__ = ("x", "ycls", "lw", "mask_id", "classes", "route")
+    __slots__ = ("x", "ycls", "lw", "mask_id", "classes", "route", "lp")
 
-    def __init__(self, x, ycls, lw, mask_id, classes, route):
+    def __init__(self, x, ycls, lw, mask_id, classes, route, lp=None):
         self.x, self.ycls, self.lw, self.mask_id, self.classes, self.route = x, ycls, lw, mask_id, classes, route
+        self.lp = lp                                                   # token-level log-probabilities (P, N, V), when the caller has them
 
 
 class CouplingPolicy:
@@ -539,6 +540,84 @@ class CouplingPolicy:
                 self.forced_steps += int(has.sum()); self.forced_reveals += int(fset.sum())
         self.calls += 1
         self.particle_calls += P
+        cnt = chosen.sum(-1)
+        k = int(cnt.max().clamp_min(1))
+        ordr = torch.argsort(chosen.to(torch.int8), dim=-1, descending=True, stable=True)
+        return ordr[:, :k], torch.arange(k, device=dev)[None] < cnt[:, None]
+
+
+class ConfidenceSchedule:
+    """Reveal the most confident masked positions: the remasking rule that LLaDA and Dream ship with, read from the
+    constrained marginals as in Dang & Ermon (arXiv:2607.07026, section 5.1). No pilot and no kernel.
+
+    per_step   positions revealed per step (a particle with fewer candidates reveals what it has).
+    block      None, or a block length: only the left-most block that still has masked positions is eligible
+               (LLaDA's semi-autoregressive decoding; 32 in Dang & Ermon's settings).
+    rule       "token"    highest probability of the most likely token under the constrained mean-field marginal,
+                          max_t p_i(t) mu_i(c(t)) / w_i(c(t)) (LLaDA's rule; needs token log-probabilities in the state)
+               "class"    highest probability of the most likely class, max_c mu_i(c)
+               "entropy"  lowest entropy of the constrained class marginal (Dream's rule, at class level)
+               "model"    highest probability of the model's most likely token, constraint ignored (the unconstrained decoder)
+               "left"     left-most first
+    forced_first  positions whose class is determined and holds one token go before all others in the eligible block.
+    """
+    RULES = ("token", "class", "entropy", "model", "left")
+
+    def __init__(self, per_step=1, block=None, rule="token", forced_first=False):
+        if rule not in self.RULES or per_step < 1 or (block is not None and block < 1):
+            raise ValueError(f"rule must be one of {self.RULES}, per_step >= 1, block None or >= 1")
+        self.per_step, self.block, self.rule, self.forced_first = int(per_step), block, rule, forced_first
+        self.route_passes, self.calls = 0.0, 0
+
+    @torch.no_grad()
+    def confidence(self, st, masked):
+        P, N = masked.shape
+        dev = masked.device
+        if self.rule == "left":
+            return -torch.arange(N, device=dev).double().expand(P, N), None
+        if self.rule == "model":
+            if st.lp is None:
+                raise ValueError("rule 'model' needs token log-probabilities in the state")
+            return st.lp.max(-1).values.double(), None
+        mu = constrained_marginals(st.route, clamp_revealed(st.lw, st.x, st.ycls, st.mask_id))
+        self.route_passes += 1
+        if self.rule == "entropy":
+            return torch.xlogy(mu, mu).sum(-1), mu
+        if self.rule == "class":
+            return mu.max(-1).values, mu
+        if st.lp is None:
+            raise ValueError("rule 'token' needs token log-probabilities in the state")
+        adj = (torch.log(mu.clamp_min(1e-300)) - st.lw.double()).float()            # (P, N, A): log of mu / w
+        adj = torch.where(mu > 0, adj, torch.full_like(adj, NEG_INF))
+        tc = st.classes.token_class.to(dev)
+        conf = torch.stack([(st.lp[p].float() + adj[p][:, tc]).max(-1).values for p in range(P)])   # one particle at a time: (N, V)
+        return conf.double(), mu
+
+    @torch.no_grad()
+    def reveal(self, st, t, T, gen=None):
+        masked = st.x == st.mask_id
+        P, N = masked.shape
+        dev = masked.device
+        if t >= T - 1:
+            chosen = masked
+        else:
+            conf, mu = self.confidence(st, masked)
+            cand = masked
+            if self.block is not None:
+                idx = torch.arange(N, device=dev)
+                first = torch.where(masked, idx[None], torch.full_like(idx, N)[None]).min(-1).values
+                cand = masked & ((idx[None] // self.block) == (first // self.block)[:, None])
+            if self.forced_first:
+                if mu is None:
+                    mu = constrained_marginals(st.route, clamp_revealed(st.lw, st.x, st.ycls, st.mask_id))
+                    self.route_passes += 1
+                sizes = (st.classes.onehot > 0).sum(0).to(dev)
+                forced = (-torch.xlogy(mu, mu).sum(-1) < 1e-9) & (sizes[mu.argmax(-1)] == 1)
+                conf = torch.where(forced, torch.full_like(conf, float("inf")), conf)
+            score = torch.where(cand, conf, torch.full_like(conf, NEG_INF))
+            top = torch.argsort(score, dim=-1, descending=True, stable=True)[:, :self.per_step]
+            chosen = torch.zeros_like(masked).scatter(-1, top, torch.ones_like(top, dtype=torch.bool)) & cand
+        self.calls += 1
         cnt = chosen.sum(-1)
         k = int(cnt.max().clamp_min(1))
         ordr = torch.argsort(chosen.to(torch.int8), dim=-1, descending=True, stable=True)
