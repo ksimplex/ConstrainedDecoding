@@ -2404,13 +2404,116 @@ Two structural points that do not depend on the size:
   (counting) and 0.0001 (Dyck) from the target, and the law its weights converge to is 5.5 and 6.4 nats away. So when the
   chain twist is the proposal for several positions at once, the reference has to change with it (or those steps go
   unweighted). With the chain law as the reference the bias of everything-in-one-step falls from the product column to the chain column of the first table.
-- This makes the chain twist a second lever on the co-reveal bias itself, besides the choice of sets: it supplies the
+- (Not confirmed at 64 positions: see section 36z.) This would make the chain twist a second lever on the co-reveal bias itself, besides the choice of sets: it supplies the
   dependence between co-revealed positions that the denoiser's marginals lack (the role a copula model plays in
   Discrete Copula Diffusion, arXiv:2410.01949; to be checked against that paper before it is claimed).
 
 Limits: 8 to 10 positions, where one particle often already meets the tolerance, so the particle rule is exercised
 mainly with the product proposal; the plan family is a two-parameter sweep, not the exact optimum of the compute
 objective; the repository rules were designed for longer sequences; no hidden-chain cell beyond `hidden_0.85`.
+
+## 36z. The chain law as the reference for co-revealed sets: checked, not adopted (local, 2026-11-16/17) [verified implementation; negative result at N = 64, one hidden chain]
+
+Question (user, 2026-11-16): the weights take the product of the model's marginals as the model's law of positions
+revealed together; with the chain proposal, should that reference be the chain law's joint instead? The evaluation does
+not depend on the answer: every arm is scored against the exact p(C) and the exact constrained law.
+
+Code: `twisted_smc(..., reference_twist=)` (default off), `ChainTwist.log_reference` (one position: the model's marginal;
+two or more: the chain law's joint with no constraint); arm set `chainref`; `parallel_exact_check.py`.
+
+Checks of the implementation:
+- one token per step: identical results with and without the option;
+- several positions per step: the product and the chain proposal estimate the same value under the same reference;
+- end to end at 8 positions: the sampler's average Z_hat / p(C) agrees with the exact tables of section 36y in all 16 cases
+  (two constraints, two proposals, two references, two budgets), largest deviation 1.5 standard errors.
+
+**At 8 positions (exact)** the chain reference brings the many-particle limit closer to the target when co-reveals are
+aggressive, and is neutral otherwise. KL of the limit from the target, product -> chain reference, `lex` schedule:
+- counting: B = 0.3: 0.144 -> 0.109; B = 1: 0.443 -> 0.140
+- forbidden: B = 0.3: 0.032 -> 0.037; B = 1: 0.446 -> 0.084
+
+**At 64 positions it does not hold.** `hidden_0.85`, 16 particles, 200 runs, no resampling. First number: mean of
+Z_hat / p(C), where 1 means no bias (± standard error). Second: RMS of log(Z_hat / p(C)), lower is better.
+
+**forbidden**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 24 | 0.97 ± 0.03; 0.404 | 0.97 ± 0.01; 0.188 | 0.43 ± 0.01; 0.900 |
+| lex, B = 0.3 | 13 | 0.74 ± 0.03; 0.665 | 0.73 ± 0.01; 0.414 | 0.36 ± 0.01; 1.086 |
+| lex, B = 1 | 9 | 0.40 ± 0.02; 1.291 | 0.38 ± 0.01; 1.061 | 0.24 ± 0.01; 1.498 |
+| 4 random positions per step | 16 | 0.57 ± 0.03; 0.982 | 0.59 ± 0.02; 0.717 | 0.42 ± 0.01; 0.970 |
+
+**dyck**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 13 | 0.96 ± 0.02; 0.283 | 0.98 ± 0.01; 0.190 | 0.94 ± 0.01; 0.185 |
+| lex, B = 0.3 | 8 | 0.86 ± 0.02; 0.370 | 0.85 ± 0.01; 0.266 | 0.90 ± 0.01; 0.217 |
+| lex, B = 1 | 5 | 0.73 ± 0.01; 0.466 | 0.77 ± 0.02; 0.461 | 0.81 ± 0.01; 0.282 |
+| 4 random positions per step | 16 | 1.03 ± 0.02; 0.319 | 1.01 ± 0.02; 0.323 | 0.99 ± 0.01; 0.179 |
+
+**counting**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 13 | 1.02 ± 0.01; 0.202 | 1.03 ± 0.01; 0.187 | 1.06 ± 0.01; 0.140 |
+| lex, B = 0.3 | 8 | 1.06 ± 0.02; 0.206 | 1.09 ± 0.01; 0.187 | 1.11 ± 0.01; 0.169 |
+| lex, B = 1 | 6 | 1.16 ± 0.02; 0.252 | 1.17 ± 0.02; 0.256 | 1.15 ± 0.01; 0.186 |
+| 4 random positions per step | 16 | 1.06 ± 0.01; 0.182 | 1.00 ± 0.03; 0.343 | 1.10 ± 0.01; 0.136 |
+
+**window**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 12 | 0.99 ± 0.01; 0.099 | 0.98 ± 0.01; 0.120 | 0.92 ± 0.01; 0.119 |
+| lex, B = 0.3 | 7 | 0.91 ± 0.01; 0.161 | 0.92 ± 0.01; 0.161 | 0.85 ± 0.01; 0.194 |
+| lex, B = 1 | 5 | 0.81 ± 0.01; 0.297 | 0.82 ± 0.01; 0.292 | 0.78 ± 0.01; 0.282 |
+| 4 random positions per step | 16 | 0.93 ± 0.01; 0.225 | 0.94 ± 0.03; 0.400 | 0.89 ± 0.01; 0.191 |
+
+**two_window**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 12 | 0.99 ± 0.01; 0.096 | 0.99 ± 0.01; 0.110 | 0.93 ± 0.00; 0.099 |
+| lex, B = 0.3 | 7 | 0.98 ± 0.01; 0.125 | 0.97 ± 0.01; 0.147 | 0.91 ± 0.01; 0.145 |
+| lex, B = 1 | 6 | 0.94 ± 0.01; 0.139 | 0.96 ± 0.01; 0.203 | 0.90 ± 0.01; 0.166 |
+| 4 random positions per step | 16 | 0.91 ± 0.02; 0.360 | 0.93 ± 0.03; 0.472 | 0.92 ± 0.01; 0.225 |
+
+- Forbidden: the chain reference raises the bias on every schedule, by 1.2 to 18 times (0.97 -> 0.43 at B = 0.03), and
+  the RMS error is 1.4 to 4.8 times that of the chain proposal with the product reference.
+- Windows: a larger bias with the chain reference on all three `lex` budgets.
+- Counting: slightly more bias at B = 0.03 and 0.3, the same at B = 1; the RMS error is lower (0.14 to 0.19 against 0.19 to 0.26)
+  because the weights are much less noisy when proposal and reference agree, and at 16 particles noise dominates.
+- Dyck: the bias is slightly smaller at B = 0.3 and 1 and slightly larger at B = 0.03; the RMS error is the lowest of the three on every schedule, clearly so at B = 1 and with 4 random positions per step.
+- So the chain reference lowers the noise everywhere and the bias almost nowhere; on forbidden and the windows it raises the bias.
+
+**Why.** How far each reference is from the model's true joint on the sets the schedule actually co-reveals:
+E[log model's joint of the set - log reference], summed over a decode, along sequences from the exact constrained law
+(300 sequences, `lex` with pull-in; 0 would be a perfect reference).
+
+| constraint | budget | steps | positions per step | product of marginals | chain law |
+|---|---|---|---|---|---|
+| forbidden | 0.03 | 27 | 2.4 | +0.017 ± 0.003 | +1.038 ± 0.037 |
+| forbidden | 0.3 | 16 | 4.0 | +0.239 ± 0.015 | +1.099 ± 0.034 |
+| forbidden | 1 | 15 | 4.3 | +0.759 ± 0.032 | +1.484 ± 0.040 |
+| counting | 0.03 | 28 | 2.3 | +0.002 ± 0.007 | +0.047 ± 0.020 |
+| counting | 0.3 | 12 | 5.3 | +0.139 ± 0.036 | +0.229 ± 0.039 |
+| counting | 1 | 8 | 8.0 | +0.601 ± 0.073 | +0.586 ± 0.068 |
+| dyck | 0.03 | 24 | 2.7 | +0.041 ± 0.007 | +0.072 ± 0.015 |
+| dyck | 0.3 | 11 | 5.8 | +0.323 ± 0.037 | +0.348 ± 0.038 |
+| dyck | 1 | 6 | 10.7 | +0.795 ± 0.065 | +0.588 ± 0.058 |
+
+- At small budgets the schedule co-reveals positions that are nearly independent under the model, and the product of
+  marginals is then nearly exact (0.002 to 0.04 nats over a decode). The chain law is further from the model on those
+  sets (0.05 to 1.0 nats): one pooled neighbour table applied to marginals that already condition on the revealed
+  tokens does not reproduce the model's joint of scattered positions on the hidden chain.
+- Only where sets are large and the product is poor does the chain law come level or ahead (counting at B = 1; Dyck at B = 1, 0.59 against 0.80).
+- The 8-position result was the favourable case: every position in one contiguous set, on a short sequence.
+
+Decision: `reference_twist` stays in the code, off by default. The chain proposal with the product reference is the
+arm to carry forward. A reference that keeps the model's marginals exactly and adds dependence only between
+co-revealed neighbours is the natural next candidate; not built.
 
 ## 36. Next steps (2026-11-16; replaces section 34)
 
@@ -2431,8 +2534,8 @@ job scripts and arm names keep working.
    term in the same objective); the exact search at 12 to 14 positions on the cluster.
    Decided 2026-11-16 (user): tolerance on the KL of the returned sample, total over bias and noise; minimise compute;
    chain twist into the proposal (done, section 36x); exact parallel search (first pass done, section 36y).
-   Open after section 36y: the chain law as the reference for co-revealed sets in the sampler (weights then use the
-   chain twist's ratio alone); verify the particle rule by sampling; the same search at 10 to 12 positions on the
+   Open after section 36y: the chain law as the reference for co-revealed sets was checked and not adopted (section
+   36z); a reference with exact marginals and dependence only between co-revealed neighbours is the next candidate; verify the particle rule by sampling; the same search at 10 to 12 positions on the
    cluster; the global-latent stress oracle; then a planner that scales.
    Earlier note (section 36w): move the chain twist into the proposal. At 64 positions it halves the KL on forbidden
    and Dyck under any order and gives the best arm on every constraint with the ideal greedy order.
