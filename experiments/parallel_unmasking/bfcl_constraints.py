@@ -6,7 +6,7 @@
 The constraint fixes: the function name (one of those offered), the argument names (schema order; required ones
 mandatory, optional ones may be left out), the type of every value (enumerated values listed literally), and the
 surface syntax (one space after a comma or colon, as in the BFCL prompt). One or more calls. Free strings are
-unrestricted apart from the closing quote, a backslash and a newline. Untyped or schema-less containers are
+unrestricted apart from the closing quote and a newline; a backslash escapes the next character. Untyped or schema-less containers are
 allowed one level of scalar content, since a regular language cannot nest without bound.
 
 `--stats` checks, per split, how many reference answers the constraint accepts (first acceptable value of each
@@ -25,7 +25,7 @@ def esc(s):
 
 
 def string(fmt):
-    return r'"[^"\\\n]*"' if fmt == "json" else r"""('[^'\\\n]*'|"[^"\\\n]*")"""
+    return r'"([^"\\\n]|\\.)*"' if fmt == "json" else r"""('([^'\\\n]|\\.)*'|"([^"\\\n]|\\.)*")"""
 
 
 def literal(v, fmt):
@@ -106,6 +106,16 @@ def call_regex(functions, fmt):
     return rf"\[{c}(, {c})*\]"
 
 
+def unwrap(v):
+    """BFCL stores a list of acceptable values at every level of a nested dictionary; keep the first of each."""
+    if isinstance(v, dict):
+        v = {k: (x[0] if isinstance(x, list) and x else x) for k, x in v.items()}
+        return {k: unwrap(x) for k, x in v.items() if not (isinstance(x, str) and x == "")}        # "" marks an argument left out
+    if isinstance(v, list):
+        return [unwrap(x) for x in v]
+    return v
+
+
 def gold_text(functions, ground_truth, fmt):
     """Reference answer as text: first acceptable value of each argument, arguments in schema order."""
     by = {f["name"]: f for f in functions}
@@ -115,7 +125,7 @@ def gold_text(functions, ground_truth, fmt):
         (name, args), = call.items()
         props = (by.get(name, {}).get("parameters") or {}).get("properties") or {}
         order = [k for k in props if k in args] + [k for k in args if k not in props]
-        kept = [(k, args[k][0]) for k in order if len(args[k]) and args[k][0] != ""]
+        kept = [(k, unwrap(args[k][0])) for k in order if len(args[k]) and args[k][0] != ""]
         if fmt == "python":
             out.append(f"{name}(" + ", ".join(f"{k}={dump(v)}" for k, v in kept) + ")")
         else:
