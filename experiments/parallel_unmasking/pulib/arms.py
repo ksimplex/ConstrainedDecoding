@@ -74,7 +74,7 @@ class Cell:
         kw.setdefault("mixed", False)
         return CouplingPolicy(kernel, theta, priority=priority, rate=None if B is None else B / self.N, **kw)
 
-    def chain_twist(self, eps=0.05, temp=1.0):
+    def chain_twist(self, eps=0.05, temp=1.0, match=0):
         """The first-order chain twist for this cell's automaton (decode.chain_twist), with a pair kernel fitted on
         --pilot model samples. Automaton constraints only. `temp` < 1 is the calibrated version (same pair kernel)."""
         from twistroute.decode import ChainTwist, fit_pair_kernel
@@ -82,10 +82,10 @@ class Cell:
             if not hasattr(self.truth, "wdfa"):
                 raise ValueError(f"no chain twist for the constraint {self.cname!r}: it is not an automaton")
             self._kernels["pair_kernel"] = fit_pair_kernel(self.den, self.cl, self.a["pilot"], torch.Generator().manual_seed(self.seed("pair_kernel")))
-        key = ("twist", eps, temp)
+        key = ("twist", eps, temp, match)
         if key not in self._kernels:
             self._kernels[key] = ChainTwist(self.truth.wdfa, self._kernels["pair_kernel"], eps=eps, temp=temp,
-                                            active=getattr(self.truth, "active", None))
+                                            active=getattr(self.truth, "active", None), match=match)
         return self._kernels[key]
 
     def control(self):
@@ -262,6 +262,19 @@ def chainprop(c):
     res = (("off", dict(ess_min=0.0)), ("defensive", dict()))
     return [Arm(f"{sn} | {pn} | resampling {rn}", mk(), N, n, smc=dict(smc, **kw))
             for sn, mk in scheds for pn, kw in samplers for rn, smc in res]
+
+
+@arm_set("matched")
+def matched(c):
+    """The marginal-matched chain law in the sampler. Three schedules (`sum` one token per step, `lex` one token per
+    step, `sum` budgeted) by three samplers: product proposal with the product twist; chain proposal with the chain
+    twist (ratio formula); chain proposal with the marginal-matched chain twist (30 sweeps). Defensive resampling.
+    Automaton constraints only."""
+    N, n, kg, tw, tm = c.N, c.nrun, c.kernel("graded"), c.chain_twist(), c.chain_twist(match=30)
+    scheds = (("sum sequential", lambda: c.policy(kg, 0.0, "sum", max_set=1)), ("lex sequential", lambda: c.policy(kg, 0.0, "lex", max_set=1)),
+              ("sum B=0.03 +pull", lambda: c.policy(kg, 0.0, "sum", B=0.03, pull_forced=8)))
+    samplers = (("product", dict()), ("chain", dict(twist=tw, proposal_twist=tw)), ("matched chain", dict(twist=tm, proposal_twist=tm)))
+    return [Arm(f"{sn} | {pn}", mk(), N, n, smc=dict(kw)) for sn, mk in scheds for pn, kw in samplers]
 
 
 @arm_set("chainref")

@@ -2678,6 +2678,56 @@ Exact KL in nats, lower is better; rank = median rank correlation with the true 
 - Best honest arms so far at 64 positions on the hidden chain, with the matched chain proposal (section 36ac): sum on counting 0.075,
   lex on Dyck 0.189, lex on forbidden 0.206, lex on window 0.024, lex on two windows 0.048; ideal greedy is 0.078, 0.103, 0.096, 0.017, 0.032.
 
+## 36af. How far the simple rules are from ideal greedy, and what that is worth (local, 2026-11-17) [sampled at 64 positions, 300 decodes; the particle count is a rule of thumb]
+
+Question from the user: how close is the sequential order to the best one already, and does the difference matter?
+
+Per-particle KL to the exact constrained law in nats (lower is better), matched chain proposal. Start = product proposal with the
+policy's random order (section 36w). Particles = (exp(2 KL) - 1) / (2 x 0.01): the count for a tolerance of 0.01 on the returned
+sample's KL if log-weights are normal and the large-particle formula holds. Neither assumption is verified.
+
+| model | constraint | start | random | lex | sum | ideal greedy | sum / ideal | particles: sum, lex, ideal |
+|---|---|---|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.180 | 0.097 | 0.137 | 0.075 | 0.078 | 0.96 | 8.1, 15.7, 8.5 |
+| hidden_0.85 | dyck | 0.642 | 0.244 | 0.189 | 0.202 | 0.103 | 1.96 | 24.9, 22.9, 11.5 |
+| hidden_0.85 | forbidden | 2.588 | 0.374 | 0.206 | 0.285 | 0.096 | 2.97 | 38.4, 25.6, 10.6 |
+| hidden_0.85 | window | 0.389 | 0.195 | 0.024 | 0.031 | 0.017 | 1.76 | 3.1, 2.4, 1.8 |
+| hidden_0.85 | two_window | 0.730 | 0.393 | 0.048 | 0.077 | 0.032 | 2.43 | 8.3, 5.0, 3.3 |
+| latent_0.6_w0.5 | counting | 0.185 | 0.106 | 0.157 | 0.099 | 0.077 | 1.28 | 10.9, 18.5, 8.3 |
+| latent_0.6_w0.5 | dyck | 0.317 | 0.062 | 0.063 | 0.048 | 0.023 | 2.12 | 5.0, 6.7, 2.3 |
+| latent_0.6_w0.5 | forbidden | 1.960 | 0.322 | 0.166 | 0.195 | 0.073 | 2.68 | 23.8, 19.8, 7.8 |
+| latent_0.6_w0.5 | window | 0.609 | 0.460 | 0.034 | 0.057 | 0.008 | 7.46 | 6.1, 3.5, 0.8 |
+| latent_0.6_w0.5 | two_window | 0.900 | 0.671 | 0.021 | 0.033 | 0.005 | 6.21 | 3.4, 2.2, 0.5 |
+
+- Ideal greedy here is the lower of its two values (ratio formula, matched). It uses the exact twist and is not the best order;
+  at 10 to 12 positions it was within 0.01 nats of the optimum with the chain proposal, at 64 the optimum is unknown.
+- The gap to ideal greedy is at most about a factor 3 in particles, and it is a few particles on the windows.
+- Compute is steps times particles; the order touches only particles. The parallel schedule touches steps (section 36y: 1.3 to 10
+  times at 8 to 10 positions with the chain proposal), untested at scale.
+- Differences below about 0.03 nats are not resolved. One length only.
+
+**Reversed tie-break** (stake first, then the position least coupled to what is still masked; `lex_near`, `sum_near`; `near` alone
+reduces to left to right on the hidden chain). Motivation: with the chain proposal ideal greedy grows outward from revealed tokens.
+
+| model | constraint | lex -> lex_near | sum -> sum_near |
+|---|---|---|---|
+| hidden_0.85 | counting | 0.137 -> 0.144 | 0.075 -> 0.197 |
+| hidden_0.85 | dyck | 0.189 -> 0.188 | 0.202 -> 0.139 |
+| hidden_0.85 | forbidden | 0.206 -> 0.206 | 0.285 -> 0.206 |
+| hidden_0.85 | window | 0.024 -> 0.056 | 0.031 -> 0.040 |
+| hidden_0.85 | two_window | 0.048 -> 0.047 | 0.077 -> 0.099 |
+| latent_0.6_w0.5 | counting | 0.157 -> 0.155 | 0.099 -> 0.157 |
+| latent_0.6_w0.5 | dyck | 0.063 -> 0.063 | 0.048 -> 0.047 |
+| latent_0.6_w0.5 | forbidden | 0.166 -> 0.166 | 0.195 -> 0.167 |
+| latent_0.6_w0.5 | window | 0.034 -> 0.014 | 0.057 -> 0.019 |
+| latent_0.6_w0.5 | two_window | 0.021 -> 0.021 | 0.033 -> 0.056 |
+
+- No consistent gain; clearly worse on counting under sum. Not adopted.
+
+**Decision (user, 2026-11-17).** The sequential rule is `sum` with the matched chain proposal (`lex` is similar and equally acceptable).
+No fitted second-order model, no learned estimator, no look-ahead calls: each costs more than the gap it could partly recover.
+Work on the sequential order stops here; effort goes to the parallel schedule.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
