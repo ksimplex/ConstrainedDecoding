@@ -1,0 +1,766 @@
+{
+ "simple|python": {
+  "n": 400,
+  "accepted": 393,
+  "regex_chars_median": 283,
+  "regex_chars_max": 939,
+  "rejected": [
+   [
+    "simple_89",
+    "[db_fetch_records(database_name='StudentDB', table_name='students', conditions={'department': ['Science'], 'school': ['Bluebird High School', 'Bluebir"
+   ],
+   [
+    "simple_94",
+    "[update_user_info(user_id=43523, update_info={'name': ['John Doe'], 'email': ['johndoe@email.com']}, database='CustomerInfo')]"
+   ],
+   [
+    "simple_96",
+    "[database.query(table='user', conditions=[{'field': ['age'], 'operation': ['>'], 'value': ['25']}, {'field': ['job'], 'operation': ['='], 'value': ['e"
+   ],
+   [
+    "simple_200",
+    "[calculate_emissions(distance=12000, fuel_type='gas', efficiency_reduction=0)]"
+   ],
+   [
+    "simple_260",
+    "[paint_requirement.calculate(area={'width': [20], 'height': [12]}, paint_coverage=350, exclusion={'type': ['window'], 'area': [15]})]"
+   ],
+   [
+    "simple_337",
+    "[poker_game_winner(players=['Alex', 'Sam', 'Robert', 'Steve'], cards={'Alex': [['A of spades', 'K of spades']], 'Sam': [['2 of diamonds', '3 of clubs'"
+   ],
+   [
+    "simple_363",
+    "[find_closest(location='Boston', cuisine='Sushi', amenities=['Patio'])]"
+   ]
+  ]
+ },
+ "simple|json": {
+  "n": 400,
+  "accepted": 393,
+  "regex_chars_median": 305,
+  "regex_chars_max": 741,
+  "rejected": [
+   [
+    "simple_89",
+    "[{\"name\": \"db_fetch_records\", \"arguments\": {\"database_name\": \"StudentDB\", \"table_name\": \"students\", \"conditions\": {\"department\": [\"Science\"], \"school\""
+   ],
+   [
+    "simple_94",
+    "[{\"name\": \"update_user_info\", \"arguments\": {\"user_id\": 43523, \"update_info\": {\"name\": [\"John Doe\"], \"email\": [\"johndoe@email.com\"]}, \"database\": \"Cust"
+   ],
+   [
+    "simple_96",
+    "[{\"name\": \"database.query\", \"arguments\": {\"table\": \"user\", \"conditions\": [{\"field\": [\"age\"], \"operation\": [\">\"], \"value\": [\"25\"]}, {\"field\": [\"job\"], "
+   ],
+   [
+    "simple_200",
+    "[{\"name\": \"calculate_emissions\", \"arguments\": {\"distance\": 12000, \"fuel_type\": \"gas\", \"efficiency_reduction\": 0}}]"
+   ],
+   [
+    "simple_260",
+    "[{\"name\": \"paint_requirement.calculate\", \"arguments\": {\"area\": {\"width\": [20], \"height\": [12]}, \"paint_coverage\": 350, \"exclusion\": {\"type\": [\"window\""
+   ],
+   [
+    "simple_337",
+    "[{\"name\": \"poker_game_winner\", \"arguments\": {\"players\": [\"Alex\", \"Sam\", \"Robert\", \"Steve\"], \"cards\": {\"Alex\": [[\"A of spades\", \"K of spades\"]], \"Sam\":"
+   ],
+   [
+    "simple_363",
+    "[{\"name\": \"find_closest\", \"arguments\": {\"location\": \"Boston\", \"cuisine\": \"Sushi\", \"amenities\": [\"Patio\"]}}]"
+   ]
+  ]
+ },
+ "multiple|python": {
+  "n": 200,
+  "accepted": 197,
+  "regex_chars_median": 819,
+  "regex_chars_max": 2271,
+  "rejected": [
+   [
+    "multiple_8",
+    "[realestate.find_properties(location='SD', propertyType='villa', bedrooms=3, budget={'min': [300000], 'max': [400000]})]"
+   ],
+   [
+    "multiple_9",
+    "[calculate_average(gradeDict={'math': [90], 'science': [75], 'history': [82], 'music': [89]})]"
+   ],
+   [
+    "multiple_119",
+    "[database.query(table='user', conditions=[{'field': ['age'], 'operation': ['>'], 'value': ['25']}, {'field': ['job'], 'operation': ['='], 'value': ['e"
+   ]
+  ]
+ },
+ "multiple|json": {
+  "n": 200,
+  "accepted": 197,
+  "regex_chars_median": 853,
+  "regex_chars_max": 1927,
+  "rejected": [
+   [
+    "multiple_8",
+    "[{\"name\": \"realestate.find_properties\", \"arguments\": {\"location\": \"SD\", \"propertyType\": \"villa\", \"bedrooms\": 3, \"budget\": {\"min\": [300000], \"max\": [40"
+   ],
+   [
+    "multiple_9",
+    "[{\"name\": \"calculate_average\", \"arguments\": {\"gradeDict\": {\"math\": [90], \"science\": [75], \"history\": [82], \"music\": [89]}}}]"
+   ],
+   [
+    "multiple_119",
+    "[{\"name\": \"database.query\", \"arguments\": {\"table\": \"user\", \"conditions\": [{\"field\": [\"age\"], \"operation\": [\">\"], \"value\": [\"25\"]}, {\"field\": [\"job\"], "
+   ]
+  ]
+ },
+ "parallel|python": {
+  "n": 200,
+  "accepted": 198,
+  "regex_chars_median": 275,
+  "regex_chars_max": 1097,
+  "rejected": [
+   [
+    "parallel_29",
+    "[waste_calculation.calculate(population={'adults': [2], 'children': [2], 'singles': [0]}, location='Los Angeles'), waste_calculation.calculate(populat"
+   ],
+   [
+    "parallel_142",
+    "[update_user_info(user_id=12345, update_info={'name': ['John'], 'email': ['example@.com']}, database='CustomerInfo'), update_user_info(user_id=67890, "
+   ]
+  ]
+ },
+ "parallel|json": {
+  "n": 200,
+  "accepted": 198,
+  "regex_chars_median": 305,
+  "regex_chars_max": 701,
+  "rejected": [
+   [
+    "parallel_29",
+    "[{\"name\": \"waste_calculation.calculate\", \"arguments\": {\"population\": {\"adults\": [2], \"children\": [2], \"singles\": [0]}, \"location\": \"Los Angeles\"}}, {\""
+   ],
+   [
+    "parallel_142",
+    "[{\"name\": \"update_user_info\", \"arguments\": {\"user_id\": 12345, \"update_info\": {\"name\": [\"John\"], \"email\": [\"example@.com\"]}, \"database\": \"CustomerInfo\""
+   ]
+  ]
+ },
+ "parallel_multiple|python": {
+  "n": 200,
+  "accepted": 193,
+  "regex_chars_median": 713,
+  "regex_chars_max": 2271,
+  "rejected": [
+   [
+    "parallel_multiple_21",
+    "[data_loading(file_path='dataset.csv', delimiter=','), linear_regression_fit(x=\"data['sales']\", y=\"data['future_sales']\", return_residuals=True)]"
+   ],
+   [
+    "parallel_multiple_26",
+    "[bank.get_transaction_history(account='00125648', days=7), bank.calculate_balance(account='00125648', transactions=[], type='credit')]"
+   ],
+   [
+    "parallel_multiple_65",
+    "[realestate.find_properties(location='San Francisco, CA', propertyType='condo', bedrooms=2, budget={'min': [500000], 'max': [800000]}), property_valua"
+   ],
+   [
+    "parallel_multiple_66",
+    "[calculate_average(gradeDict={'Math': [85], 'English': [90], 'Science': [88], 'History': [92], 'Art': [89]}), calculate_standard_deviation(gradeDict={"
+   ],
+   [
+    "parallel_multiple_94",
+    "[sort_list(elements=['apple', 'banana', 'cherry', 'date', 'elderberry'], order='desc'), filter_list(elements=['apple', 'banana', 'cherry', 'date', 'el"
+   ],
+   [
+    "parallel_multiple_135",
+    "[musical_scale(key='C', scale_type='major'), poker_game_winner(players=['John', 'Sarah', 'Mike'], cards={'John': [['2 of hearts', '3 of diamonds', '4 "
+   ],
+   [
+    "parallel_multiple_179",
+    "[update_user_info(user_id=12345, update_info={'name': ['John Doe'], 'email': ['johndoe@example.com']}, database='CustomerInfo'), soccer.get_last_match"
+   ]
+  ]
+ },
+ "parallel_multiple|json": {
+  "n": 200,
+  "accepted": 193,
+  "regex_chars_median": 761,
+  "regex_chars_max": 1763,
+  "rejected": [
+   [
+    "parallel_multiple_21",
+    "[{\"name\": \"data_loading\", \"arguments\": {\"file_path\": \"dataset.csv\", \"delimiter\": \",\"}}, {\"name\": \"linear_regression_fit\", \"arguments\": {\"x\": \"data['sa"
+   ],
+   [
+    "parallel_multiple_26",
+    "[{\"name\": \"bank.get_transaction_history\", \"arguments\": {\"account\": \"00125648\", \"days\": 7}}, {\"name\": \"bank.calculate_balance\", \"arguments\": {\"account\""
+   ],
+   [
+    "parallel_multiple_65",
+    "[{\"name\": \"realestate.find_properties\", \"arguments\": {\"location\": \"San Francisco, CA\", \"propertyType\": \"condo\", \"bedrooms\": 2, \"budget\": {\"min\": [5000"
+   ],
+   [
+    "parallel_multiple_66",
+    "[{\"name\": \"calculate_average\", \"arguments\": {\"gradeDict\": {\"Math\": [85], \"English\": [90], \"Science\": [88], \"History\": [92], \"Art\": [89]}}}, {\"name\": \""
+   ],
+   [
+    "parallel_multiple_94",
+    "[{\"name\": \"sort_list\", \"arguments\": {\"elements\": [\"apple\", \"banana\", \"cherry\", \"date\", \"elderberry\"], \"order\": \"desc\"}}, {\"name\": \"filter_list\", \"argu"
+   ],
+   [
+    "parallel_multiple_135",
+    "[{\"name\": \"musical_scale\", \"arguments\": {\"key\": \"C\", \"scale_type\": \"major\"}}, {\"name\": \"poker_game_winner\", \"arguments\": {\"players\": [\"John\", \"Sarah\","
+   ],
+   [
+    "parallel_multiple_179",
+    "[{\"name\": \"update_user_info\", \"arguments\": {\"user_id\": 12345, \"update_info\": {\"name\": [\"John Doe\"], \"email\": [\"johndoe@example.com\"]}, \"database\": \"Cu"
+   ]
+  ]
+ },
+ "live_simple|python": {
+  "n": 258,
+  "accepted": 231,
+  "regex_chars_median": 273,
+  "regex_chars_max": 9587,
+  "rejected": [
+   [
+    "live_simple_40-17-0",
+    "[ThinQ_Connect(body={'airConJobMode': ['AIR_CLEAN'], 'windStrength': ['HIGH'], 'monitoringEnabled': [True], 'airCleanOperationMode': ['POWER_ON'], 'po"
+   ],
+   [
+    "live_simple_41-17-1",
+    "[ThinQ_Connect(body={'airConJobMode': ['AIR_DRY'], 'windStrength': ['MID', ''], 'monitoringEnabled': ['', False], 'airCleanOperationMode': ['POWER_OFF"
+   ],
+   [
+    "live_simple_42-17-2",
+    "[ThinQ_Connect(body={'airConJobMode': ['', 'COOL'], 'windStrength': ['', 'MID'], 'monitoringEnabled': ['', False], 'airCleanOperationMode': ['POWER_OF"
+   ],
+   [
+    "live_simple_43-17-3",
+    "[ThinQ_Connect(body={'airConJobMode': ['', 'COOL'], 'windStrength': ['HIGH'], 'monitoringEnabled': ['', False], 'airCleanOperationMode': ['POWER_OFF',"
+   ],
+   [
+    "live_simple_44-18-0",
+    "[ThinQ_Connect(body={'currentJobMode': ['', 'COOL'], 'windStrength': ['', 'MID'], 'monitoringEnabled': ['', False], 'airCleanOperationMode': ['STOP', "
+   ],
+   [
+    "live_simple_45-18-1",
+    "[ThinQ_Connect(body={'currentJobMode': ['', 'COOL'], 'windStrength': ['', 'MID'], 'monitoringEnabled': ['', False], 'airCleanOperationMode': ['START']"
+   ],
+   [
+    "live_simple_51-23-0",
+    "[ThinQ_Connect(body={'airConJobMode': ['COOL'], 'windStrength': ['HIGH'], 'airConOperationMode': ['POWER_ON'], 'powerSaveEnabled': [True], 'targetTemp"
+   ],
+   [
+    "live_simple_52-23-1",
+    "[ThinQ_Connect(body={'airConJobMode': ['COOL'], 'windStrength': ['MID'], 'airConOperationMode': ['POWER_ON'], 'targetTemperature': [20], 'relativeHour"
+   ],
+   [
+    "live_simple_71-35-0",
+    "[extract_parameters_v1(demographics=['millennials'], targets=['brand:Apple'], metrics=['view'], min_date='2022-07-01')]"
+   ],
+   [
+    "live_simple_106-63-0",
+    "[record(acc_routing_start=['Please provide the routing number for my account.', 'Which account number should I use for setting up eStatements?', 'Plea"
+   ],
+   [
+    "live_simple_112-68-0",
+    "[record(outofscope=['what is the weather like'])]"
+   ],
+   [
+    "live_simple_114-70-0",
+    "[update_user_profile(user_id=12345, profile_data={'email': ['john.doe@example.com'], 'age': [30], 'bio': ['']})]"
+   ],
+   [
+    "live_simple_130-84-0",
+    "[requests.get(url='https://192.120.45.67/sedgeapi/v1/cisco-nir/api/api/telemetry/flowrules/interfaceInfo', params={'fabricName': ['Network1'], 'nodeId"
+   ],
+   [
+    "live_simple_131-84-1",
+    "[requests.get(url='https://192.120.45.67/sedgeapi/v1/cisco-nir/api/api/telemetry/flowrules/interfaceInfo', params={'fabricName': ['Network1'], 'nodeId"
+   ],
+   [
+    "live_simple_133-86-0",
+    "[requests.get(url='https://api.example.com/recommendations', params={'advisoryId': ['dac']})]"
+   ],
+   [
+    "live_simple_134-87-0",
+    "[requests.get(url='https://api.insights.com/groups', params={'limit': [20], 'sort': ['desc']})]"
+   ],
+   [
+    "live_simple_135-88-0",
+    "[requests.get(url='https://api.example.com/v1/data', params={'limit': [50]})]"
+   ],
+   [
+    "live_simple_136-89-0",
+    "[requests.get(url='https://192.168.1.1/api/v1/applications/topologies', params={'filter': ['accountName:AcmeCorp AND applicationName:SalesApp']})]"
+   ],
+   [
+    "live_simple_139-92-0",
+    "[requests.get(url='https://192.168.1.1/sedgeapi/v1/cisco-nir/api/api/v1/anomalies/summary', params={'fabric': ['network222'], 'insightsGroup': ['', 'd"
+   ],
+   [
+    "live_simple_145-95-2",
+    "[cmd_controller.execute(command='dir C:\\\\')]"
+   ],
+   [
+    "live_simple_148-95-5",
+    "[cmd_controller.execute(command='dir C:\\\\')]"
+   ],
+   [
+    "live_simple_152-95-9",
+    "[cmd_controller.execute(command='dir D:\\\\\\\\ && echo testing.txt')]"
+   ],
+   [
+    "live_simple_153-95-10",
+    "[cmd_controller.execute(command='del \"%userprofile%\\\\Desktop\\\\putty.lnk\"')]"
+   ],
+   [
+    "live_simple_156-95-13",
+    "[cmd_controller.execute(command='dir C:\\\\')]"
+   ],
+   [
+    "live_simple_165-98-0",
+    "[extractor.extract_information(data=[{'name': ['\u674e\u96f7'], 'age': [18]}, {'name': ['\u674e\u4e3d'], 'age': [21]}])]"
+   ],
+   [
+    "live_simple_170-99-4",
+    "[cmd_controller.execute(command='dir C:\\\\')]"
+   ],
+   [
+    "live_simple_189-114-0",
+    "[extractor.extract_information(data=[{'name': ['Chester'], 'age': [42]}, {'name': ['Jane'], 'age': [43]}])]"
+   ]
+  ]
+ },
+ "live_simple|json": {
+  "n": 258,
+  "accepted": 228,
+  "regex_chars_median": 273,
+  "regex_chars_max": 5945,
+  "rejected": [
+   [
+    "live_simple_40-17-0",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"airConJobMode\": [\"AIR_CLEAN\"], \"windStrength\": [\"HIGH\"], \"monitoringEnabled\": [true], \"airCleanOper"
+   ],
+   [
+    "live_simple_41-17-1",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"airConJobMode\": [\"AIR_DRY\"], \"windStrength\": [\"MID\", \"\"], \"monitoringEnabled\": [\"\", false], \"airCle"
+   ],
+   [
+    "live_simple_42-17-2",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"airConJobMode\": [\"\", \"COOL\"], \"windStrength\": [\"\", \"MID\"], \"monitoringEnabled\": [\"\", false], \"airCl"
+   ],
+   [
+    "live_simple_43-17-3",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"airConJobMode\": [\"\", \"COOL\"], \"windStrength\": [\"HIGH\"], \"monitoringEnabled\": [\"\", false], \"airClean"
+   ],
+   [
+    "live_simple_44-18-0",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"currentJobMode\": [\"\", \"COOL\"], \"windStrength\": [\"\", \"MID\"], \"monitoringEnabled\": [\"\", false], \"airC"
+   ],
+   [
+    "live_simple_45-18-1",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"currentJobMode\": [\"\", \"COOL\"], \"windStrength\": [\"\", \"MID\"], \"monitoringEnabled\": [\"\", false], \"airC"
+   ],
+   [
+    "live_simple_51-23-0",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"airConJobMode\": [\"COOL\"], \"windStrength\": [\"HIGH\"], \"airConOperationMode\": [\"POWER_ON\"], \"powerSave"
+   ],
+   [
+    "live_simple_52-23-1",
+    "[{\"name\": \"ThinQ_Connect\", \"arguments\": {\"body\": {\"airConJobMode\": [\"COOL\"], \"windStrength\": [\"MID\"], \"airConOperationMode\": [\"POWER_ON\"], \"targetTemp"
+   ],
+   [
+    "live_simple_71-35-0",
+    "[{\"name\": \"extract_parameters_v1\", \"arguments\": {\"demographics\": [\"millennials\"], \"targets\": [\"brand:Apple\"], \"metrics\": [\"view\"], \"min_date\": \"2022-0"
+   ],
+   [
+    "live_simple_89-50-0",
+    "[{\"name\": \"interior_design_analysis.generate_report\", \"arguments\": {\"user_preferences\": \"{\\\"style\\\": \\\"modern\\\", \\\"color_scheme\\\": \\\"warm\\\", \\\"budget\\"
+   ],
+   [
+    "live_simple_106-63-0",
+    "[{\"name\": \"record\", \"arguments\": {\"acc_routing_start\": [\"Please provide the routing number for my account.\", \"Which account number should I use for se"
+   ],
+   [
+    "live_simple_108-65-0",
+    "[{\"name\": \"record\", \"arguments\": {\"money_movement_start\": [\"Can you show me all outgoing wire transfers?\"], \"get_transactions_start\": [\"I need to view"
+   ],
+   [
+    "live_simple_112-68-0",
+    "[{\"name\": \"record\", \"arguments\": {\"outofscope\": [\"what is the weather like\"]}}]"
+   ],
+   [
+    "live_simple_114-70-0",
+    "[{\"name\": \"update_user_profile\", \"arguments\": {\"user_id\": 12345, \"profile_data\": {\"email\": [\"john.doe@example.com\"], \"age\": [30], \"bio\": [\"\"]}}}]"
+   ],
+   [
+    "live_simple_130-84-0",
+    "[{\"name\": \"requests.get\", \"arguments\": {\"url\": \"https://192.120.45.67/sedgeapi/v1/cisco-nir/api/api/telemetry/flowrules/interfaceInfo\", \"params\": {\"fa"
+   ],
+   [
+    "live_simple_131-84-1",
+    "[{\"name\": \"requests.get\", \"arguments\": {\"url\": \"https://192.120.45.67/sedgeapi/v1/cisco-nir/api/api/telemetry/flowrules/interfaceInfo\", \"params\": {\"fa"
+   ],
+   [
+    "live_simple_133-86-0",
+    "[{\"name\": \"requests.get\", \"arguments\": {\"url\": \"https://api.example.com/recommendations\", \"params\": {\"advisoryId\": [\"dac\"]}}}]"
+   ],
+   [
+    "live_simple_134-87-0",
+    "[{\"name\": \"requests.get\", \"arguments\": {\"url\": \"https://api.insights.com/groups\", \"params\": {\"limit\": [20], \"sort\": [\"desc\"]}}}]"
+   ],
+   [
+    "live_simple_135-88-0",
+    "[{\"name\": \"requests.get\", \"arguments\": {\"url\": \"https://api.example.com/v1/data\", \"params\": {\"limit\": [50]}}}]"
+   ],
+   [
+    "live_simple_136-89-0",
+    "[{\"name\": \"requests.get\", \"arguments\": {\"url\": \"https://192.168.1.1/api/v1/applications/topologies\", \"params\": {\"filter\": [\"accountName:AcmeCorp AND a"
+   ],
+   [
+    "live_simple_139-92-0",
+    "[{\"name\": \"requests.get\", \"arguments\": {\"url\": \"https://192.168.1.1/sedgeapi/v1/cisco-nir/api/api/v1/anomalies/summary\", \"params\": {\"fabric\": [\"networ"
+   ],
+   [
+    "live_simple_145-95-2",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"dir C:\\\\\"}}]"
+   ],
+   [
+    "live_simple_148-95-5",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"dir C:\\\\\"}}]"
+   ],
+   [
+    "live_simple_152-95-9",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"dir D:\\\\\\\\ && echo testing.txt\"}}]"
+   ],
+   [
+    "live_simple_153-95-10",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"del \\\"%userprofile%\\\\Desktop\\\\putty.lnk\\\"\"}}]"
+   ],
+   [
+    "live_simple_156-95-13",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"dir C:\\\\\"}}]"
+   ],
+   [
+    "live_simple_165-98-0",
+    "[{\"name\": \"extractor.extract_information\", \"arguments\": {\"data\": [{\"name\": [\"\u674e\u96f7\"], \"age\": [18]}, {\"name\": [\"\u674e\u4e3d\"], \"age\": [21]}]}}]"
+   ],
+   [
+    "live_simple_167-99-1",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"tasklist /FI \\\"IMAGENAME eq Code.exe\\\"\"}}]"
+   ],
+   [
+    "live_simple_170-99-4",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"dir C:\\\\\"}}]"
+   ],
+   [
+    "live_simple_189-114-0",
+    "[{\"name\": \"extractor.extract_information\", \"arguments\": {\"data\": [{\"name\": [\"Chester\"], \"age\": [42]}, {\"name\": [\"Jane\"], \"age\": [43]}]}}]"
+   ]
+  ]
+ },
+ "live_multiple|python": {
+  "n": 1053,
+  "accepted": 1024,
+  "regex_chars_median": 2193,
+  "regex_chars_max": 21797,
+  "rejected": [
+   [
+    "live_multiple_0-0-0",
+    "[ChaDri.change_drink(drink_id='latte', new_preferences={'size': ['large'], 'milk_type': ['coconut'], 'sweetness_level': ['extra'], 'temperature': ['ho"
+   ],
+   [
+    "live_multiple_1-0-1",
+    "[ChaDri.change_drink(drink_id='1234', new_preferences={'sweetness_level': ['none'], 'temperature': ['hot']})]"
+   ],
+   [
+    "live_multiple_44-17-0",
+    "[BankStatementOverView(bank_name='U.S. Bank', account_number='1-523-1713-5704', account_type='checking', full_name='SILVER BUSINESS CHECKING', transac"
+   ],
+   [
+    "live_multiple_63-25-0",
+    "[uber.eat.order(restaurant_id=\"McDonald's\", items=[{'item': ['burgers'], 'quantity': [5]}, {'item': ['chicken wings'], 'quantity': [6]}])]"
+   ],
+   [
+    "live_multiple_64-26-0",
+    "[uber.eat.order(restaurant_id=\"McDonald's\", items=[{'item_id': ['burger123'], 'quantity': [5]}, {'item_id': ['wing456'], 'quantity': [6]}])]"
+   ],
+   [
+    "live_multiple_87-38-4",
+    "[list_servers(type='openai')]"
+   ],
+   [
+    "live_multiple_121-46-0",
+    "[get_headway(ego_info={'position': [{'lateral': 10.5, 'longitudinal': 50}], 'orientation': [30]}, lane_info={'lane_id': ['L123'], 'lane_type': ['regul"
+   ],
+   [
+    "live_multiple_144-56-0",
+    "[get_sensor_readings_latest(metrics=['temperature'])]"
+   ],
+   [
+    "live_multiple_152-58-6",
+    "[get_sensor_readings_latest(perPage=100, networkId=['office-network-001'], metrics=['temperature', 'humidity'])]"
+   ],
+   [
+    "live_multiple_180-76-0",
+    "[order_processing.handle_order(order_id='ORD123', items=['ITM456', 'ITM789'], customer_info={'customer_id': ['CUST001'], 'shipping_address': ['123 Map"
+   ],
+   [
+    "live_multiple_189-83-0",
+    "[sendHttpRequest(method='POST', url='https://httpbin.org/post', headers={'Content-Type': ['application/json']}, data={'name': ['John Doe'], 'email': ["
+   ],
+   [
+    "live_multiple_507-149-4",
+    "[Flights_4_SearchOnewayFlight(destination_airport='New York', departure_date='2023-03-14', number_of_tickets=1)]"
+   ],
+   [
+    "live_multiple_552-153-1",
+    "[Services_1_FindProvider(city='Walnut Creek', is_unisex=True)]"
+   ],
+   [
+    "live_multiple_595-158-1",
+    "[Hotels_4_SearchHotel(location='New York, NY', star_rating='3', smoking_allowed=True, number_of_rooms=2)]"
+   ],
+   [
+    "live_multiple_596-158-2",
+    "[Hotels_4_SearchHotel(location='San Francisco, CA', number_of_rooms=1)]"
+   ],
+   [
+    "live_multiple_731-167-2",
+    "[Homes_2_FindHomeByArea(area='San Francisco, CA', intent='rent', number_of_beds=3, number_of_baths=2, has_garage=True, in_unit_laundry=True)]"
+   ],
+   [
+    "live_multiple_733-167-4",
+    "[Homes_2_FindHomeByArea(area='San Francisco, CA', intent='rent', number_of_beds=2, number_of_baths=1, has_garage=False, in_unit_laundry=True)]"
+   ],
+   [
+    "live_multiple_735-167-6",
+    "[Homes_2_FindHomeByArea(area='Castro Valley, CA', intent='rent', number_of_beds=2, number_of_baths=1, in_unit_laundry=True)]"
+   ],
+   [
+    "live_multiple_750-169-5",
+    "[Media_3_FindMovies(genre='Any', starring='Madge Brindley')]"
+   ],
+   [
+    "live_multiple_756-169-11",
+    "[Media_3_FindMovies(genre='horror', starring='Betsy Widhalm')]"
+   ],
+   [
+    "live_multiple_834-178-9",
+    "[Music_3_PlayMedia(artist='Teodora', device='Kitchen', album='Borbena')]"
+   ],
+   [
+    "live_multiple_835-178-10",
+    "[Music_3_LookupMusic(album='Reincarnation', genre='Reggaeton', year='2019')]"
+   ],
+   [
+    "live_multiple_862-181-3",
+    "[Trains_1_FindTrains(_from='New York, NY', to='Los Angeles, CA', date_of_journey='05/15/2023', journey_start_time='09:00')]"
+   ],
+   [
+    "live_multiple_871-182-8",
+    "[Movies_1_FindMovies(location='Berkeley, CA', theater_name='Shattuck Cinemas', genre='Play')]"
+   ],
+   [
+    "live_multiple_947-197-0",
+    "[set_countdown(duration='5 minutes')]"
+   ],
+   [
+    "live_multiple_964-207-0",
+    "[transfer_to_human_agent(question='Can you tell me what is the minimum package arrival time?')]"
+   ],
+   [
+    "live_multiple_996-227-0",
+    "[add_service_config(service_name='fdsa', configurations={'timeout': [30], 'retry_count': [5], 'endpoint': ['https://api.fdsa-service.com'], 'auth_requ"
+   ],
+   [
+    "live_multiple_1038-265-0",
+    "[detail_project(project_name='invoice-website', include_status=True, start_date=None)]"
+   ],
+   [
+    "live_multiple_1041-268-0",
+    "[get_sensor_readings_history_by_interval(perPage=10, metrics=['temperature'], timespan=36000, t0=None, t1=None, interval=86400)]"
+   ]
+  ]
+ },
+ "live_multiple|json": {
+  "n": 1053,
+  "accepted": 1024,
+  "regex_chars_median": 1713,
+  "regex_chars_max": 15575,
+  "rejected": [
+   [
+    "live_multiple_0-0-0",
+    "[{\"name\": \"ChaDri.change_drink\", \"arguments\": {\"drink_id\": \"latte\", \"new_preferences\": {\"size\": [\"large\"], \"milk_type\": [\"coconut\"], \"sweetness_level\""
+   ],
+   [
+    "live_multiple_1-0-1",
+    "[{\"name\": \"ChaDri.change_drink\", \"arguments\": {\"drink_id\": \"1234\", \"new_preferences\": {\"sweetness_level\": [\"none\"], \"temperature\": [\"hot\"]}}}]"
+   ],
+   [
+    "live_multiple_44-17-0",
+    "[{\"name\": \"BankStatementOverView\", \"arguments\": {\"bank_name\": \"U.S. Bank\", \"account_number\": \"1-523-1713-5704\", \"account_type\": \"checking\", \"full_name"
+   ],
+   [
+    "live_multiple_63-25-0",
+    "[{\"name\": \"uber.eat.order\", \"arguments\": {\"restaurant_id\": \"McDonald's\", \"items\": [{\"item\": [\"burgers\"], \"quantity\": [5]}, {\"item\": [\"chicken wings\"],"
+   ],
+   [
+    "live_multiple_64-26-0",
+    "[{\"name\": \"uber.eat.order\", \"arguments\": {\"restaurant_id\": \"McDonald's\", \"items\": [{\"item_id\": [\"burger123\"], \"quantity\": [5]}, {\"item_id\": [\"wing456\""
+   ],
+   [
+    "live_multiple_87-38-4",
+    "[{\"name\": \"list_servers\", \"arguments\": {\"type\": \"openai\"}}]"
+   ],
+   [
+    "live_multiple_121-46-0",
+    "[{\"name\": \"get_headway\", \"arguments\": {\"ego_info\": {\"position\": [{\"lateral\": 10.5, \"longitudinal\": 50}], \"orientation\": [30]}, \"lane_info\": {\"lane_id\""
+   ],
+   [
+    "live_multiple_144-56-0",
+    "[{\"name\": \"get_sensor_readings_latest\", \"arguments\": {\"metrics\": [\"temperature\"]}}]"
+   ],
+   [
+    "live_multiple_152-58-6",
+    "[{\"name\": \"get_sensor_readings_latest\", \"arguments\": {\"perPage\": 100, \"networkId\": [\"office-network-001\"], \"metrics\": [\"temperature\", \"humidity\"]}}]"
+   ],
+   [
+    "live_multiple_180-76-0",
+    "[{\"name\": \"order_processing.handle_order\", \"arguments\": {\"order_id\": \"ORD123\", \"items\": [\"ITM456\", \"ITM789\"], \"customer_info\": {\"customer_id\": [\"CUST0"
+   ],
+   [
+    "live_multiple_189-83-0",
+    "[{\"name\": \"sendHttpRequest\", \"arguments\": {\"method\": \"POST\", \"url\": \"https://httpbin.org/post\", \"headers\": {\"Content-Type\": [\"application/json\"]}, \"da"
+   ],
+   [
+    "live_multiple_507-149-4",
+    "[{\"name\": \"Flights_4_SearchOnewayFlight\", \"arguments\": {\"destination_airport\": \"New York\", \"departure_date\": \"2023-03-14\", \"number_of_tickets\": 1}}]"
+   ],
+   [
+    "live_multiple_552-153-1",
+    "[{\"name\": \"Services_1_FindProvider\", \"arguments\": {\"city\": \"Walnut Creek\", \"is_unisex\": true}}]"
+   ],
+   [
+    "live_multiple_595-158-1",
+    "[{\"name\": \"Hotels_4_SearchHotel\", \"arguments\": {\"location\": \"New York, NY\", \"star_rating\": \"3\", \"smoking_allowed\": true, \"number_of_rooms\": 2}}]"
+   ],
+   [
+    "live_multiple_596-158-2",
+    "[{\"name\": \"Hotels_4_SearchHotel\", \"arguments\": {\"location\": \"San Francisco, CA\", \"number_of_rooms\": 1}}]"
+   ],
+   [
+    "live_multiple_731-167-2",
+    "[{\"name\": \"Homes_2_FindHomeByArea\", \"arguments\": {\"area\": \"San Francisco, CA\", \"intent\": \"rent\", \"number_of_beds\": 3, \"number_of_baths\": 2, \"has_garag"
+   ],
+   [
+    "live_multiple_733-167-4",
+    "[{\"name\": \"Homes_2_FindHomeByArea\", \"arguments\": {\"area\": \"San Francisco, CA\", \"intent\": \"rent\", \"number_of_beds\": 2, \"number_of_baths\": 1, \"has_garag"
+   ],
+   [
+    "live_multiple_735-167-6",
+    "[{\"name\": \"Homes_2_FindHomeByArea\", \"arguments\": {\"area\": \"Castro Valley, CA\", \"intent\": \"rent\", \"number_of_beds\": 2, \"number_of_baths\": 1, \"in_unit_l"
+   ],
+   [
+    "live_multiple_750-169-5",
+    "[{\"name\": \"Media_3_FindMovies\", \"arguments\": {\"genre\": \"Any\", \"starring\": \"Madge Brindley\"}}]"
+   ],
+   [
+    "live_multiple_756-169-11",
+    "[{\"name\": \"Media_3_FindMovies\", \"arguments\": {\"genre\": \"horror\", \"starring\": \"Betsy Widhalm\"}}]"
+   ],
+   [
+    "live_multiple_834-178-9",
+    "[{\"name\": \"Music_3_PlayMedia\", \"arguments\": {\"artist\": \"Teodora\", \"device\": \"Kitchen\", \"album\": \"Borbena\"}}]"
+   ],
+   [
+    "live_multiple_835-178-10",
+    "[{\"name\": \"Music_3_LookupMusic\", \"arguments\": {\"album\": \"Reincarnation\", \"genre\": \"Reggaeton\", \"year\": \"2019\"}}]"
+   ],
+   [
+    "live_multiple_862-181-3",
+    "[{\"name\": \"Trains_1_FindTrains\", \"arguments\": {\"_from\": \"New York, NY\", \"to\": \"Los Angeles, CA\", \"date_of_journey\": \"05/15/2023\", \"journey_start_time\""
+   ],
+   [
+    "live_multiple_871-182-8",
+    "[{\"name\": \"Movies_1_FindMovies\", \"arguments\": {\"location\": \"Berkeley, CA\", \"theater_name\": \"Shattuck Cinemas\", \"genre\": \"Play\"}}]"
+   ],
+   [
+    "live_multiple_947-197-0",
+    "[{\"name\": \"set_countdown\", \"arguments\": {\"duration\": \"5 minutes\"}}]"
+   ],
+   [
+    "live_multiple_964-207-0",
+    "[{\"name\": \"transfer_to_human_agent\", \"arguments\": {\"question\": \"Can you tell me what is the minimum package arrival time?\"}}]"
+   ],
+   [
+    "live_multiple_996-227-0",
+    "[{\"name\": \"add_service_config\", \"arguments\": {\"service_name\": \"fdsa\", \"configurations\": {\"timeout\": [30], \"retry_count\": [5], \"endpoint\": [\"https://ap"
+   ],
+   [
+    "live_multiple_1038-265-0",
+    "[{\"name\": \"detail_project\", \"arguments\": {\"project_name\": \"invoice-website\", \"include_status\": true, \"start_date\": null}}]"
+   ],
+   [
+    "live_multiple_1041-268-0",
+    "[{\"name\": \"get_sensor_readings_history_by_interval\", \"arguments\": {\"perPage\": 10, \"metrics\": [\"temperature\"], \"timespan\": 36000, \"t0\": null, \"t1\": nul"
+   ]
+  ]
+ },
+ "live_parallel|python": {
+  "n": 16,
+  "accepted": 15,
+  "regex_chars_median": 267,
+  "regex_chars_max": 735,
+  "rejected": [
+   [
+    "live_parallel_15-11-0",
+    "[cmd_controller.execute(command='dir c:\\\\'), cmd_controller.execute(command='echo.>C:\\\\testing.txt')]"
+   ]
+  ]
+ },
+ "live_parallel|json": {
+  "n": 16,
+  "accepted": 15,
+  "regex_chars_median": 251,
+  "regex_chars_max": 571,
+  "rejected": [
+   [
+    "live_parallel_15-11-0",
+    "[{\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"dir c:\\\\\"}}, {\"name\": \"cmd_controller.execute\", \"arguments\": {\"command\": \"echo.>C:\\\\test"
+   ]
+  ]
+ },
+ "live_parallel_multiple|python": {
+  "n": 24,
+  "accepted": 22,
+  "regex_chars_median": 1179,
+  "regex_chars_max": 5683,
+  "rejected": [
+   [
+    "live_parallel_multiple_0-0-0",
+    "[ChaFod(foodItem='Caesar salad', removeIngredients='anchovies'), ChaDri.change_drink(drink_id='123', new_preferences={'size': ['large'], 'temperature'"
+   ],
+   [
+    "live_parallel_multiple_2-2-0",
+    "[ControlAppliance.execute(command='\uac70\uc2e4, \uc5d0\uc5b4\ucee8, \uc2e4\ud589'), ControlAppliance.execute(command='\uce68\uc2e4, \uacf5\uae30\uccad\uc815\uae30, \uc911\uc9c0')]"
+   ]
+  ]
+ },
+ "live_parallel_multiple|json": {
+  "n": 24,
+  "accepted": 22,
+  "regex_chars_median": 1231,
+  "regex_chars_max": 4385,
+  "rejected": [
+   [
+    "live_parallel_multiple_0-0-0",
+    "[{\"name\": \"ChaFod\", \"arguments\": {\"foodItem\": \"Caesar salad\", \"removeIngredients\": \"anchovies\"}}, {\"name\": \"ChaDri.change_drink\", \"arguments\": {\"drink"
+   ],
+   [
+    "live_parallel_multiple_2-2-0",
+    "[{\"name\": \"ControlAppliance.execute\", \"arguments\": {\"command\": \"\uac70\uc2e4, \uc5d0\uc5b4\ucee8, \uc2e4\ud589\"}}, {\"name\": \"ControlAppliance.execute\", \"arguments\": {\"command\": \"\uce68\uc2e4, \uacf5\uae30\uccad"
+   ]
+  ]
+ }
+}
