@@ -199,14 +199,21 @@ def main():
                 lz = np.concatenate(lz); toks = np.concatenate(toks); lws = np.concatenate(lws); fin = np.isfinite(lz); z = np.exp(lz[fin] - lz[fin].max())
                 picks = [toks[i, int(np.argmax(lws[i] + np.random.default_rng(i).gumbel(size=lws.shape[1])))] for i in range(len(toks)) if fin[i]]
                 chk = [check(r, p.tolist()) for p in picks]
+                def same_object(text):
+                    try:
+                        return json.loads(text) == json.loads(r["completion"])
+                    except Exception:
+                        return False
                 res["compare"][key][name] = dict(N=N, n=int(fin.sum()), log_mean_Z=float(lz[fin].max() + math.log(z.mean())), mean_logZ=float(lz[fin].mean()), sd_logZ=float(lz[fin].std(ddof=1)),
                                                  spread=float(z.std(ddof=1) / z.mean()), matches=float(np.mean([bool(c[1]) for c in chk])) if tokfile is not None else None,
                                                  parses=float(np.mean([bool(c[2]) for c in chk])) if tokfile is not None else None, exact_reference=float(np.mean([c[0].strip() == r["completion"].strip() for c in chk])) if tokfile is not None else None,
                                                  seconds=round(time.time() - t0, 1), denoiser_batches=den.calls - c0, resamplings=float(np.nanmean(nres)) if nres else None,
-                                                 logZ=[float(v) for v in lz], example=chk[0][0][:300] if chk else "")
+                                                 logZ=[float(v) for v in lz], example=chk[0][0][:300] if chk else "", K=a.K,
+                                                 equal_object=float(np.mean([same_object(c[0]) for c in chk])) if tokfile is not None and chk else None,
+                                                 outputs=[c[0] for c in chk])
                 save(); s = res["compare"][key][name]
                 print(f"[{time.time() - t00:6.0f}s] {key:>3s} N {N:3d} A {r['classes']:3d} {name:38s} log Z {s['log_mean_Z']:8.2f}  mean log Z {s['mean_logZ']:8.2f}  sd log Z {s['sd_logZ']:.2f}  spread {s['spread']:.2f}  "
-                      f"matches {s['matches']}  equals reference {s['exact_reference']}  {s['seconds']:.0f} s  (table agreement {agree:.2f})", flush=True)
+                      f"matches {s['matches']}  equals reference {s['exact_reference']} (as object {s['equal_object']})  {s['seconds']:.0f} s  (table agreement {agree:.2f})", flush=True)
     print(f"done in {time.time() - t00:.0f}s")
 
 
