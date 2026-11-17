@@ -1,0 +1,35 @@
+{
+ "args": {
+  "N": 10,
+  "model": "hidden_0.85",
+  "constraint": "dyck",
+  "proposal": "chain",
+  "match": 0,
+  "pilot": 2000,
+  "out": "../../overnight/rev/rev_dyck_chain_N10.json"
+ },
+ "provenance": {
+  "commit": "7b5a663",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:44"
+ },
+ "log_pC": -3.7786263426493756,
+ "kl": {
+  "random": 0.051885876179806445,
+  "optimal": 0.0008766616065085367,
+  "greedy_true_error": 0.006657753466425503,
+  "greedy_half_variance_of_revision": 0.0273943594611167,
+  "greedy_one_step_corrected": 0.027394359461117797,
+  "greedy_mean_revision": 0.013205221635575585,
+  "least_tilted": 0.023968252678130745
+ },
+ "rank": {
+  "half_variance_of_revision": 0.7999999999999999,
+  "one_step_corrected": 0.6000000000000001,
+  "mean_revision": 0.19999999999999998,
+  "tilt": -0.4285714285714286
+ },
+ "identity_max_abs_error": 2.48246887365213e-13
+}

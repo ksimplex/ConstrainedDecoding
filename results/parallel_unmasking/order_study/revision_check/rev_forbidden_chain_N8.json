@@ -1,0 +1,35 @@
+{
+ "args": {
+  "N": 8,
+  "model": "hidden_0.85",
+  "constraint": "forbidden",
+  "proposal": "chain",
+  "match": 0,
+  "pilot": 2000,
+  "out": "../../overnight/rev/rev_forbidden_chain_N8.json"
+ },
+ "provenance": {
+  "commit": "7b5a663",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:44"
+ },
+ "log_pC": -1.3093754841219079,
+ "kl": {
+  "random": 0.04389783760767765,
+  "optimal": 0.006694523969964688,
+  "greedy_true_error": 0.00782646067291443,
+  "greedy_half_variance_of_revision": 0.008653260436527449,
+  "greedy_one_step_corrected": 0.00861420746156404,
+  "greedy_mean_revision": 0.018679242046767984,
+  "least_tilted": 0.057947063963049814
+ },
+ "rank": {
+  "half_variance_of_revision": 0.8999999999999998,
+  "one_step_corrected": 0.8999999999999998,
+  "mean_revision": 0.2571428571428572,
+  "tilt": -0.39999999999999997
+ },
+ "identity_max_abs_error": 2.0909662890034042e-13
+}

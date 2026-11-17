@@ -1,0 +1,35 @@
+{
+ "args": {
+  "N": 8,
+  "model": "hidden_0.85",
+  "constraint": "window_small",
+  "proposal": "product",
+  "match": 0,
+  "pilot": 2000,
+  "out": "../../overnight/rev/rev_window_small_product_N8.json"
+ },
+ "provenance": {
+  "commit": "7b5a663",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:44"
+ },
+ "log_pC": -1.5646474880327126,
+ "kl": {
+  "random": 0.3715761517745492,
+  "optimal": 0.023941361996786287,
+  "greedy_true_error": 0.024942996189866687,
+  "greedy_half_variance_of_revision": 0.08434593688671616,
+  "greedy_one_step_corrected": 0.08433306691270429,
+  "greedy_mean_revision": 0.08042551555620882,
+  "least_tilted": 0.8390185176454329
+ },
+ "rank": {
+  "half_variance_of_revision": 0.8999999999999998,
+  "one_step_corrected": 0.8999999999999998,
+  "mean_revision": 0.7999999999999999,
+  "tilt": -0.6000000000000001
+ },
+ "identity_max_abs_error": 3.5265394314239966e-13
+}

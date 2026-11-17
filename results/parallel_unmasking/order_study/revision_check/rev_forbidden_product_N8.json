@@ -1,0 +1,35 @@
+{
+ "args": {
+  "N": 8,
+  "model": "hidden_0.85",
+  "constraint": "forbidden",
+  "proposal": "product",
+  "match": 0,
+  "pilot": 2000,
+  "out": "../../overnight/rev/rev_forbidden_product_N8.json"
+ },
+ "provenance": {
+  "commit": "7b5a663",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:44"
+ },
+ "log_pC": -1.3093754841219079,
+ "kl": {
+  "random": 0.3041397845105977,
+  "optimal": 0.14009526410915635,
+  "greedy_true_error": 0.1558868863675661,
+  "greedy_half_variance_of_revision": 0.16076109385378728,
+  "greedy_one_step_corrected": 0.16321686325723134,
+  "greedy_mean_revision": 0.17015716254267294,
+  "least_tilted": 0.5126618296540131
+ },
+ "rank": {
+  "half_variance_of_revision": 0.9999999999999999,
+  "one_step_corrected": 0.9999999999999999,
+  "mean_revision": 0.39999999999999997,
+  "tilt": -0.7999999999999999
+ },
+ "identity_max_abs_error": 3.636247776444949e-13
+}

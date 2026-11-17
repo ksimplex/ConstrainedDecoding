@@ -1,0 +1,35 @@
+{
+ "args": {
+  "N": 8,
+  "model": "hidden_0.85",
+  "constraint": "counting",
+  "proposal": "chain",
+  "match": 0,
+  "pilot": 2000,
+  "out": "../../overnight/rev/rev_counting_chain_N8.json"
+ },
+ "provenance": {
+  "commit": "7b5a663",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:44"
+ },
+ "log_pC": -1.9194932944914846,
+ "kl": {
+  "random": 0.03905742296545194,
+  "optimal": 0.006901528059790019,
+  "greedy_true_error": 0.009225880404917772,
+  "greedy_half_variance_of_revision": 0.07242365951893961,
+  "greedy_one_step_corrected": 0.06366271907488343,
+  "greedy_mean_revision": 0.047524723524857176,
+  "least_tilted": 0.028639189744064375
+ },
+ "rank": {
+  "half_variance_of_revision": 0.39999999999999997,
+  "one_step_corrected": 0.39999999999999997,
+  "mean_revision": 0.0,
+  "tilt": 0.19999999999999998
+ },
+ "identity_max_abs_error": 2.5056526186386716e-13
+}

@@ -1,0 +1,35 @@
+{
+ "args": {
+  "N": 8,
+  "model": "hidden_0.85",
+  "constraint": "counting",
+  "proposal": "product",
+  "match": 0,
+  "pilot": 2000,
+  "out": "../../overnight/rev/rev_counting_product_N8.json"
+ },
+ "provenance": {
+  "commit": "7b5a663",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:44"
+ },
+ "log_pC": -1.9194932944914846,
+ "kl": {
+  "random": 0.026401957436332155,
+  "optimal": 0.007043554646513574,
+  "greedy_true_error": 0.01175363787583651,
+  "greedy_half_variance_of_revision": 0.02928807458066349,
+  "greedy_one_step_corrected": 0.02941442432362461,
+  "greedy_mean_revision": 0.030377710984566732,
+  "least_tilted": 0.0361829019552789
+ },
+ "rank": {
+  "half_variance_of_revision": 0.08571428571428573,
+  "one_step_corrected": 0.09999999999999999,
+  "mean_revision": -0.19999999999999998,
+  "tilt": 0.19999999999999998
+ },
+ "identity_max_abs_error": 3.5591668501311347e-13
+}

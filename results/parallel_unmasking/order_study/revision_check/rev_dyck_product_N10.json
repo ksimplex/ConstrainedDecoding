@@ -1,0 +1,35 @@
+{
+ "args": {
+  "N": 10,
+  "model": "hidden_0.85",
+  "constraint": "dyck",
+  "proposal": "product",
+  "match": 0,
+  "pilot": 2000,
+  "out": "../../overnight/rev/rev_dyck_product_N10.json"
+ },
+ "provenance": {
+  "commit": "7b5a663",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:44"
+ },
+ "log_pC": -3.7786263426493756,
+ "kl": {
+  "random": 0.276080321768116,
+  "optimal": 0.06317721269938191,
+  "greedy_true_error": 0.0758595449059915,
+  "greedy_half_variance_of_revision": 0.1926020355529358,
+  "greedy_one_step_corrected": 0.19260203555292926,
+  "greedy_mean_revision": 0.07379365747203516,
+  "least_tilted": 0.4036489973483316
+ },
+ "rank": {
+  "half_variance_of_revision": 0.7,
+  "one_step_corrected": 0.6,
+  "mean_revision": 0.39999999999999997,
+  "tilt": -0.6
+ },
+ "identity_max_abs_error": 3.5384835436903174e-13
+}
