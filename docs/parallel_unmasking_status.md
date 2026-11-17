@@ -2880,6 +2880,65 @@ The rule used so far for the number of particles K at a tolerance on the KL of t
   must fit under the tolerance by itself, and with a bias present the expansion has a cross term of order 1/K (not checked).
 - Not checked: the sampler with resampling; 64 positions (Var_pi(w) needs the third moment of the weights, which 300 decodes do not give reliably).
 
+## 36aj. Exact ideal-order search at 12 to 14 positions (cluster job `62d152d8`, CPU, 2026-11-17) [exact; ratio-formula chain, before matching]
+
+Same computation as sections 36s, 36t and 36w, two positions longer. KL of the sampler from the exact constrained law; columns after the optimum are multiples of it (lower is better).
+
+| constraint | model | N | proposal | optimal (nats) | random | ideal greedy | best fixed order | plan in fitted second-order chain |
+|---|---|---|---|---|---|---|---|---|
+| counting | chain_0.85 | 12 | chain | 0.0012 | 327.03 | 90.30 | 1.10 | 1.07 |
+| counting | chain_0.85 | 12 | product | 0.2565 | 3.88 | 3.31 | 1.65 | 1.00 |
+| counting | hidden_0.85 | 12 | chain | 0.0101 | 7.59 | 2.51 | 2.39 | 3.01 |
+| counting | hidden_0.85 | 12 | product | 0.0397 | 2.84 | 1.90 | 1.68 | 1.48 |
+| dyck | chain_0.85 | 14 | chain | 0.0001 | 1017.89 | 31.36 | 1.05 | 12.80 |
+| dyck | chain_0.85 | 14 | product | 0.7615 | 3.89 | 1.71 | 1.16 | 1.02 |
+| dyck | hidden_0.85 | 14 | chain | 0.0027 | 38.93 | 4.08 | 6.97 | 6.15 |
+| dyck | hidden_0.85 | 14 | product | 0.0777 | 5.18 | 1.32 | 1.54 | 1.28 |
+| forbidden | hidden_0.85 | 12 | chain | 0.0114 | 5.91 | 1.29 | 2.19 | 2.03 |
+| forbidden | hidden_0.85 | 12 | product | 0.1839 | 2.63 | 1.09 | 1.08 | 1.13 |
+| two_window_small | hidden_0.85 | 12 | chain | 0.0006 | 383.43 | 1.40 | 1.40 | 3.98 |
+| two_window_small | hidden_0.85 | 12 | product | 0.0322 | 17.95 | 1.68 | 1.00 | 1.19 |
+| window_small | hidden_0.85 | 12 | chain | 0.0113 | 20.02 | 1.19 | 1.13 | 1.65 |
+| window_small | hidden_0.85 | 12 | product | 0.0239 | 19.35 | 2.17 | 1.00 | 1.19 |
+
+- Hidden chain, chain proposal: the surrogate plan is worse than ideal greedy in 5 of 5 cells; with the product proposal it is better in 4 of 5. Same pattern as at 10 to 12 positions and on the stress oracle (section 36aa).
+- The chain proposal's optimum is 2 to 54 times below the product proposal's on the hidden chain; ideal greedy is within 0.016 nats of the optimum there.
+- Nothing here changes the decision to stop work on the sequential order.
+
+## 36ak. MDLM: planned orders at the output level; first run of the chain proposal invalid (cluster job `509cb7d3`, one L40S on node3203, 2026-11-17) [measured; 64 and 48 sequences per arm]
+
+Script `mdlm_orders_output.py`. **Bug:** `fit_pair_kernel` mapped the class sequences of the native sampler to classes a second time, so on a real model
+the pair table was degenerate (two uniform rows, one row with all mass on class 2). The oracle path was not affected. Fixed in commit `7d21225` with a
+regression test; the chain and matched-chain arms and the constrained output rows of this job are void and are being rerun (job `e3bec63c`).
+
+**Valid: unconstrained outputs by order** (single-particle decodes; distinct = share of distinct tokens in a sequence; repeat = share of tokens equal to their left
+neighbour; log p = mean log-probability per token scored along fresh uniformly random orders, which rises with repetition and is not a quality score).
+
+| tokens | order | distinct | repeat | log p per token |
+|---|---|---|---|---|
+| 128 | uniformly random | 0.478 +- 0.026 | 0.078 +- 0.025 | -3.82 +- 0.16 |
+| 128 | sum sequential | 0.347 +- 0.025 | 0.218 +- 0.039 | -2.85 +- 0.17 |
+| 128 | lex sequential | 0.332 +- 0.031 | 0.192 +- 0.040 | -2.80 +- 0.20 |
+| 128 | left to right | 0.217 +- 0.021 | 0.366 +- 0.049 | -1.91 +- 0.16 |
+| 256 | uniformly random | 0.571 +- 0.017 | 0.019 +- 0.003 | -4.19 +- 0.10 |
+| 256 | sum sequential | 0.561 +- 0.023 | 0.039 +- 0.012 | -4.29 +- 0.13 |
+| 256 | lex sequential | 0.523 +- 0.023 | 0.046 +- 0.017 | -3.93 +- 0.15 |
+| 256 | left to right | 0.225 +- 0.023 | 0.382 +- 0.049 | -2.12 +- 0.20 |
+
+- Left to right degenerates into repetition at both lengths.
+- `sum` and `lex` coincide without a constraint (most coupled first). They are close to the random order at 256 tokens and more repetitive at 128, where this checkpoint is weak (section 36v).
+
+**Valid: wall time per arm** (48 runs of 8 particles, one token per step; no extra denoiser calls for the chain law).
+
+| tokens | schedule | product | chain | matched chain (30 sweeps) |
+|---|---|---|---|---|
+| 128 | fixed 1/step | 33 s | 52 s | 54 s |
+| 128 | sum sequential | 38 s | 57 s | 60 s |
+| 256 | fixed 1/step | 136 s | 257 s | 263 s |
+| 256 | sum sequential | 165 s | 284 s | 292 s |
+
+- The chain twist adds 50 to 90% wall time over the product twist on this 130M-parameter denoiser; matching adds a few percent on the GPU. Not profiled.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2

@@ -22,6 +22,8 @@ The evidence for a failed job is `slurm-<id>.out` in its working directory
 | 2026-11-16 05:08 | b41c1480 | 29302027 | node3203 | Timing at `7395e53`, pinned with `-w node3203`, storage check first | COMPLETED, 12 of 12 cells | none | Pinning to a node that just passed the probe works. |
 | 2026-11-16 06:36 | b1ffcca2 | not recorded | node3203 | MDLM order consistency at `cc24eb5`, pinned with `-w node3203`, storage check first | COMPLETED in about 1 min | none | Pinned node still good. |
 | 2026-11-16 17:42 | 8fabd084 | not recorded | node3203 | MDLM order consistency follow-up at `00121c0` (real text, lengths to 1,024), pinned, storage check first | COMPLETED in about 10 min, 6 of 6 files | none | Pinned node still good eleven hours later. Other nodes not re-probed. |
+| 2026-11-17 03:49 | 509cb7d3 | 29429891 | node3203 | MDLM orders and chain proposal at `ea1ec53`, pinned, storage and GPU checks first | COMPLETED in 1 h 44 min, 4 of 4 files | none on the cluster; the chain-proposal arms are void (pair-table bug in our code, fixed in `7d21225`) | Pinned node still good. The harvest was delayed until the SSH session was renewed. |
+| 2026-11-17 14:05 | e3bec63c | pending | node3203 | Rerun of the above at `7d21225` | submitted | - | - |
 
 ## Summary of the 2026-11-16 episode
 

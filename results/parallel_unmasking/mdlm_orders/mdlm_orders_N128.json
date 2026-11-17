@@ -1,0 +1,360 @@
+{
+ "args": {
+  "N": 128,
+  "synthetic": false,
+  "traces": 32,
+  "pilot_reps": 4,
+  "pair_pilot": 64,
+  "rows": 96,
+  "nrun": 48,
+  "K": 8,
+  "nout": 64,
+  "score_orders": 4,
+  "parts": "EF",
+  "seed": 0,
+  "out": "mdlm_orders_N128.json"
+ },
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "pair_kernel": {
+  "table": [
+   [
+    0.3333333333333333,
+    0.3333333333333333,
+    0.3333333333333333
+   ],
+   [
+    0.3333333333333333,
+    0.3333333333333333,
+    0.3333333333333333
+   ],
+   [
+    1.2303145065276181e-07,
+    1.2303145065276181e-07,
+    0.9999997539370986
+   ]
+  ],
+  "seconds": 4.1,
+  "samples": 64,
+  "denoiser_calls": 128
+ },
+ "proposal": {
+  "window|fixed 1/step|product": {
+   "param": 8,
+   "log_mean_Z": -2.304309997101723,
+   "mean_logZ": -3.6371340408588093,
+   "sd_logZ": 2.723134072691903,
+   "spread": 0.9646492486585881,
+   "rel_se": 0.13923512584665154,
+   "n": 48,
+   "seconds": 32.6
+  },
+  "window|fixed 1/step|chain": {
+   "param": 8,
+   "log_mean_Z": -3.9726119187183047,
+   "mean_logZ": -4.3682123704947236,
+   "sd_logZ": 1.0676025921650776,
+   "spread": 0.7921346309538755,
+   "rel_se": 0.11433478560391122,
+   "n": 48,
+   "seconds": 52.5
+  },
+  "window|fixed 1/step|matched chain": {
+   "param": 8,
+   "log_mean_Z": -2.7475585255470074,
+   "mean_logZ": -3.050930772772459,
+   "sd_logZ": 0.8008043248791853,
+   "spread": 0.9139319623279967,
+   "rel_se": 0.13191471611776795,
+   "n": 48,
+   "seconds": 54.3
+  },
+  "window|sum sequential|product": {
+   "param": 8,
+   "log_mean_Z": -2.353202383837223,
+   "mean_logZ": -3.698260878096138,
+   "sd_logZ": 2.5755089060177294,
+   "spread": 0.8948241071820466,
+   "rel_se": 0.1291567347897303,
+   "n": 48,
+   "seconds": 38.1
+  },
+  "window|sum sequential|chain": {
+   "param": 8,
+   "log_mean_Z": -3.905312314804531,
+   "mean_logZ": -4.827124340198959,
+   "sd_logZ": 2.149782339708407,
+   "spread": 0.9657331408368601,
+   "rel_se": 0.139391572206876,
+   "n": 48,
+   "seconds": 57.3
+  },
+  "window|sum sequential|matched chain": {
+   "param": 8,
+   "log_mean_Z": -2.842932234449978,
+   "mean_logZ": -3.34326443762631,
+   "sd_logZ": 1.5572292810978559,
+   "spread": 0.6774041200534764,
+   "rel_se": 0.09777486276575904,
+   "n": 48,
+   "seconds": 59.6
+  },
+  "two_window|fixed 1/step|product": {
+   "param": 8,
+   "log_mean_Z": -2.3457992642774954,
+   "mean_logZ": -3.6247773941295134,
+   "sd_logZ": 2.722626038574025,
+   "spread": 0.9043860739644219,
+   "rel_se": 0.13053688581367695,
+   "n": 48,
+   "seconds": 31.8
+  },
+  "two_window|fixed 1/step|chain": {
+   "param": 8,
+   "log_mean_Z": -3.9536553041826528,
+   "mean_logZ": -4.39763496888201,
+   "sd_logZ": 1.1389984200415768,
+   "spread": 0.8656666430488458,
+   "rel_se": 0.1249482173481827,
+   "n": 48,
+   "seconds": 52.5
+  },
+  "two_window|fixed 1/step|matched chain": {
+   "param": 8,
+   "log_mean_Z": -3.2169758097254633,
+   "mean_logZ": -3.3840720511993894,
+   "sd_logZ": 0.6592002537655369,
+   "spread": 0.4982615153857842,
+   "rel_se": 0.07191785500870335,
+   "n": 48,
+   "seconds": 55.0
+  },
+  "two_window|sum sequential|product": {
+   "param": 8,
+   "log_mean_Z": -2.3919808728503584,
+   "mean_logZ": -3.678554217684539,
+   "sd_logZ": 2.317803103718595,
+   "spread": 1.0679539601473729,
+   "rel_se": 0.15414587659330314,
+   "n": 48,
+   "seconds": 37.5
+  },
+  "two_window|sum sequential|chain": {
+   "param": 8,
+   "log_mean_Z": -3.874811058127256,
+   "mean_logZ": -4.846243704710779,
+   "sd_logZ": 2.1235164299709273,
+   "spread": 0.9483587746439066,
+   "rel_se": 0.1368837984572508,
+   "n": 48,
+   "seconds": 58.3
+  },
+  "two_window|sum sequential|matched chain": {
+   "param": 8,
+   "log_mean_Z": -2.9357085444572597,
+   "mean_logZ": -3.245351177120668,
+   "sd_logZ": 0.9998922684331507,
+   "spread": 0.7097202028311855,
+   "rel_se": 0.1024392875384752,
+   "n": 48,
+   "seconds": 60.8
+  }
+ },
+ "outputs": {
+  "none|fixed 1/step": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.47802734375,
+   "distinct_se": 0.025813309487208343,
+   "repeat": 0.07824803149606299,
+   "repeat_se": 0.025324097977496553,
+   "logp_per_token": -3.820058926879315,
+   "logp_per_token_se": 0.15558450495470208,
+   "seconds": 46.2,
+   "texts": [
+    "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttasttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+    "<|endoftext|> your money and you have to deal with a bowl of cheese just because there has to be an ice change. That idea, the whole idea of \u2013 it\u2019s actually \u2013 like an owner of every \u2013 if you want the birth certificate, you know the pitcher\u2019s name, every king of the bowl of pizza goes all credit to the guy who ran at Massachusetts Academy or whatever school they chose to keep playing, that idea is just popularized, I wasn\u2019t really buying it.\n\nIn every way we have to think about every bowl that is put on, every reason somebody has to attend the \u2013 the",
+    " this inserted cup Inserts right in the middle of the cup into the cup Inserts along with the middle of the cup to establish the cup with the insert Runs to past runs of the turn to turn into the other insert Inserts out to the fast to roll the foot in the middle of the fastest run Inserts to the cutest to push the foot in the right of the cutest run Inserts to the cutest to push the shoe is the right of the insert run Inserts to the cutest run Inserts to the fastest run Insert blocks to the cutest Inserts added or removed to give them \"give\" an extending"
+   ]
+  },
+  "none|sum sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3468017578125,
+   "distinct_se": 0.0253545996929777,
+   "repeat": 0.21751968503937008,
+   "repeat_se": 0.0393714457330483,
+   "logp_per_token": -2.85235304313554,
+   "logp_per_token_se": 0.1691536103520987,
+   "seconds": 51.1,
+   "texts": [
+    "] [email protected protected] [email protected protected] [email] [email protected protected] [email protected protected] [email protected protected] [email] [email protected protected protected] [email protected] Share the email address Share the email address Share the email address Share the email address [email protected protected] [emailemail protected protected [email protected protected protected protected] <[email protected protected protected protected] [email protected protected protected protected] [email protected protected protected protected] [email protected protected protected ",
+    " 2004 2004 2004 2004 2004 2004 2005 1979 1977 1981 1975 1975 1975 1975 1978 1973 1975 1973 1974 1971 1971 1973 1971 1975 1972 1971 1975 1975 1971 1972 1973 1972 1973 1960 1975 1975 1975 1975 19751976 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1976 1983 2002 2002 2003 2003 2003 2003 2004 2004 2005 2004 2002 2004 2003 2003 2000 2003 2002 2003 2003 2004 2004 2002 2002 2007 2002 2007 1999 2001 2004 1997 2007 2007 2007 2001 1999 2001 1999 2002 2002 1998 2001 1998 2008 1998 1998 1998 1998 1999 1998 2007 2007 2007 2007 2007 2006 2007 2006 2006 2006 2006 2006 2007 2006 2006 ",
+    " don't receive the email newsletter you sign up You don't receive the email newsletter you\n\nThe Dakhdi Option]\n\nThe Dakhdi Option]\n\nThe Dakhdi Option]\n\nThe Dakhdi Option]\n\nThe Dakhdi Option] Life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-will-trump-confirmation #\n\nThe Dakhdi Option]\n\nThe Dakhdi"
+   ]
+  },
+  "none|lex sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3316650390625,
+   "distinct_se": 0.03063452218260772,
+   "repeat": 0.19205216535433073,
+   "repeat_se": 0.039638511671289844,
+   "logp_per_token": -2.8022492436464166,
+   "logp_per_token_se": 0.19692974769802832,
+   "seconds": 51.0,
+   "texts": [
+    "] [email] [email] [email] [email] [email] [email [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email",
+    "<|endoftext|> 2001 2004 2004 2004 2005 2005 1981 footage of a minor using gun to steal a prescription drug in the classroom classroom of Longoria County District Attorney's Office. 4 October 1981\n\nfor prosecution of Paul Turner of Albemawy County and Daniel Weston of Alemawy County. 5 October 1981 1960 detention of Philip Frost of Eds Island, near where he was being held, and short opening statement discussing his participation. 6 August 1981 recording of a coastal court where an \"old-age male\" resident of Nichcy Island was convicted for recklessness. 6 August 1981 footage of a person carrying",
+    "<|endoftext|> to receive 1 payment within the 360 to be able to receive the money the Mearauw they provide.\n\nThis stuff is strange and unrealistic.\n\nThis stuff is confusing.\n\nWe need to make sure this stuff is done on its own, not gambling money in the form of real currency but as we did last time we also have to do for Xbox 360 this could make it a bit misleading.\n\nWe also already built this website around the Mearauw to install PC 411 where money is actually real-world money so he or she ended up receiving it but made some mistakes before they received it"
+   ]
+  },
+  "none|left to right": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.2171630859375,
+   "distinct_se": 0.02127919054995115,
+   "repeat": 0.3661417322834645,
+   "repeat_se": 0.049269433497619766,
+   "logp_per_token": -1.9138259354385456,
+   "logp_per_token_se": 0.16469250438814242,
+   "seconds": 50.5,
+   "texts": [
+    "emailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailEmailEmailEmailEmailEmailEmailEmailEmailEmailEmailEmail Email Email This is a SuperBowl matchup for the Football Hall of Fame. This is a SuperBowl matchup for the Football Hall of Fame. This is a SuperBowl matchup for the Football Hall of Fame. This is a SuperBowl matchup for the Football Hall of Fame. This",
+    " 2004 2006 2006 2005 2005 1981 1978 1978 1978 1978 1978 1978 1975 1978 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1974 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1979 1977 1975 1979 1978 1977 1977 1975 1978 1978 1978 1974 1975 1975 1975 1970 1976 1975 1978 1975 1976 1975 1975 1975 1960 1969 1966 1965 1965 1961",
+    " receive payment pay fee to services delivered by the Services In In Review of the Accounts Of About 988,000 People By About 2.5 million People By About 3.4 million People By About 948,000 People In Total Total Cost of $1.1 million $1.2 million $1.1 million $1.2 million $1.2 million $1.2 million $1.0 million $1.0 million $1.0 million $1.0 million $11.0 million $23.1 million $24.1 million $26.2 million annual bill $291.8 million annual bill"
+   ]
+  },
+  "window|fixed 1/step": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3204345703125,
+   "distinct_se": 0.02457104304886213,
+   "repeat": 0.13398129921259844,
+   "repeat_se": 0.0258098318745889,
+   "logp_per_token": -3.0059516799020365,
+   "logp_per_token_se": 0.15080171819817306,
+   "seconds": 48.4,
+   "texts": [
+    " \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 --\u2013 \u2013 \u2013 \u2013 \u2013 -- -- \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 --\u2013 \u2212 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 - \u2013 \u2013 \u2013\u2013 \u2013 \u2013 \u2013 \u2013 --\u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 - \u2013 \u2013 4 4 4 4 4 4 5 4 6 5 4\n\nBeing worth $3.39 ($2106 years-3,116 years) and earning $4.36-$4.16 years) affects you that much more automatically\n\n\u2013\u2013 \u2013\u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013",
+    " 2003 2003 2003 2003 2003 2003 2005 2005 2005 2005 2006 2001 2005 2005 2007 2005 2005 2005 2005 2007 2003 2003 2003 2007 2007 2003 2003 2003 2003 2002 2003 2007 2003 2003 2002 2002 2002 2002 2002 2007 2002 2003 2005 2005 2005 2005 2005 2005 2006 2006 2005 2005 2006 2006 2003 2006 2007 2007 2007 2007 2005 2006 2006 2006 2005 2005 2006 2005 2005 2005 2008 2006 2005 2005 2006 2005 2006 2006 2007 2006 2004 2006 2005 2005 2005 2003 2005 2005 2005 2005 2007 2004 2005 2005 2006 2006 2003 2005 2006 2006 2008 2006 2006 2005 2006 2005 2006 2005 2005 2004 2005 2003 2003 2004 2003 2004 2004 1998 1999 1998",
+    "<|endoftext|>!\" God! \"This Big Swear\" he says, or Brady Lou Dobbs is everything but critical\u2014Of course we play again. We're going to see it for a 360. We're going to prove it<|endoftext|>\"So?\" I said.\n\n\"I do.\n\n\"\n\n\"I don't.\"\n\nI blinked.\n\nILB Jake\n\nEN R Richard\n\nED Michael Thomas\n\nKCP\n\nEJimmy G.\n\nZ Zach Allen\n\nJ Markell Jr.\n\nJ Mal Brooks\n\nDSM Karl\n\nDT Daryl Smith\n\nDE"
+   ]
+  },
+  "window|sum sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.2835693359375,
+   "distinct_se": 0.02158607423670436,
+   "repeat": 0.16646161417322836,
+   "repeat_se": 0.03026658553589988,
+   "logp_per_token": -2.659697833562846,
+   "logp_per_token_se": 0.1575890905074113,
+   "seconds": 49.9,
+   "texts": [
+    " in Paris and Paris, Paris, in Paris and Paris, Paris, in Paris and Paris, Paris, in Paris and Paris, Paris, in Paris and Paris. Paris, in Paris and Paris, Paris, in Paris and Paris, 18 Paris, 17 Paris, Paris, Paris, ParisParis 18 Paris, 1870 = 18 Paris, 1870, 18 Paris, 18 Paris, 17 Paris, 18 Paris, 18 Paris,18 Paris, ParisParis 18 Paris, ParisParis 18 Paris, ParisParis the Paris Paris Paris, 1922, in Paris and Paris, 1929, in Paris and Paris, 1931, in Paris and Paris, part of 15",
+    "illing Drilling\n\nDrilling Frillsills Drilling Drilling Dilling Dilling Me Dilling Me\n\nDilling Me Dilling Me Dilling Me Me\n\ndrilling Craftilling Crafting Making\n\nCraftilling Craftmaking Craftining Craftilling a-making art\n\n\u2014\n\nfrom-making-art\n\nfrom-making-art-aver\n\naver\n\nsaver-aver\n\naver to meet\n\naver to meet\n\naver\n\naver\n\nansansing\n\n\u2014\u2014\u2014\u2014\u2014\u2014\u2014\u2014\n\n1 IPA 7 -8 Slaughter 7 -4 Slaughter 6 Slaughter 6\n6 Slaughter 6",
+    "<|endoftext|>7\n\n7.7\n\n7.8\n\n7.9\n\n5.1\n\n7.8%8\n\n5.5)\n\n7.0\n\n3.5%\n\n5.7\n\n8.0\n\n6.8%9\n\n5.8\n\n5.0\n\n3.0\n\n4.0\n\n3.0\n\n3.0\n\n2.0%6\n\n0.8\n\n7,\n\n7.8\n\n7,\n\n7.7\n\n7.7"
+   ]
+  },
+  "window|lex sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.2962646484375,
+   "distinct_se": 0.020454452653811683,
+   "repeat": 0.13619586614173226,
+   "repeat_se": 0.027158696561365315,
+   "logp_per_token": -2.8444909079587086,
+   "logp_per_token_se": 0.1458322008149294,
+   "seconds": 49.7,
+   "texts": [
+    " = \u201cName\u201d\n\n\u2013 Name, \u201c \u2026\u201d. #{}\n\n\u2026 \u2013\u2666\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201c\u2013\u201d\n\n\u2026 -\u2666\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201cName\u201d\n\n\u2013 Name, \u201cName",
+    " (e Blanco) March 18, 2017\n\nro star le boxing #bbbidgeidgeidgeidgeidgeidgeidgeidgeidgeidge100) February 19, 2017\n\nAR AMERICAN-LEIPAL COMMISSIONChoice 3choice 3choice 3choice 3choice #YOURETWEFT \u2014\ufe0f (@vc4_9647) April 12, 2017\n\nju \ud83e\ude38\ud83c\udf02\ud83c\udf0e\ud83c\udf38\ud83c\udf0f\ud83c\udf3a YAY THERE PLAYERS IN SHIP SHIP: J.T. (?) .___ (@zech) March 26, 2017\n\n2016 NBA RANK",
+    "<|endoftext|>s Bad Bad Driver: Men\u2019s Bad Bad God: Men\u2019s Bad Bad Elder: Men\u2019s Bad Bad Man: Men\u2019s Bad Bad Girl: Men\u2019s Bad Agency: National\n\ns: 45.0\n\nNationals: 14.5\n\ns: 11.7\n\nNationals: Free Space: Men\u2019s Bad Bad Free Space: Men\u2019s Bad Free Messenger: Men\u2019s Bad Free Home: Men\u2019s Bad Bad Freeizen: Men\u2019s Bad Charter 1.2\n\ns: 8.9\n\n"
+   ]
+  },
+  "window|left to right": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.26171875,
+   "distinct_se": 0.019887621793971237,
+   "repeat": 0.2872785433070866,
+   "repeat_se": 0.037618840934611646,
+   "logp_per_token": -2.308475161969092,
+   "logp_per_token_se": 0.15350330638447776,
+   "seconds": 48.9,
+   "texts": [
+    "near Mony Place, an early \u2018\u2018ARCHIMIMATION OF A VERY MAN MAN IN THE TOO MUCH LOT OFTY LOT OFTY LOT OFTY LOT OFTY LOT OFTY LOT OFTY LOT ofTY LOT ofTY LOT OFTY LOT OFTY LOT OFTY LOT OFTY LOT,\u2019\u2019\u2018\u2018WARNING!\u2019\u2019\u2019\u2018\u2018WARNING!!!! It is the first in the world of El El El El El El El El El El El El El El El El El El El El El El El El El El El El El El El El El El El",
+    " not only global, but also in effect, and in only crucially crucially only, \u2013 throughout the entire globe, \u2013 all down to the small and tiny blue-and-green-and-blue-and-blue-and-blue-and-blue-and-blue-and-blue-and- + + + + + + + + + + + + + + + + + + + + + + + + +- +- +APPENDING WITH LOVE FOR FAMILY LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET LET",
+    "\n\nalalalalalalalalalalalalalalalalalalalalalalal\nalalalalalalalalalalalalalalalalalalalalalal\nalalalal -- - - - - - - - - - - - - - - - - - - - - -- - - - -- - - - - - - - - - - - - - - - - - Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement Advertisement"
+   ]
+  },
+  "two_window|fixed 1/step": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3115234375,
+   "distinct_se": 0.022223119868964834,
+   "repeat": 0.11823326771653542,
+   "repeat_se": 0.022494692450079564,
+   "logp_per_token": -2.8712923489300612,
+   "logp_per_token_se": 0.14417243292077822,
+   "seconds": 48.3,
+   "texts": [
+    " \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 --\u2013 \u2013 \u2013 \u2013 \u2013 -- -- \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 --\u2013 \u2212 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 - \u2013 \u2013 \u2013\u2013 \u2013 \u2013 \u2013 \u2013 --\u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 - \u2013 \u2013 4 4 4 4 4 4 5 4 6 5 4\n\nBeing worth $3.39 ($2106 years-3,116 years) and earning $4.36-$4.16 years) affects you that much more automatically\n\n\u2013\u2013 \u2013\u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013",
+    " 2003 2003 2003 2003 2003 2003 2005 2005 2005 2005 2006 2001 2005 2005 2007 2005 2005 2005 2005 2007 2003 2003 2003 2007 2007 2003 2003 2003 2003 2002 2003 2007 2003 2003 2002 2002 2002 2002 2002 2007 2002 2003 2005 2005 2005 2005 2005 2005 2006 2006 2005 2005 2006 2006 2003 2006 2007 2007 2007 2007 2005 2006 2006 2006 2005 2005 2006 2005 2005 2005 2008 2006 2005 2005 2006 2005 2006 2006 2007 2006 2004 2006 2005 2005 2005 2003 2005 2005 2005 2005 2007 2004 2005 2005 2006 2006 2003 2005 2006 2006 2008 2006 2006 2005 2006 2005 2006 2005 2005 2004 2005 2003 2003 2004 2003 2004 2004 1998 1999 1998",
+    "<|endoftext|>\u200f!@nsgiearear_162]http://www.cbs.com/cn/newsroom/bspo1967329[Headquarters [id] 360360469 [id] 129<|endoftext|>StorySo\n\n~ Jonas \u00b7 ~ J.F. heas ~\n\nBecause it ain't\u2026\n\n// Jake // Jake\n\n// Jake\n\nJake - Jake\n\nJake\n\n//\n\n//\n\n//////////////////////////\n\n//\n\n///\n\nJimmie Jr. #\n\n// // Old\n\nMack Jones...\n\nJones\n\n/"
+   ]
+  },
+  "two_window|sum sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.2889404296875,
+   "distinct_se": 0.022030874693805626,
+   "repeat": 0.16018700787401574,
+   "repeat_se": 0.029715074893757038,
+   "logp_per_token": -2.6567228287757074,
+   "logp_per_token_se": 0.16091254156971616,
+   "seconds": 49.7,
+   "texts": [
+    "- \u201c[\u2019s] of the Coca-Cola,\u201d 7.5 Pepsi- Coca-Cola, 6, 6, 6, 6, 6, 6, 6, 3,6, 3,6, 0.6, 0.6- 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6.6- 6-6-6, 6-6-6-6-6, 6, 7, 6, 7, 6, 6, 5, 6, 6, 6, 5, 7, 7, 7.1",
+    "<|endoftext|> Thrilling\n\nThilling (Thills Thrilling Thrilling Thrilling Thrilling Thrilling Zombies Thrilling HUPC-2Cos, 4GW) <<& to Only Brewer Potters ONLY \u00b7UTC\n\nThe Pagans and Pags-Models \u2013talk 06:54, 1 April 2015 \u00b7UTC\n\nAnimals\n\nAnimals\n\nAnimals\n\nAnimals\n\nAnimals\n\nAnim\n\nAnimals\n\nAnimals Kills\n\n\nanskill\n\nanskill\n\nkill\n-1 1 7-8 Slaughter 9 -10 Slaughter Day Slaughter\n\nSlaughter Lock",
+    "<|endoftext|>7\n\n7.7\n\n7.8\n\n7.9\n\n5.1\n\n7.8%8\n\n5.5)\n\n7.0\n\n3.5%\n\n5.7\n\n8.0\n\n6.8%9\n\n5.8\n\n5.0\n\n3.0\n\n4.0\n\n3.0\n\n3.0\n\n2.0%6\n\n0.8\n\n7,\n\n7.8\n\n7,\n\n7.7\n\n7.7"
+   ]
+  },
+  "two_window|lex sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.25537109375,
+   "distinct_se": 0.02050366002815311,
+   "repeat": 0.16461614173228345,
+   "repeat_se": 0.02840301144503241,
+   "logp_per_token": -2.600587873518754,
+   "logp_per_token_se": 0.143251727907955,
+   "seconds": 49.8,
+   "texts": [
+    " Revolution Revolution revolution revolution/Revolutionary revolution. revolutionary. revolutionary. revolution socialist/Revolutionary revolution. revolutionary revolution\n\nSocial/Revolutionary Revolution. revolutionaries.\n\nSocial/Revolutionary Revolution. revolutionary. change revolution revolution/Revolutionary. revolution revolution capital revolution \u201cRevolutionary Revolution\u201d zh \"Revolutionary Revolution\u201d\n\n\u201cRevolutionary Revolution\u201d zh \u201cRevolutionary Revolution\u201d zh\u2018Revolutionary Revolution\u2019\n\n\u201cRevolutionary revolution\u2019 zh\ufffdRevolutionary Revolution\u2019 zh \u2018Revolutionary Revolution\u2019 zh\ufffdRevoluti",
+    "ritic out of 100\n\n* All members \u00a9 2018 The Hollywood Reporter Club\n\n* All members \u00a9 2018 The Hollywood Reporter Club Release Date\n\nEnding Day\n\n2016-2017: . Amy Schumer, D-W.Y., F , F.W.W. Charles, D-W.Y., F\n\nEnding Thoughts\n\n\u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014",
+    "C9jAp2eFCqVgL0wNj/esDmxwEJlfW;nRga6x?t=mu7Ls8fV/A1q=zTJ00R5\"bn?KZ##B^@\",3YZAMPWW_A^(\"N^N!^N^N*.N*\";\n\nToload=0.65^n=0.75000\n\n// //github.com/STEREOSTRUCKATAhttp://downloads;replace'-s%';\n\nvar url =~0"
+   ]
+  },
+  "two_window|left to right": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.2462158203125,
+   "distinct_se": 0.016904704353201294,
+   "repeat": 0.26636318897637795,
+   "repeat_se": 0.03333083971293872,
+   "logp_per_token": -2.2684652034726733,
+   "logp_per_token_se": 0.13089872525396198,
+   "seconds": 48.9,
+   "texts": [
+    "\ufffdThey\u2019re gonna do it all,\u201d Season 1. Walking Dead Season 2 a.m. \u201cCupants.\u201d $6.99 \u2013 $5.99 \u2013 $9.99 \u2013 $12.99 \u2013 $16.99 \u2013 $39.99 \u2013 $59.99 \u2013 $99.99 \u2013 $14.99 \u2013 $11.99 \u2013 $6.99 It \u201c stupidly cynical,\u201d described as \u201cfunny,\u201d essentially made it no longer for all to do \u201c who is who \u201c Who is Who \u201c Who is Who \ufffd",
+    " not only global, but also in effect, and in only crucially crucially only, \u2013 throughout the entire globe, \u2013 all down to the small, tiny, tiny size small, tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny tiny... tiny... tiny............... .......... .......... ........... \u2026........ ........... ....... .... ........ .... ........ .. ........ ........ Greene Greene Greene Greene Greene Greene Gree",
+    "\n\nalalalalalalalalalalalalalalalalalalalalalalal\nalalalal\n\nalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalaalal\n\nalalalal---- -- -1- -1- -1- -1- -1- -1 v v t v e v v v v v v v v v v v v v v v v v v v v tot v c t"
+   ]
+  }
+ }
+}

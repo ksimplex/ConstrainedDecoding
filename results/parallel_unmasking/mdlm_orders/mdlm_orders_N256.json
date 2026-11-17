@@ -1,0 +1,360 @@
+{
+ "args": {
+  "N": 256,
+  "synthetic": false,
+  "traces": 32,
+  "pilot_reps": 4,
+  "pair_pilot": 64,
+  "rows": 64,
+  "nrun": 48,
+  "K": 8,
+  "nout": 48,
+  "score_orders": 4,
+  "parts": "EF",
+  "seed": 0,
+  "out": "mdlm_orders_N256.json"
+ },
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "pair_kernel": {
+  "table": [
+   [
+    0.3333333333333333,
+    0.3333333333333333,
+    0.3333333333333333
+   ],
+   [
+    0.3333333333333333,
+    0.3333333333333333,
+    0.3333333333333333
+   ],
+   [
+    6.127449854022699e-08,
+    6.127449854022699e-08,
+    0.9999998774510029
+   ]
+  ],
+  "seconds": 16.8,
+  "samples": 64,
+  "denoiser_calls": 256
+ },
+ "proposal": {
+  "window|fixed 1/step|product": {
+   "param": 13,
+   "log_mean_Z": -2.285185570618987,
+   "mean_logZ": -3.640543912520128,
+   "sd_logZ": 2.9035891220056325,
+   "spread": 0.9463811246374371,
+   "rel_se": 0.13659834926635128,
+   "n": 48,
+   "seconds": 136.0
+  },
+  "window|fixed 1/step|chain": {
+   "param": 13,
+   "log_mean_Z": -4.784154102961244,
+   "mean_logZ": -5.693500698732829,
+   "sd_logZ": 1.5179788347796432,
+   "spread": 1.8352836901059528,
+   "rel_se": 0.2649003831305004,
+   "n": 48,
+   "seconds": 256.6
+  },
+  "window|fixed 1/step|matched chain": {
+   "param": 13,
+   "log_mean_Z": -3.131580520268628,
+   "mean_logZ": -3.6634843279482445,
+   "sd_logZ": 1.0312650377491916,
+   "spread": 1.2630301221296372,
+   "rel_se": 0.182302695251538,
+   "n": 48,
+   "seconds": 263.0
+  },
+  "window|sum sequential|product": {
+   "param": 13,
+   "log_mean_Z": -2.1502091740980194,
+   "mean_logZ": -3.0252030573438873,
+   "sd_logZ": 1.8699996452325094,
+   "spread": 0.9067845647878773,
+   "rel_se": 0.13088307814431965,
+   "n": 48,
+   "seconds": 165.2
+  },
+  "window|sum sequential|chain": {
+   "param": 13,
+   "log_mean_Z": -4.448729306070355,
+   "mean_logZ": -6.628102036533035,
+   "sd_logZ": 3.2852276357816006,
+   "spread": 2.1424111509650294,
+   "rel_se": 0.30923041368112897,
+   "n": 48,
+   "seconds": 284.4
+  },
+  "window|sum sequential|matched chain": {
+   "param": 13,
+   "log_mean_Z": -2.6619738980161363,
+   "mean_logZ": -3.7251680567396654,
+   "sd_logZ": 1.1429017084769266,
+   "spread": 3.877297754585069,
+   "rel_se": 0.5596397255845054,
+   "n": 48,
+   "seconds": 291.8
+  },
+  "two_window|fixed 1/step|product": {
+   "param": 13,
+   "log_mean_Z": -2.784841448180738,
+   "mean_logZ": -4.735789620692773,
+   "sd_logZ": 3.16663653887872,
+   "spread": 1.329347337885075,
+   "rel_se": 0.19187476084361513,
+   "n": 48,
+   "seconds": 134.8
+  },
+  "two_window|fixed 1/step|chain": {
+   "param": 13,
+   "log_mean_Z": -4.783002668325752,
+   "mean_logZ": -5.68906511286679,
+   "sd_logZ": 1.5172876875488799,
+   "spread": 1.831162379013344,
+   "rel_se": 0.26430552311331745,
+   "n": 48,
+   "seconds": 255.2
+  },
+  "two_window|fixed 1/step|matched chain": {
+   "param": 13,
+   "log_mean_Z": -3.2536473361256357,
+   "mean_logZ": -3.8737789427705276,
+   "sd_logZ": 1.0313012733487255,
+   "spread": 2.0612416072693356,
+   "rel_se": 0.297514599205452,
+   "n": 48,
+   "seconds": 262.5
+  },
+  "two_window|sum sequential|product": {
+   "param": 13,
+   "log_mean_Z": -2.4711468509399612,
+   "mean_logZ": -3.768886652274388,
+   "sd_logZ": 2.206631239307881,
+   "spread": 1.0582350972761423,
+   "rel_se": 0.15274307956957264,
+   "n": 48,
+   "seconds": 164.2
+  },
+  "two_window|sum sequential|chain": {
+   "param": 13,
+   "log_mean_Z": -4.441785264365438,
+   "mean_logZ": -6.655040243859737,
+   "sd_logZ": 3.2465784650312335,
+   "spread": 2.136887841854819,
+   "rel_se": 0.30843319268072955,
+   "n": 48,
+   "seconds": 283.9
+  },
+  "two_window|sum sequential|matched chain": {
+   "param": 13,
+   "log_mean_Z": -3.3661265143459875,
+   "mean_logZ": -4.012575362861888,
+   "sd_logZ": 1.410695674870193,
+   "spread": 1.220467997587399,
+   "rel_se": 0.1761593817361021,
+   "n": 48,
+   "seconds": 291.7
+  }
+ },
+ "outputs": {
+  "none|fixed 1/step": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5709635416666666,
+   "distinct_se": 0.016871450919566315,
+   "repeat": 0.018709150326797385,
+   "repeat_se": 0.0029382537356073646,
+   "logp_per_token": -4.193258814604511,
+   "logp_per_token_se": 0.1027154759829886,
+   "seconds": 155.7,
+   "texts": [
+    "<|endoftext|>.5, then you\u2019ve seen Daniel had Devon in double mode. That\u2019s an easy shot, he beats it 60-yard, he gets at those lines, he jumps up and goes up to third down, and then that\u2019s when he\u2019s gonna get the shot. Either Gates, Daniel does 216 yards, he finished it on, then a play, a play, a play from the fallback to get it from the boards. We send the ball back from the line and we\u2019re a touchdown.\n\n- Alright, the offense didn\u2019t get it in the game, the offense is great, and so I go out there and play a Stafford 3D, and I make him go-go 4-4, and you know Mathews doesn\u2019t get it on, that\u2019s be",
+    "<|endoftext|> home in Wisconsin with a 4-year-old son and finds that I can take the responsibility of sending it home. I am motivated by this perspective because I believe the lack of basic literacy constitutes the most pressing issue that county governments can address.\n\nHolding a high bar\n\nI believe it is reasonable for anyone to anyone. I focus on the importance for all children in an advanced stage to understand and communicate, many but not all we need to teach half. The education needs to be balanced and all classes must be accounted for. That priority must be accorded those by me, altho",
+    ") are among the the freest in the world, andformass in the the greatestest by the world, as have in 1910, depth of air past any major threat of any continent (such as Antarctica). In total, speed of travel from China and Japan was considerably apparatus in 1911, speed of travel from places with the two hour speed of other two faster in the league. [1][[2] [2] entry in 1911 was both the fastest and second-fastest!According to Paul Carman,with China and Japan soon to accelerate by sudden or other distination in the obvious spherical pattern wind pattern and their position in the stratovortical m"
+   ]
+  },
+  "none|sum sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5608723958333334,
+   "distinct_se": 0.02268128709970924,
+   "repeat": 0.038562091503267976,
+   "repeat_se": 0.011966546809255529,
+   "logp_per_token": -4.2901535114145775,
+   "logp_per_token_se": 0.1340651305511718,
+   "seconds": 176.4,
+   "texts": [
+    " one person is capable of accomplishing a number of scenarios, including one human\u2019s similarity, and one the differences that may have imprisoned the person\u2019s immunity from receiving a psychiatric needle infected with a rare mental disorder. A widely recognized method of neuropsychiatric synhenke is, Whitemagic Morgan-Doschke Collection, which identifies the most common, and innermost factors are incompleteness of person, the meltingeness of other persons, itingness of others, and the fullness of others. Psychositoschke of people may be mapped into patterns in the individual\u2019s behavior. A shee",
+    ", possibly more disregard of the basic standards of an adult. Very small: Kircine has physical ability of twelve, about to be obese in 4 inches, 8 inches tall of the tallest men tall, measuring about 1 in 3 or 3,8 inches, to 9 and 7 inches in size. O- Kircine also has draft efficiency of 60-80 for average 5-5 males and 7-7 males of their size, two senior obese (pressed committed 168) plus 60, and five to senior obese (same stated draft value of) 4 inches, 7.35 inches., 2.5 inches weighing 26 pounds, weighing 11 2 and 3 inches in size. A- Kircine also has a number of bodies that are 4 inches, 8",
+    "<|endoftext|> twenty-three reprimanded cases.[6] The hammer or importcan (lotatus meaning drug) is said to be formulating powder, which is defined as one of numerous instruments that cannot result in powder. According to trial notes, in cases, if the Plyot Tonatus constituted an item of crime or conspiracy, such crimes had occurred in Peru, Africa, Europe, U.S.A. through the Philippines.[5] Even if crime were judged on such a broad, international criteria could hardly be equated to tolerance. In Peru, the average Canadian offense there was nothing less than 12.3%; possession of the forbidden m"
+   ]
+  },
+  "none|lex sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5233561197916666,
+   "distinct_se": 0.023356698960110348,
+   "repeat": 0.04575163398692811,
+   "repeat_se": 0.017334620926567342,
+   "logp_per_token": -3.933601564552763,
+   "logp_per_token_se": 0.14527433666457368,
+   "seconds": 176.1,
+   "texts": [
+    " a person is capable of being able to sustain sustained intervals. This allows Guzschhardzenke to allow a level of thinker into her thoughts from terms of self-awareness with regards to general mental mental processes and the nature of thoughts of people. While fully imprisoned herself,z-hardzenke can positively focus her attention, exercise intuitive nerve contact, alertness, and rapid response to the sensory window of her popular journey. Since there are no fundamental differences in her action responses, Guzschhardzenke both her visually and her herself through the pressure and sensory surg",
+    "<|endoftext|> possibly more disregard of basic standard remarks. This accusation is based purely on the fact the small ring stopped the shot ball from happening. The ball was ultimately hit, but this charge actually isn't required. Is anyone going to root for a player who doesn't want to apologize for doing away with something and doing away with it without consequence? Indeed, there appears to be harmless absolution of responsibility between the two arguments, while that justification for Haslem hasn't committed to anything physical or specifics to claim that the small ring attack showed that",
+    "<|endoftext|> twenty-three pounds. Later he said that his brother was a retired pharmacist with Stage IV diabetes. Eventually he'd lose 27 pounds by having a Mini-Home, including racing in a catalytic converter square in Pennsylvania. On top of it was $1, where he got a license before and his father's put him on track by the Delaware State Fair to get a second license. Jackson's then participated in various lottery games, putting at risk greased the gun-toting crap of a depressed family on the streets. He eventually ended up winning $$20,000, after a impersonal driver had injured her car.[Job "
+   ]
+  },
+  "none|left to right": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.22469075520833334,
+   "distinct_se": 0.022931931070909163,
+   "repeat": 0.3818627450980392,
+   "repeat_se": 0.04945662862402671,
+   "logp_per_token": -2.1183479354469696,
+   "logp_per_token_se": 0.19662357474144782,
+   "seconds": 169.7,
+   "texts": [
+    " person or person or person or person or person or person or person or person or person or person or person or person or person or person or person orness submit write-in on Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag ",
+    " possibly glaring on the top of the twelve-star pile.\n\nCurrent Standing Standing: Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M Mampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampam",
+    " twenty-seven-eight. Forty-seven-eight-eight. Forty-nine-eight-eight. Forty-eight-eight-eight. Forty-nine-eight-eight. Forty-four-eight-eight. Forty-nine-seven-eight. Forty-nine-nine-eight. Forty-nine-nine-nine. Forty-five-three-nine. Forty-nine-three-four. Forty-nine-three-four. Forty-four-three-four. Forty-nine-three-four. Forty-nine-three-four. Forty-nine-three-four. Forty-nine-four-four. Forty-nine-four-four. Forty-nine-four-four. Forty-nine-five-four. Forty-nine-five-four. Forty-nine-four-four. Forty-nine-two-four. Twenty-seven-five-seven. Twenty-seven-two-four. Twenty-seven-three-six. Ei"
+   ]
+  },
+  "window|fixed 1/step": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.3775227864583333,
+   "distinct_se": 0.024777052621297996,
+   "repeat": 0.08888888888888889,
+   "repeat_se": 0.02215278688910206,
+   "logp_per_token": -3.333781770776872,
+   "logp_per_token_se": 0.15772808730486804,
+   "seconds": 160.8,
+   "texts": [
+    "\nTomorrow\u2019s happening?\n\nTomorrow\u2019s happening?\n\nTomorrow\u2019s happening?\n\nTomorrow\u2019s happening?\n\nTomorrow\u2019s happening?\n\nWhat\u2019s? That\u2019?\n\nTomorrow\u2019s, what?\n\nTomorrow\u2019s happening?\n\nTomorrow\u2019s, what?\n\nTomorrow\u2019s happening?\n\nTomorrow\u2019s happening?\n\nThat\u2019s, obviously!\n\n(There blood opens!\n\nWhat\u2019s am? HereThere blood opens!\n\nTomorrow\u2019s always?\n\nTomorrow\u2019s, Always, when?\n\nTomorrow\u2019s always?\n\nTomorrow\u2019s always?\n\nTomorrow\u2019s, always,\n\nTomorrow\u2019s always?\n\nTomorrow\u2019s always?\n\nTomorrow\u2019s always!\n\nTomorrow\u2019s, Always, when?\n\nTomorrow\u2019s never?\n\nTomorrow\u2019 never, when?\n\nTomorrow\u2019s always, When it\u2019s always!\n\nDo\u2019 I lie",
+    ", \u2018h\u2019, \u2018hilde\u2019 = \u2018hilde\u2019\\, \u2019hilde-d\u2019+'\u00d7\u2019\ufffd, with the \u2018right\u2019 \\math surfaces 24yx, hy,y as \u2018hilde\u2019\\, \u2018hilde\u2019, \u2018hilde V\u2019 (hilde) and \u2018hilde V\u2019 (hilde,y), \u2018hilde\u2019 = \u2018hilde\u2019, \u2018hilde V', \u2018blue hilde\u2019+\u2019x\u2019, \u2018yy\u2019 = \u2018hilde\u2019, \u2018hilde\u2019, \u2018\u2019s \u2018y\u2019 = \u2018blue hilde\u2019, \u2018hilde\u2019, \u2018hilde V', \u2018blue hilde\u2019, \u2018yy\u2019 = \u2018hilde\u2019, \u2018hilde\u2019, \u2018hilde\u2019, \u2018hilde V\u2019, and \u2018hilde y with blue hilde\u2019= \u2018x\u2019, \u20182\u2019 \u2018y\u2019",
+    "<|endoftext|>ina.\n\nEXT: Byron, just think about this now. They want Rachel Messina.\n\nEXT: Yeah\n\nEXT: Byron, it's gonna be the lottery. There's not that many top-quality players, so if one gets made, one pick would be enough.\n\nEXT: Yeah, huh.\n\nEXT: Uh, Ungolese.\n\nEXT: Yeah Ungolese.\n\nEXT: Byron, I like 138.\n\nEXT: Byron, I'm willing to take 138.\n\nEXT: Mark, you're more for 138?\n\nEXT: Yeah yeah.\n\nBOYS: Carson Doubles.\n\nEXT: Byron, it feels like lottery without hate.\n\nTHE STY: Eric Rode'Tiss' Benn.\n\nEXT: Yeah.\n\nEXT:\n\nEXT: I'm pregnant, they'll take care of 3-year-old son. It's got one of the bigge"
+   ]
+  },
+  "window|sum sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.4230143229166667,
+   "distinct_se": 0.019718379351656046,
+   "repeat": 0.07140522875816994,
+   "repeat_se": 0.020178376743074152,
+   "logp_per_token": -3.6303170348617635,
+   "logp_per_token_se": 0.12948822634490054,
+   "seconds": 166.2,
+   "texts": [
+    "<|endoftext|> done this, he said.\n\n\u201cI know with whatever happens, I\u2019ll be able to stop it and I don\u2019t be able to stop it,\u201d he said. \u201cI\u2019ll be fine, I\u2019ll be able to die because it\u2019s just putting people at risk.\u201d\n\nTo do so, the result was Gelin\u2019s friend Berrel Thomas, creating a grievance with Gelin\u2019s lawyer.\n\n\u201cIt\u2019s a eye-to-eye, 500 years of his life,\u201d Thomas said. \u201cHe was like 24, 23. Today he\u2019s 35 and he\u2019s like the richest man in the world.\u201d\n\nLAMEL IN MARGALY\u2019S Overlord\n\nDec. 13th, 2012, Third Degree DUI at age 35 DMV. Court of Appeal Appeals\n\nDec. 20th, 2012-desert,employed, at age of 34rd De",
+    "<|endoftext|> purpose.\n\nHis black shirt, button-pairayered, clutched and covered in fine dustpaper, and pinched eyes hinged the fingernails that dotted his lap. When Friac was staring, his stare and cock seemed to deeply budge from the left shoulder, which still glanced one clear precipice from the other. Then was the moment too late, when Ville stared down him, the horror of a span frozen by his gaze.\n\n\u201cPlease,\u201d Friac answered to Ville\u2019s toothy Griffith-Phillips glare. \u201cThere\u2019s grandmother\u2019s work, keep you on,\u201d\n\nCome back to the listening console. Friac approached a woman across the hall, wit",
+    "ra -ra -ras\n\n80 86 82 91 74 81 . . . 73 74 96 27 Feb 55 Apr Dec 31 Aug April 35 Oct 2008 16 Oct 2009 5 19 Oct 17 2005 05 08 01 06 01 01 01 03 02 01 03 04 01 01 02 01 01 02 01 01 02 01 02 01 01 01 01 01 03 03 09 01 01 01 02 03 01 01 03 04 01 05 04 04 07 04 05 05 07 03 07 06 01 08 08 02 02 02 01 01 01 02 03 09 01 07 02 03 01 08 02 02 01 01 01 02 01 01 02 05 02 02 01 02 01 03 02 01 01 03 01 03 05 01 04 04 04 01 01 04 02 01 01 01 02 01 05 01 05 01 01 01 01 02 01 01 02 02 01 02 00 01 02 02 01 01 02 01 02 07 01 01 04 04 01 01 01 03 01 05 01 04 04 05 05 04 05 01 04 01 08 07 04 07 06 02 08 06 04 08 08"
+   ]
+  },
+  "window|lex sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.3714192708333333,
+   "distinct_se": 0.022958120094639958,
+   "repeat": 0.1113562091503268,
+   "repeat_se": 0.023877032681108714,
+   "logp_per_token": -3.355891285359103,
+   "logp_per_token_se": 0.1333917510142924,
+   "seconds": 166.7,
+   "texts": [
+    "<|endoftext|> my cigar. Startling at the twilight of my afternoon vision, I closed my eyes, and in my many-years-visitful moments, I met that very important man.\n\n\u201cIndividuals that attended the 1946 Congress, or as Jandy Marsh called, \u2018the General Conference\u2019\u2014many members\u2014from the earliest\u2014\u201cspecial Meeting about 1 noon\u201d (or noon ) would hold a conference for eight hours, as a C.M.R. put it\u2014if there were \u2018two Assemblies for attended from the sessions so far.\u2019\u201d\n\n\u201cBut I had to wait too long,\u201d Mr. Marsh said (his interpreter referred to as Mr. McFrug\u2019clock) in the month of November 1946 because th",
+    "41(0957812), United States of America permanent federal member incorporated in the territory with an effectiveation date of January 1, 2019.\n\nMarch 1900 [ edit ]\n\nKelly CACorta 776\n\nCACorta 3923\n\nCacorta 581\n\nCacorta 921\n\nCacorta 3883\n\nCacorta 779\n\nCacorta 2395\n\nCacorta 444\n\nCacorta 3459\n\nCACAL 4 470\n\nCACAL 38 358\n\nCAC 2 470\nCAC 768 238\n\nCACia 4 365\n\nDec. 1904 5598\n\nDec. 1905 567\n\nDec. 0546471 74499 1098 : 399 74 239 (Other) 1331\n\nDec. 1905 4985-4 (11), 101 : 399 63\n\nDec. 1905 77584488739999 765\n\nDec. 0380936 (deep-7); 349 44 9 (Other) 479 1\n\n(regardless of) August 1\n\nAugust 1 news [ edit ]\n\nA",
+    " 3 4 4 5 5 5 5 4 5 5 5 5 6 Feb 9 Feb 9 Feb 12 Apr 13 13 13 16 16 Par Par 3 Par Par 5 Par Par 4 Par Par Par 8 What Is in the Solties? Feb F F F F D F M G W Nov 15 Feb Apr 26 Feb Jun 3 Feb Apr 04 Feb Apr 27 Feb Jun or 1922 Feb Feb 10 Feb Feb 4 Feb Feb 3 Feb Feb 16 Feb Feb 17 Feb Feb 24 Feb Feb 13 Feb May 16 Feb March 19 Feb March 12 Feb 14 27 Jan 29 Feb Jan 04 9 Nov 24 3 Nov 14 2 Nov 29 Feb 6 07 - -37 - -54 - -7 - - - Mar Mar 16 Mar Mar Mar Mar Mar Mar Mar Mar Mar Mar Mar Mar Mar Mar Mar. Mar Mar Mar Mar mar mar Mar mar Mar Mar Mar Mar Mar Mar Mar Mar 15 Aug Feb 7 Aug Feb 1903 Feb Jan 1926 Feb F"
+   ]
+  },
+  "window|left to right": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.2513020833333333,
+   "distinct_se": 0.01840566664099125,
+   "repeat": 0.28169934640522876,
+   "repeat_se": 0.03999645737945881,
+   "logp_per_token": -2.3894857818264565,
+   "logp_per_token_se": 0.14498369332184144,
+   "seconds": 163.9,
+   "texts": [
+    "s.\n\nMADDADDEE [NG] A light-colored glasses and glasses go to a nationally televised broadcast of space-in-the-spout, space-in-the-spout, space-in-the-spout, space-in-the-spout, space-in-the-spout, space-in-the-spout, space-in-the-spout, space-in-the-spout, and so forth.\n\nMADDADDEE [NG] Over-the-China, then-UK, then-UK, then-UK, then-UK] high schools in remote-\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00adter-\u00adf\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00ad\u00adten-\u00adf\u00ad\u00ad\u00adger, then-\u00ad\u00ad\u00ad\u00adter-\u00ad\u00ad\u00ad\u00ad\u00addu such like U.S. colleges at $1,000 per year model costs at $1,000 per",
+    " purpose of this vision. Endurance and Strength - Dodge, Driver, Driver, Driver Dodge Dodge Sweep - Dodge Dodge Tri-Plane Works - Dodge V-Drive-X XL EX - Dodge 4-Drive-X Mustang and Mustang Experience Head Out across the Midwest 7\u00d710, 5\u00d710, 7\u00d710, 8\u00d710, 10\u00d711,10\u00d710-10-10-3 Erie Erie\n\nTHIS PROGRAM IS FOR YOU YOU WILL NOT BASIS ON ANY RECENT PROGRAM PROGRAMMED OR PROGRAM WORKING PROGRAM PROGRAM WORKING PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM Program - - - - - - - - - - - - - - - - - - - - - - - - - US Outside ",
+    " - $10.99 $9.99 $13.99 $10.99 $10.99 $10.99 \u20ac9.99 $9.99 $5.99 $10.99 $9.99 inmonth month\n\nMonthly price for today: $10.99\n\nMonthly price for today: $10.99\n\nMonthly price for monthly: $10.99\n\nMonthly price for monthly: $10.99\n\nSelect tell select\n\n0.0.0.0.01000.0100.00000100001001000000000000999\u2013\u2013\u2014\u2014\u2014\u2014\u2014\u2014\u2013\u2013\u0410\u0430\u0411\u043e\u0433\u0430\u0442\u044c \u043d\u0430 \u0432\u0440\u0435\u0430\u043d\u0434\u0441\u0441\u0438\u0438 \u0432\u044b\u043b\u0448\u043e\u0433\u043e \u043d\u0430 \u0432\u0440\u0435\u0433\u0438 \u0432\u044b\u043b\u0448\u043e\u0433\u043e \u043d\u0430 \u0432\u0440\u0435\u0441\u043c\u043e\u0442\u0435\u0432 \u0435\u0434\u0438\u043d\u0438\u044f \u043f\u0440\u0435\u0441\u0441\u0438\u0446\u0438\u0438 \u043a\u043e\u043b\u043e\u043a\u043e\u0432\u0438\u043b \ufffd\u0442\u0432\u0438\u0446\u0438\u0438 \u043b\u044e\u0434\u0435\u043c \u0430\u0434\u043e\u0431\u043e\u0432\u0438\u043b \u043c\u043e\u0433\u0438\u043d\u0430"
+   ]
+  },
+  "two_window|fixed 1/step": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.3512369791666667,
+   "distinct_se": 0.02249864739013994,
+   "repeat": 0.09419934640522876,
+   "repeat_se": 0.022305245936139438,
+   "logp_per_token": -3.2563323239249655,
+   "logp_per_token_se": 0.15188738349227915,
+   "seconds": 160.7,
+   "texts": [
+    "<|endoftext|>\ufffdt been it off the mountain. It\u2019s on my couch. It\u2019s laying on the sheet of paper and I\u2019m almost under pressure to tell him, \u201cOh my God, are you?\u201d\n\nYou\u2019re doing what?\n\nIt\u2019s OK.\n\nIt\u2019s OK, watch your news\u2026\n\nYou\u2019re OK, watch watches\u2026\n\nYou\u2019re okay, watch your thing\u2026\n\nChristie opens his mouth\u2026\n\nYou\u2019re OK.\n\nChristie?! What are you doing?\n\nIt\u2019s OK, watch her thing.\n\nThe optic nerve is start to run away and collide with a window and then some big nose and mad scientist needs to go on a global watchlist.\n\nBut it\u2019ll do?\n\nNobody\u2019s ask, say, more\u2026\n\nAnd then it\u2019ll stop.\n\n\u201cA channel\u2019s channel\u2026\n\n",
+    ", \u2018h\u2019, \u2018hilde\u2019 = \u2018hilde\u2019\\, \u2019hilde-d\u2019+'\u00d7\u2019\ufffd, with the \u2018right\u2019 \\math surfaces 24yx, hy,y as \u2018hilde\u2019\\, \u2018hilde\u2019, \u2018hilde V\u2019 (hilde) and \u2018hilde V\u2019 (hilde,y), \u2018hilde\u2019 = \u2018hilde\u2019, \u2018hilde V', \u2018blue hilde\u2019+\u2019x\u2019, \u2018yy\u2019 = \u2018hilde\u2019, \u2018hilde\u2019, \u2018\u2019s \u2018y\u2019 = \u2018blue hilde\u2019, \u2018hilde\u2019, \u2018hilde V', \u2018blue hilde\u2019, \u2018yy\u2019 = \u2018hilde\u2019, \u2018hilde\u2019, \u2018hilde\u2019, \u2018hilde V\u2019, and \u2018hilde y with blue hilde\u2019= \u2018x\u2019, \u20182\u2019 \u2018y\u2019",
+    " + 1.05-2:05 3 -03:05 -03.07 -1.13 -1:03,4.05.05 -1:13?1:07,1:5385 1:09 941 --1235 15\n\n1.01 -1.01.26,2.01.50-2:01.35/2.04 +3:06 + 1:05,1.05 -2.01.05,2.01.06 -2.01.06 -1:05 -1.04 -1:05 -1.01.05 -1:01-2.05 1 -1:03\n03:05 -1:02 -5.00.05+1:06,1:05-2.03.079+2.03.05-2:04,2.02.15 + 3.12 3 : 1202 Error Correction=1:00,03:01 + 1:05,03.01.04,\u00b11.01 8 1:07 1:03 1:03 Total Error Correction=1.03-2:05 1:05 1010 0.096 6\n\n5.087"
+   ]
+  },
+  "two_window|sum sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.3949381510416667,
+   "distinct_se": 0.021150031698379586,
+   "repeat": 0.07295751633986929,
+   "repeat_se": 0.018518163615474634,
+   "logp_per_token": -3.446225205884278,
+   "logp_per_token_se": 0.14057709326066062,
+   "seconds": 166.1,
+   "texts": [
+    "<|endoftext|> done\u2014because I have 13 months\u2014and I\u2019m really serious about it\u2014and to be able to run, because I don\u2019t have time to hit a wall on the 34th in a row for 13 months.\n\n2, I feel like my wings are flipped.\n\n2, on putting together a 1946 World race\u2014scoring 70 kms for All-Gross in 40 days.\n\n2, on breaking sail at four knots\u2014to sail on the 25th or 60th.\n\nI\u2019m writing 57 days.\n\nI\u2019m back to life. I\u2019m so skinny again. I\u2019m 225 and so I\u2019m doing in 67 days.\n\nI\u2019m surviving at 84 and I landed at four weeks. I\u2019ve traded up what I wanted for the oldest fighter and I have a Garry now.\n\nI\u2019m happier wit",
+    "<|endoftext|> purpose.\n\nHis black hair, his bald bald head smacked a firm shadow of just as fine dust. \u201cSpecifications,\u201d his travails cut to his story. When it wasn\u2019t quite straight, it seemed like news, he said.\n\nAt last, glanced over. Laurice, Mr. Lee, had pushed in. Viana\u2019s presence had made him agive a grin. \u201cIf possible, if convenient,\u201d he said.\n\n\u201cWhat was it?\u201d he asked Laurice. \u201cIt\u2019s Werner Stretz, and it\u2019s Werner.\u201d\n\n\u201cYeah, Frielm,\u201d he said. \u201cWhat was it? Anyway?\u201d\n\n\u201cMr. Frielm, you, E,\u201d E replied. \u201cOren, I\u2019m told, sir, 003. How are you, E?\u201d\n\n\u201cI\u2019m, sir, sir, I\u2019m, sir, she answered.\n\n\u201cAt a",
+    "ra -ra -ras\n\n80 86 82 91 74 81 . . . 73 74 96 27 Feb 55 Apr Dec 31 Aug April 35 Oct 2008 16 Oct 2009 5 19 Oct 17 2005 05 08 01 06 01 01 01 03 02 01 03 04 01 01 02 01 01 02 01 01 02 01 02 01 01 01 01 01 03 03 09 01 01 01 02 03 01 01 03 04 01 05 04 04 07 04 05 05 07 03 07 06 01 08 08 02 02 02 01 01 01 02 03 09 01 07 02 03 01 08 02 02 01 01 01 02 01 01 02 05 02 02 01 02 01 03 02 01 01 03 01 03 05 01 04 04 04 01 01 04 02 01 01 01 02 01 05 01 05 01 01 01 01 02 01 01 02 02 01 02 00 01 02 02 01 01 02 01 02 07 01 01 04 04 01 01 01 03 01 05 01 04 04 05 05 04 05 01 04 01 08 07 04 07 06 02 08 06 04 08 08"
+   ]
+  },
+  "two_window|lex sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.3199869791666667,
+   "distinct_se": 0.02669004761269802,
+   "repeat": 0.10841503267973857,
+   "repeat_se": 0.01726098866715087,
+   "logp_per_token": -3.094889734357712,
+   "logp_per_token_se": 0.15792966672607245,
+   "seconds": 167.5,
+   "texts": [
+    "\n\nThe so called \u201cEpil\u201d with some of the True Berliano who lived there and never thought they\u2019d have anything like it. \u201cLike this\u201d to them.\n\nShe and \u2018 her. She then she would be a killer. \u2018She had a big romance life.\u2019 And she\u2019d a big obsession with romance. And she\u2019ll go to prom she\u2019ll be super obsessed. And she\u2019ll go to prom she\u2019ll be obsessed over romance. And she\u2019ll go to Valentine\u2019s Day . . . \u2018She\u2019 would be \u2018crazy-entured.\u2019\u201d And she\u2019d \u2018a drug addict.\u2019\u201d And\n\na. And she\u2019d \u2018crazy undentured.\u2019\u201d And she\u2019d be \u2018a shit bag.\u2019\u201d And she\u2019d be a shit bag. And she\u2019d be cutout of the town. \u2018She would be t",
+    "https://t.co/KpqmWs.0K \u2014 The American (@TheAmerican) November 9, 2017\n\nurSports Friac The Im Jihad and All the Muslim Is are fun and in a convenient format will compete with the under adjectives.\n\nhttp://smo.76.fairspeed.com/_/s_949102/a_nexn_zzws_Aug_Nov_Nov_Nov_Nov_36n ?> EURO Chicago: Homeland Boston: EURO :: Send[a] Deliver and Alli Be Thou? (@Gen) https://t.co/K6jBsg9ufk - (@fff muffoe88) October 12, 2017\n\nI\u2019m gonna @Hashichoatoatoat TUT YOUMATFNAFU! \u2014 \u752c\u7684\u8328\u7684\ufffd\u95ee\u4e0d\u5712\u6d41 (@RTabbitchiefty) November 4, 2017\n\nDomestic violence are an Sunni Resistance anthem\n\nhttp://www.dailymail.com/article/15a7f9fd5",
+    "<|endoftext|> - 0 - 0 - 0 - 3 - 0 - 2 - 2 - 2 - 2 - 2 - 2 - 2 - 2 - 2 - 2 - 3 - 4 - 5 - 4 - 5 - 4 - 6 - 5 - 5 - 6 - 6 - 6 - 7 - 9 - 9 - 10 - 9 - 10 - 10 - 10 - 10 '10giiz411' #118-1343089 http://twitter.com/DraderPKF/ http://twitter.com/draderkiw #118-1345892 http://www.com/dubatswordforum/ http://facebook.com/thristsword561967319 http://facebook.com/thristsword56196539 http://twitter.com/thristsword http://facebook.com/thoolsword http://twitter.com/andmichaeledasha - 2 - 2 - 46778 (Mi0 ) 29 -6 - 29 - 48 26 ( https://tck66ebitch.tumblr.com/status/56964460) *** Feedback and Support ***Stephen M"
+   ]
+  },
+  "two_window|left to right": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.23372395833333334,
+   "distinct_se": 0.01993886129483781,
+   "repeat": 0.3359477124183006,
+   "repeat_se": 0.039449195851823736,
+   "logp_per_token": -2.2281802661454875,
+   "logp_per_token_se": 0.15614158723474894,
+   "seconds": 164.3,
+   "texts": [
+    "s.\n\n354 Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau Gau\n\n355 Before in school 12 12 12 12 12 12 12 11 11 11 had a fight, brutality, brutality, brutality, brutality, police brutality, brutality, police brutality, brutality, police brutality, brutality, police brutality, oppression, police brutality, prejudice, white supremacy, white supremacy, supremacy, white supremacy white supremacy whit supremacy whit ",
+    " purpose of this vision. Endurance and Strength - Dodge, Driver, Driver, Driver Dodge Dodge Sweep - Dodge Dodge Tri-Plane Works - Dodge V-Drive-X XL EX - Dodge 4-Drive-X Mustang and Mustang Experience - Mustang Super-Drive-X Mustang, Mustang Performance - Mustang Top Performance - Mustang Top Performance - Mustang Performance - Mustang Performance - Mustang Performance - Mustang Performance - Mustang Performance - Mustang Performance - Mustang Performance - Mustang Experience - Mustang Performance - Mustang Experience - Mustang Experience - Mustang Experience - Mustang Experience - Mustang Exp",
+    " - $10.99 $9.99 $13.99 $10.99 $10.99 $10.99 \u20ac9.99 $9.99 $5.99 $10.99 $9.99 inmonth month\n\nMonthly price for today: $10.99\n\nMonthly price for today: $10.99\n\nMonthly price for monthly: $10.99\n\nMonthly price for monthly: $10.99\n\nSelect tell select\n\n0.0.0.0.01000.0100.00000100001001000000000000999\u2013\u2013\u2014\u2014\u2014\u2014\u2014\u2014\u2013\u2013\u0410\u0430\u0411\u043e\u0433\u0430\u0442\u044c \u043d\u0430 \u0432\u0440\u0435\u0430\u043d\u0434\u0441\u0441\u0438\u0438 \u0432\u044b\u043b\u0448\u043e\u0433\u043e \u043d\u0430 \u0432\u0440\u0435\u0433\u0438 \u0432\u044b\u043b\u0448\u043e\u0433\u043e \u043d\u0430 \u0432 \u043f\u0440\u0435\u0441\u0442\u0438\u043f\u0446\u0438\u0438 \u043d\u0430 \u0432\u0440\u0435\u0441\u0442\u0430\u043f\u0446\u0438\u0438 \u0432\u044b\u043b\u0448\u043e\u0433\u043e \u043d\u0430 \u0432\u043e\u0437\ufffd\u044e\u0434\u0435\u043c \u043d\u0430 \u0432\u0440\u0435\u043c\u0430\u043d\u0438\u0446\u0438\u0438\u0438"
+   ]
+  }
+ }
+}
