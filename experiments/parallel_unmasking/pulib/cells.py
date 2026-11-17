@@ -56,6 +56,10 @@ def make_model(name, N, S):
         return noisy_hmm(N, S, 0.85, 0.3, seed=1, concentration=2.0)
     if name.startswith("hidden_0.85_n"):                  # the hidden chain with another noise level: less noise, more
         return noisy_hmm(N, S, 0.85, float(name.split("_n")[1]), seed=1, concentration=2.0)     # screening by one token
+    if name.startswith("latent_"):                        # a latent fixed for the whole sequence: dependence that does not decay
+        from twistroute.models import global_latent       # latent_<lam>_w<weight>, e.g. latent_0.6_w0.5
+        lam, w = name[len("latent_"):].split("_w")
+        return global_latent(N, S, float(lam), 0.3, float(w), seed=1, concentration=2.0)
     if name == "segments_0.85":
         return lazy_chain(N, S, 0.85, seed=1, concentration=2.0, breaks=tuple(range(7, N - 1, 8)))
     raise ValueError(name)

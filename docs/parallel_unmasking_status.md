@@ -2511,9 +2511,13 @@ E[log model's joint of the set - log reference], summed over a decode, along seq
 - Only where sets are large and the product is poor does the chain law come level or ahead (counting at B = 1; Dyck at B = 1, 0.59 against 0.80).
 - The 8-position result was the favourable case: every position in one contiguous set, on a short sequence.
 
-Decision: `reference_twist` stays in the code, off by default. The chain proposal with the product reference is the
-arm to carry forward. A reference that keeps the model's marginals exactly and adds dependence only between
-co-revealed neighbours is the natural next candidate; not built.
+Decision: `reference_twist` stays in the code, off by default. Lowest RMS error by constraint over the four schedules
+above (P = product proposal and reference, CP = chain proposal with product reference, CC = chain proposal and reference): forbidden CP, CP, CP, CP; dyck CC, CC, CC, CC; counting CC, CC, CC, CC; window P, P, CC, CC; two_window P, P, P, CC.
+So the chain proposal with the product reference is the arm to carry forward on forbidden only; on the windows the
+product proposal is best or tied under `lex` (as in section 36x); on counting and Dyck the chain reference has the lowest
+RMS error at 16 particles through lower noise, without a lower bias. A reference that keeps the model's marginals exactly and adds dependence only between
+co-revealed neighbours is the natural next candidate; not built. Deferred by the user on 2026-11-17: it matters only
+when neighbours must be revealed together (very few steps), and the order rule and the stress oracle come first.
 
 ## 36. Next steps (2026-11-16; replaces section 34)
 

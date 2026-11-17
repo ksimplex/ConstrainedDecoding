@@ -211,6 +211,24 @@ def noisy_hmm(N, S, lam, noise, seed=0, concentration=None, device="cpu", pi=Non
                      name=f"noisy_hmm(lam={lam}, noise={noise})")
 
 
+def global_latent(N, S, lam, noise, weight, seed=0, concentration=None, device="cpu"):
+    """A hidden lazy chain whose stationary law depends on a latent drawn once per sequence. The latent z is uniform
+    over the S symbols and never changes; given z the hidden chain keeps its state with probability lam and
+    otherwise redraws from pi_z = (1 - weight) pi + weight e_z (the base law pulled towards symbol z); tokens are
+    the hidden state through the noisy channel of `noisy_hmm`. Tokens at any distance stay dependent through z:
+    the dependence does not decay to zero, unlike every other oracle here, so no finite-order chain over tokens
+    reproduces it. Exact conditionals as for any OracleHMM (hidden state = (z, chain state), block-diagonal)."""
+    if not 0.0 <= weight < 1.0 or not 0.0 <= noise <= 1.0 or not 0.0 <= lam < 1.0:
+        raise ValueError("weight and lam must lie in [0, 1) and noise in [0, 1]")
+    base = _stationary(S, seed, concentration); H = S * S
+    pi = np.zeros(H); tr = np.zeros((H, H)); E = (1 - noise) * np.eye(S) + noise / S; emit = np.zeros((H, S))
+    for z in range(S):
+        pz = (1 - weight) * base + weight * np.eye(S)[z]; sl = slice(z * S, (z + 1) * S)
+        pi[sl] = pz / S; tr[sl, sl] = (1 - lam) * np.tile(pz, (S, 1)) + lam * np.eye(S); emit[sl] = E
+    return OracleHMM(pi, np.tile(tr, (N - 1, 1, 1)), np.tile(emit, (N, 1, 1)), device,
+                     name=f"global_latent(lam={lam}, noise={noise}, weight={weight})")
+
+
 def independent(probs, device="cpu"):
     """Mean-field model: position i is drawn from probs[i] independently of the others. probs (N, S)."""
     probs = np.asarray(probs, float)
