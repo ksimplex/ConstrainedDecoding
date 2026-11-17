@@ -70,7 +70,7 @@ class _Particles:
             self.psi = self.psi[flat]
 
 
-def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.0, chain=None, reference=None):
+def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.0, chain=None, reference=None, chain_mix=0.0):
     """One proposal step from state s: the step-exact proposal, or with probability mix_native per particle the
     native kernel (same reveal set, tokens from the unrestricted predictions). Returns (x2, y2, z_old, log_ratio)
     with z_old = Z(x2; x) and log_ratio = log(M(x2|x) / kappa(x2|x)), which is z_old - Z(x; x) for the
@@ -88,13 +88,21 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
     reference (a ChainTwist): kappa, the law of the revealed classes with no constraint, is the chain law's joint for
     a particle that reveals two or more positions in this step (the model's marginal for one position, as always).
     This changes what the parallel process is, and so what the weights converge to; it leaves one token per step
-    untouched. The returned log_ratio is then log(M / kappa) for that kappa."""
+    untouched. The returned log_ratio is then log(M / kappa) for that kappa.
+
+    chain_mix (d in [0, 1), with chain): each particle draws its classes from the product law given the constraint
+    with probability d and from the chain law otherwise; the reveal set is chosen as before. The proposal is the
+    mixture, M / kappa = (1 - d) M_chain / kappa + d Z(x'; x) / Z(x; x), so a class sequence the constraint and the
+    model allow has at least the share d of its product-proposal density whatever the pair table says."""
     P = s.x.shape[0]
     view = lambda: RevealState(s.x, s.ycls, s.lw, den.mask_id, classes, route)   # for policy schedules only
     log_chain_c = None
     if chain is not None:
         lwc = clamp_revealed(s.lw, s.x, s.ycls, den.mask_id)
         y, log_chain_c = chain.sample(lwc, gen)                             # y ~ chain law given C
+        if chain_mix > 0:                                                   # defensive share of the product proposal
+            from_product = torch.rand(P, generator=gen, device=s.x.device) < chain_mix
+            y = torch.where(from_product[:, None], route.sample(lwc, gen), y)
         r, rvalid = choose_reveals(schedule, s.x == den.mask_id, t, T, gen, view)
     elif tau != 1.0:
         r, rvalid = choose_reveals(schedule, s.x == den.mask_id, t, T, gen, view)
@@ -141,6 +149,9 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
         native = torch.gather(s.lw, 1, r[..., None].expand(-1, -1, s.lw.shape[-1])).gather(2, cr[..., None]).squeeze(-1).double()
         native = torch.where(keep, native, torch.zeros_like(native)).sum(-1)   # the model's class log-probabilities at r
         step = torch.nan_to_num(chain.log_clamped(lwc, r, cr, rvalid) - log_chain_c - native, nan=NEG_INF, neginf=NEG_INF)
+        if chain_mix > 0:
+            prod = torch.nan_to_num(z_old.double() - s.eta.double(), nan=NEG_INF, neginf=NEG_INF)
+            step = torch.logaddexp(math.log1p(-chain_mix) + step, math.log(chain_mix) + prod)
         if mix_native <= 0:
             return x2, y2, z_old, step if shift is None else step + shift
     elif mix_native <= 0:

@@ -275,3 +275,28 @@ def test_pair_kernel_without_an_exact_sampler():
     Ka = fit_pair_kernel(den, cl, 6000, torch.Generator().manual_seed(0))
     Kb = fit_pair_kernel(NoSampler(den), cl, 6000, torch.Generator().manual_seed(1), N=N)
     assert float((Ka - Kb).abs().max()) < 0.03 and float((Kb.diagonal() - Kb.mean(1)).min()) > 0.1
+
+
+@pytest.mark.parametrize("T", [24, 6])
+def test_defensive_share_of_the_product_proposal(T):
+    """proposal_mix leaves the estimate unbiased, with a sound table and with a table that nearly bans a pair the
+    constraint needs; with the bad table the pure chain proposal has weights far more dispersed than the mixture."""
+    N, A = 24, 3
+    den = noisy_hmm(N, A, 0.85, 0.3, seed=1, concentration=2.0); cl = den.classes()
+    d = C.dfa_exactly_k(0, N // 3, A); route, truth = torch_route(d), ConstrainedTruth(den, cl, d)
+    good = fit_pair_kernel(den, cl, 5000, torch.Generator().manual_seed(0))
+    bad = good.clone(); bad[0, 0] = 1e-9; bad[1, 0] = 1e-9; bad = bad / bad.sum(-1, keepdim=True)          # class 0 almost never follows 0 or 1
+    ref, ref_se = 1.0, 0.0
+    if T < N:
+        zr = np.exp(twisted_smc(den, cl, route, N, T, nrun=3000, K=8, gen=torch.Generator().manual_seed(11), ess_min=0.0)["logZ"] - truth.log_pC)
+        ref, ref_se = zr.mean(), zr.std(ddof=1) / math.sqrt(len(zr))
+    spread = {}
+    for name, K, mix in (("good", good, 0.2), ("bad", bad, 0.2), ("bad_pure", bad, 0.0)):
+        tw = ChainTwist(d, K, match=5)
+        out = twisted_smc(den, cl, route, N, T, nrun=600, K=8, gen=torch.Generator().manual_seed(7), proposal_twist=tw, twist=tw, proposal_mix=mix, ess_min=0.0)
+        z = np.exp(out["logZ"] - truth.log_pC); se = z.std(ddof=1) / math.sqrt(len(z)); spread[name] = z.std(ddof=1) / z.mean()
+        if mix > 0:
+            assert out["frac_valid_finite"] == 1.0 and abs(z.mean() - ref) < 4 * math.hypot(se, ref_se), (name, z.mean(), se, ref)
+    assert spread["bad"] < 0.75 * spread["bad_pure"], spread
+    with pytest.raises(ValueError):
+        twisted_smc(den, cl, route, N, T, nrun=2, K=2, proposal_mix=0.2)
