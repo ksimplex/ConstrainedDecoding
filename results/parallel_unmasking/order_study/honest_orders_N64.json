@@ -1,0 +1,402 @@
+{
+ "counting|product|random": {
+  "kl": 0.1802680964289168,
+  "kl_weights": 0.199516319727815,
+  "kl_weights_se": 0.036756460223842755
+ },
+ "counting|product|ltr": {
+  "kl": 0.7779448535998583,
+  "kl_weights": 0.7903211669992436,
+  "kl_weights_se": 0.06101148716255269
+ },
+ "counting|product|lex": {
+  "kl": 0.2037086704804946,
+  "kl_weights": 0.22426274450702816,
+  "kl_weights_se": 0.037734865100642154
+ },
+ "counting|product|sum": {
+  "kl": 0.12254884425216077,
+  "kl_weights": 0.15825755977935616,
+  "kl_weights_se": 0.03350442663793459
+ },
+ "counting|product|cheapest": {
+  "kl": 0.19066058627760574,
+  "kl_weights": 0.16729079447631184,
+  "kl_weights_se": 0.03348843977415948
+ },
+ "counting|product|estimate": {
+  "kl": 0.20432053138898168,
+  "kl_weights": 0.2532604814426076,
+  "kl_weights_se": 0.041238393105141394
+ },
+ "counting|product|confident": {
+  "kl": 0.5028646724667449,
+  "kl_weights": 0.5433006203134708,
+  "kl_weights_se": 0.057798895788106874
+ },
+ "counting|product|confident_proposal": {
+  "kl": 0.5028646724667449,
+  "kl_weights": 0.5433006203134708,
+  "kl_weights_se": 0.057798895788106874
+ },
+ "counting|chain|random": {
+  "kl": 0.18843629040589038,
+  "kl_weights": 0.20786593573896434,
+  "kl_weights_se": 0.03513705601819701
+ },
+ "counting|chain|ltr": {
+  "kl": 0.20818501114037224,
+  "kl_weights": 0.2225390334997771,
+  "kl_weights_se": 0.037019676369350045
+ },
+ "counting|chain|lex": {
+  "kl": 0.2629638009114019,
+  "kl_weights": 0.22222940254858675,
+  "kl_weights_se": 0.039209212731300354
+ },
+ "counting|chain|sum": {
+  "kl": 0.14583245093719907,
+  "kl_weights": 0.16891025770016033,
+  "kl_weights_se": 0.03045539661348663
+ },
+ "counting|chain|cheapest": {
+  "kl": 0.07815949436273184,
+  "kl_weights": 0.06927135136642422,
+  "kl_weights_se": 0.021931612349815506
+ },
+ "counting|chain|estimate": {
+  "kl": 0.16983045455798487,
+  "kl_weights": 0.1976096151098402,
+  "kl_weights_se": 0.037173111464331145
+ },
+ "counting|chain|confident": {
+  "kl": 0.35893487853117767,
+  "kl_weights": 0.37469528939228985,
+  "kl_weights_se": 0.052794608981626134
+ },
+ "counting|chain|confident_proposal": {
+  "kl": 0.46705298511944104,
+  "kl_weights": 0.44484430813401143,
+  "kl_weights_se": 0.05339626247666681
+ },
+ "dyck|product|random": {
+  "kl": 0.6415923643780879,
+  "kl_weights": 0.6802304396035915,
+  "kl_weights_se": 0.07451895359676242
+ },
+ "dyck|product|ltr": {
+  "kl": 1.2912490807754684,
+  "kl_weights": 1.3554707109761892,
+  "kl_weights_se": 0.08364418082687704
+ },
+ "dyck|product|lex": {
+  "kl": 0.5860595832920258,
+  "kl_weights": 0.5782035513094029,
+  "kl_weights_se": 0.0738973738009833
+ },
+ "dyck|product|sum": {
+  "kl": 0.5992319096496646,
+  "kl_weights": 0.6183612918828654,
+  "kl_weights_se": 0.07290547055688062
+ },
+ "dyck|product|cheapest": {
+  "kl": 0.26163811713391477,
+  "kl_weights": 0.2570520305852237,
+  "kl_weights_se": 0.04033530693043422
+ },
+ "dyck|product|estimate": {
+  "kl": 0.4259768700983336,
+  "kl_weights": 0.4829380411660812,
+  "kl_weights_se": 0.04893551277439274
+ },
+ "dyck|product|confident": {
+  "kl": 0.7907970739422423,
+  "kl_weights": 0.7892884145188109,
+  "kl_weights_se": 0.09002523109130345
+ },
+ "dyck|product|confident_proposal": {
+  "kl": 0.7907970739422423,
+  "kl_weights": 0.7894257893595245,
+  "kl_weights_se": 0.09002627953947501
+ },
+ "dyck|chain|random": {
+  "kl": 0.2980172645765483,
+  "kl_weights": 0.37983560418765144,
+  "kl_weights_se": 0.048346933990520966
+ },
+ "dyck|chain|ltr": {
+  "kl": 0.31447594039087523,
+  "kl_weights": 0.3597227848824053,
+  "kl_weights_se": 0.044047875794670656
+ },
+ "dyck|chain|lex": {
+  "kl": 0.2879289453693008,
+  "kl_weights": 0.2940580852482828,
+  "kl_weights_se": 0.04302045606340433
+ },
+ "dyck|chain|sum": {
+  "kl": 0.24596982219814,
+  "kl_weights": 0.17876838564510172,
+  "kl_weights_se": 0.04157152306234816
+ },
+ "dyck|chain|cheapest": {
+  "kl": 0.10324051222627927,
+  "kl_weights": 0.15565999415792378,
+  "kl_weights_se": 0.028370436032826546
+ },
+ "dyck|chain|estimate": {
+  "kl": 0.3413579122471465,
+  "kl_weights": 0.36492216398741284,
+  "kl_weights_se": 0.0464213709741
+ },
+ "dyck|chain|confident": {
+  "kl": 0.3682814388537361,
+  "kl_weights": 0.4152545554298371,
+  "kl_weights_se": 0.05147985014569114
+ },
+ "dyck|chain|confident_proposal": {
+  "kl": 0.2860317708209491,
+  "kl_weights": 0.28637971992617867,
+  "kl_weights_se": 0.04362477443642231
+ },
+ "forbidden|product|random": {
+  "kl": 2.588495097638395,
+  "kl_weights": 2.5937526645568667,
+  "kl_weights_se": 0.1735489225338166
+ },
+ "forbidden|product|ltr": {
+  "kl": 0.5858607545474702,
+  "kl_weights": 0.5901425162696455,
+  "kl_weights_se": 0.07214237609456273
+ },
+ "forbidden|product|lex": {
+  "kl": 0.5818165193677419,
+  "kl_weights": 0.5885967186273898,
+  "kl_weights_se": 0.07133131708666737
+ },
+ "forbidden|product|sum": {
+  "kl": 1.1713207344791512,
+  "kl_weights": 1.1527082487757234,
+  "kl_weights_se": 0.09687544998966317
+ },
+ "forbidden|product|cheapest": {
+  "kl": 0.5990048101160482,
+  "kl_weights": 0.5591329107127475,
+  "kl_weights_se": 0.07081410261661714
+ },
+ "forbidden|product|estimate": {
+  "kl": 0.6196384589875864,
+  "kl_weights": 0.5233351572961616,
+  "kl_weights_se": 0.07394561301223994
+ },
+ "forbidden|product|confident": {
+  "kl": 0.5858607545474702,
+  "kl_weights": 0.5901425162696455,
+  "kl_weights_se": 0.07214237609456273
+ },
+ "forbidden|product|confident_proposal": {
+  "kl": 0.5858607545474702,
+  "kl_weights": 0.5901425162696455,
+  "kl_weights_se": 0.07214237609456273
+ },
+ "forbidden|chain|random": {
+  "kl": 0.419229460723182,
+  "kl_weights": 0.459040589062288,
+  "kl_weights_se": 0.05290191941137297
+ },
+ "forbidden|chain|ltr": {
+  "kl": 0.21581302484747583,
+  "kl_weights": 0.2314508913570983,
+  "kl_weights_se": 0.037469702488149154
+ },
+ "forbidden|chain|lex": {
+  "kl": 0.21607795577055888,
+  "kl_weights": 0.23072618127999864,
+  "kl_weights_se": 0.03810603602893325
+ },
+ "forbidden|chain|sum": {
+  "kl": 0.2837890837594942,
+  "kl_weights": 0.27509014065344045,
+  "kl_weights_se": 0.042419782772545205
+ },
+ "forbidden|chain|cheapest": {
+  "kl": 0.0957934373082876,
+  "kl_weights": 0.06357151099703792,
+  "kl_weights_se": 0.027350160611561078
+ },
+ "forbidden|chain|estimate": {
+  "kl": 0.19708105227394604,
+  "kl_weights": 0.2076051464503804,
+  "kl_weights_se": 0.039857230432147166
+ },
+ "forbidden|chain|confident": {
+  "kl": 0.21581302484747583,
+  "kl_weights": 0.2314508913570983,
+  "kl_weights_se": 0.037469702488149154
+ },
+ "forbidden|chain|confident_proposal": {
+  "kl": 0.21770847028676305,
+  "kl_weights": 0.21388187926417548,
+  "kl_weights_se": 0.03633063047370522
+ },
+ "window|product|random": {
+  "kl": 0.3890366479082381,
+  "kl_weights": 0.34868939211899436,
+  "kl_weights_se": 0.058865986268005974
+ },
+ "window|product|ltr": {
+  "kl": 0.4214062803928025,
+  "kl_weights": 0.41016796352983176,
+  "kl_weights_se": 0.056165985571725856
+ },
+ "window|product|lex": {
+  "kl": 0.07569972264900864,
+  "kl_weights": 0.03141900331460421,
+  "kl_weights_se": 0.02150306481386311
+ },
+ "window|product|sum": {
+  "kl": 0.09116030731869693,
+  "kl_weights": 0.061254590516718194,
+  "kl_weights_se": 0.02482456304671193
+ },
+ "window|product|cheapest": {
+  "kl": 0.0499588155457413,
+  "kl_weights": 0.08323770151748887,
+  "kl_weights_se": 0.019802594827438867
+ },
+ "window|product|estimate": {
+  "kl": 0.45452317095288564,
+  "kl_weights": 0.46482159330020845,
+  "kl_weights_se": 0.05785945369482844
+ },
+ "window|product|confident": {
+  "kl": 0.05307729281938103,
+  "kl_weights": 0.009432809221266552,
+  "kl_weights_se": 0.018355904671679444
+ },
+ "window|product|confident_proposal": {
+  "kl": 0.053389445333226884,
+  "kl_weights": 0.02066137662046672,
+  "kl_weights_se": 0.018396485444350002
+ },
+ "window|chain|random": {
+  "kl": 0.2555428383796019,
+  "kl_weights": 0.22311764055454186,
+  "kl_weights_se": 0.04218746267713087
+ },
+ "window|chain|ltr": {
+  "kl": 0.25397267738902796,
+  "kl_weights": 0.27040893211988465,
+  "kl_weights_se": 0.04077661351632955
+ },
+ "window|chain|lex": {
+  "kl": 0.07966670034060126,
+  "kl_weights": 0.0964119557962403,
+  "kl_weights_se": 0.023406381741030005
+ },
+ "window|chain|sum": {
+  "kl": 0.07791135425571875,
+  "kl_weights": 0.10302897703685908,
+  "kl_weights_se": 0.0219278655764505
+ },
+ "window|chain|cheapest": {
+  "kl": 0.01736487781673286,
+  "kl_weights": 0.03076329479031501,
+  "kl_weights_se": 0.01101858918215443
+ },
+ "window|chain|estimate": {
+  "kl": 0.37673609892342963,
+  "kl_weights": 0.3703356370121635,
+  "kl_weights_se": 0.05191245861766698
+ },
+ "window|chain|confident": {
+  "kl": 0.19483478522306363,
+  "kl_weights": 0.19882922034431116,
+  "kl_weights_se": 0.033773131090355374
+ },
+ "window|chain|confident_proposal": {
+  "kl": 0.17210956545185455,
+  "kl_weights": 0.16617228533086095,
+  "kl_weights_se": 0.03187262637320711
+ },
+ "two_window|product|random": {
+  "kl": 0.7303792446218255,
+  "kl_weights": 0.7288821177203366,
+  "kl_weights_se": 0.07299084618948348
+ },
+ "two_window|product|ltr": {
+  "kl": 0.7329458835768823,
+  "kl_weights": 0.7066598642750108,
+  "kl_weights_se": 0.07120588160450313
+ },
+ "two_window|product|lex": {
+  "kl": 0.0848268451039387,
+  "kl_weights": 0.05289776583261416,
+  "kl_weights_se": 0.02443064064118564
+ },
+ "two_window|product|sum": {
+  "kl": 0.1152266188178849,
+  "kl_weights": 0.06213541663222962,
+  "kl_weights_se": 0.025971907192834428
+ },
+ "two_window|product|cheapest": {
+  "kl": 0.2777112792334184,
+  "kl_weights": 0.24927183032549247,
+  "kl_weights_se": 0.04603699241026261
+ },
+ "two_window|product|estimate": {
+  "kl": 0.835017364734989,
+  "kl_weights": 0.8601309826905613,
+  "kl_weights_se": 0.07573149206243154
+ },
+ "two_window|product|confident": {
+  "kl": 0.17621377150059475,
+  "kl_weights": 0.12281344431782783,
+  "kl_weights_se": 0.031849424378180086
+ },
+ "two_window|product|confident_proposal": {
+  "kl": 0.17621377150059475,
+  "kl_weights": 0.12281344431782783,
+  "kl_weights_se": 0.031849424378180086
+ },
+ "two_window|chain|random": {
+  "kl": 0.45006200639620064,
+  "kl_weights": 0.4282828242920747,
+  "kl_weights_se": 0.05702398445205091
+ },
+ "two_window|chain|ltr": {
+  "kl": 0.3648725239573847,
+  "kl_weights": 0.36097109196591615,
+  "kl_weights_se": 0.04968176607315551
+ },
+ "two_window|chain|lex": {
+  "kl": 0.10193658870358546,
+  "kl_weights": 0.09085039455939081,
+  "kl_weights_se": 0.02632051843093867
+ },
+ "two_window|chain|sum": {
+  "kl": 0.13546867106043767,
+  "kl_weights": 0.11817236512715719,
+  "kl_weights_se": 0.027647356449844653
+ },
+ "two_window|chain|cheapest": {
+  "kl": 0.03151554447092654,
+  "kl_weights": 0.01693903002634465,
+  "kl_weights_se": 0.014746491605073958
+ },
+ "two_window|chain|estimate": {
+  "kl": 0.7277771598944345,
+  "kl_weights": 0.7734487161825433,
+  "kl_weights_se": 0.07281496343490404
+ },
+ "two_window|chain|confident": {
+  "kl": 0.20029228477068745,
+  "kl_weights": 0.16974296488930646,
+  "kl_weights_se": 0.03173048141479916
+ },
+ "two_window|chain|confident_proposal": {
+  "kl": 0.17014935952270888,
+  "kl_weights": 0.18030007642465642,
+  "kl_weights_se": 0.03118107796995172
+ }
+}

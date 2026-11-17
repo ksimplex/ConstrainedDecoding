@@ -75,14 +75,14 @@ def fit_markov(x, S, order, smooth=0.5):
 class World:
     """All (S + 1)^N states of one model under one constraint: marginals, proposals, true error, tilt."""
 
-    def __init__(self, den, name, N, chunk=50000, proposal="product", pilot=2000):
+    def __init__(self, den, name, N, chunk=50000, proposal="product", pilot=2000, match=0):
         self.N, self.S = N, den.S; S = den.S
         cl, route, truth = constraint_for(name, den, N); self.log_pC = float(truth.log_pC)
         act = getattr(truth, "active", None); ref = te.Twists(den, truth.wdfa, act if act is not None else [True] * N)
         chain = None
         if proposal == "chain":                             # propose from the first-order chain twist's constrained marginals
             from twistroute.decode import ChainTwist, fit_pair_kernel
-            chain = ChainTwist(truth.wdfa, fit_pair_kernel(den, cl, pilot, torch.Generator().manual_seed(5)), active=act)
+            chain = ChainTwist(truth.wdfa, fit_pair_kernel(den, cl, pilot, torch.Generator().manual_seed(5)), active=act, match=match)
         B = self.B = (S + 1) ** N; self.pw = (S + 1) ** np.arange(N); self.codes = np.arange(B)
         dig = ((self.codes[:, None] // self.pw[None]) % (S + 1)).astype(np.int64); self.masked = dig == S; self.nm = self.masked.sum(1)
         x_all = torch.from_numpy(dig); pm = np.zeros((B, N, S)); q = np.zeros((B, N, S)); lt = np.zeros(B)
@@ -195,9 +195,10 @@ def main():
     ap.add_argument("--N", type=int, default=10); ap.add_argument("--model", default="hidden_0.85"); ap.add_argument("--constraint", default="counting")
     ap.add_argument("--pilot", type=int, default=2000); ap.add_argument("--surrogates", nargs="*", default=["markov1", "markov2"])
     ap.add_argument("--proposal", choices=("product", "chain"), default="product", help="propose from the product twist's constrained marginals, or the chain twist's")
+    ap.add_argument("--match", type=int, default=0, help="sweeps of marginal matching in the chain law (0 = the ratio formula)")
     ap.add_argument("--restarts", type=int, default=12); ap.add_argument("--out", default="surrogate_plan.json")
     a = ap.parse_args(); torch.set_num_threads(2); t0 = time.time(); N = a.N; S = n_symbols(a.constraint)
-    den = make_model(a.model, N, S); W = World(den, a.constraint, N, proposal=a.proposal, pilot=a.pilot); e0 = W.e0; rng = np.random.default_rng(3)
+    den = make_model(a.model, N, S); W = World(den, a.constraint, N, proposal=a.proposal, pilot=a.pilot, match=a.match); e0 = W.e0; rng = np.random.default_rng(3)
     Vopt, pick_opt = W.solve(W.eps); Vr = W.value_random()
     res = dict(args=vars(a), provenance=provenance(), log_pC=W.log_pC, kl={}, checks={}, static={})
 
@@ -222,7 +223,7 @@ def main():
     print(f"  {'static (best fixed order)':28s} {v:.4f}   ({v / Vopt[e0]:.2f} x optimal)   order {perm}", flush=True)
     x = den.sample(a.pilot, torch.Generator().manual_seed(11)).numpy()
     for sname in a.surrogates:
-        ds = fit_markov(x, S, 1 if sname == "markov1" else 2); Ws = World(ds, a.constraint, N, proposal=a.proposal, pilot=a.pilot)
+        ds = fit_markov(x, S, 1 if sname == "markov1" else 2); Ws = World(ds, a.constraint, N, proposal=a.proposal, pilot=a.pilot, match=a.match)
         assert (Ws.alive == W.alive).all()
         Vs, ps = Ws.solve(Ws.eps); Vsr = Ws.value_random()
         record(f"{sname}:optimal", ps); record(f"{sname}:rollout_random", Ws.argmin_pick(Ws.lookahead(Ws.eps, Vsr)))

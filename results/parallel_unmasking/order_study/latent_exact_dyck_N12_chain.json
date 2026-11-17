@@ -1,0 +1,107 @@
+{
+ "args": {
+  "N": 12,
+  "model": "latent_0.6_w0.5",
+  "constraint": "dyck",
+  "pilot": 2000,
+  "surrogates": [
+   "markov1",
+   "markov2"
+  ],
+  "proposal": "chain",
+  "restarts": 12,
+  "out": "../../overnight/latent_exact_dyck_N12_chain.json"
+ },
+ "provenance": {
+  "commit": "df5030c",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 00:30"
+ },
+ "log_pC": -4.072021325727493,
+ "kl": {
+  "random": 0.027593352740058325,
+  "optimal": 0.0008695802229240195,
+  "greedy": 0.0030009877491141363,
+  "rollout_greedy": 0.0017367716649280354,
+  "rollout_random": 0.0030945464243543356,
+  "least_tilted": 0.028829633858575045,
+  "static": 0.003583948031814514,
+  "markov1:optimal": 0.017175970153598244,
+  "markov1:rollout_random": 0.035554736145523076,
+  "markov1:static": 0.02590026098183819,
+  "mix-markov1:optimal": 0.02357626610980205,
+  "mix-markov1:rollout_random": 0.02357626610980205,
+  "markov1:own_optimal_value": 2.1659518437792148e-05,
+  "markov1:own_random_value": 0.001326659371790287,
+  "markov2:optimal": 0.004545381827112758,
+  "markov2:rollout_random": 0.0063370554097106555,
+  "markov2:static": 0.005446502268659225,
+  "mix-markov2:optimal": 0.02473389120956967,
+  "mix-markov2:rollout_random": 0.02423147796173471,
+  "markov2:own_optimal_value": 0.0007276368490648254,
+  "markov2:own_random_value": 0.0353785987201047
+ },
+ "checks": {
+  "optimal_kl": 0.0008695802229240195,
+  "optimal_total_tilt_plus_log_pC": 0.0008695802229174987,
+  "random_kl": 0.027593352740058325,
+  "random_total_tilt_plus_log_pC": 0.027593352740036714,
+  "best_plan_for_tilt_kl": 0.0008695802229581715
+ },
+ "static": {
+  "truth": {
+   "order": [
+    11,
+    5,
+    6,
+    7,
+    2,
+    0,
+    3,
+    1,
+    8,
+    10,
+    9,
+    4
+   ],
+   "kl": 0.003583948031814514
+  },
+  "markov1": {
+   "order": [
+    2,
+    4,
+    0,
+    6,
+    7,
+    8,
+    9,
+    11,
+    1,
+    5,
+    10,
+    3
+   ],
+   "kl": 0.02590026098183819
+  },
+  "markov2": {
+   "order": [
+    0,
+    11,
+    6,
+    5,
+    2,
+    3,
+    7,
+    8,
+    10,
+    4,
+    9,
+    1
+   ],
+   "kl": 0.005446502268659225
+  }
+ },
+ "seconds": 62.1
+}

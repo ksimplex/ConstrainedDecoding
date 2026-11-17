@@ -1,0 +1,79 @@
+{
+ "args": {
+  "N": 10,
+  "model": "latent_0.6_w0.5",
+  "constraint": "window_small",
+  "pilot": 2000,
+  "surrogates": [
+   "markov2"
+  ],
+  "proposal": "chain",
+  "match": 30,
+  "restarts": 6,
+  "out": "../../overnight/match_exact_window_small_latent_0.6_w0.5_N10.json"
+ },
+ "provenance": {
+  "commit": "7fc7032",
+  "dirty": true,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 01:14"
+ },
+ "log_pC": -1.6058949397485875,
+ "kl": {
+  "random": 0.10005032798325782,
+  "optimal": 0.0055427667430926995,
+  "greedy": 0.005579879041508259,
+  "rollout_greedy": 0.0055427685174638764,
+  "rollout_random": 0.005637600611636418,
+  "least_tilted": 0.21512324089501933,
+  "static": 0.005637600611638637,
+  "markov2:optimal": 0.009604075841979313,
+  "markov2:rollout_random": 0.005637600611638043,
+  "markov2:static": 0.005637600611638215,
+  "mix-markov2:optimal": 0.018827017357843805,
+  "mix-markov2:rollout_random": 0.01886441942623602,
+  "markov2:own_optimal_value": 0.0017971724990353524,
+  "markov2:own_random_value": 0.0316113791455614
+ },
+ "checks": {
+  "optimal_kl": 0.0055427667430926995,
+  "optimal_total_tilt_plus_log_pC": 0.005542766743074967,
+  "random_kl": 0.10005032798325782,
+  "random_total_tilt_plus_log_pC": 0.10005032798323588,
+  "best_plan_for_tilt_kl": 0.005542766743104851
+ },
+ "static": {
+  "truth": {
+   "order": [
+    4,
+    5,
+    6,
+    3,
+    8,
+    2,
+    1,
+    7,
+    9,
+    0
+   ],
+   "kl": 0.005637600611638637
+  },
+  "markov2": {
+   "order": [
+    4,
+    5,
+    6,
+    3,
+    7,
+    2,
+    8,
+    1,
+    0,
+    9
+   ],
+   "kl": 0.005637600611638215
+  }
+ },
+ "seconds": 76.9
+}

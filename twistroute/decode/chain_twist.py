@@ -49,7 +49,7 @@ def fit_pair_kernel(den, classes, n, gen=None, smooth=1e-3, N=None):
 
 
 class ChainTwist:
-    def __init__(self, wdfa, kernel, eps=0.05, active=None, device="cpu", temp=1.0):
+    def __init__(self, wdfa, kernel, eps=0.05, active=None, device="cpu", temp=1.0, match=0):
         """wdfa: compile.WDFA; kernel: (A, A) row-stochastic with positive entries; eps in (0, 1]: share of the
         product twist in `log_psi`; active: optional (N,) bool, the positions the automaton reads; temp in (0, 1]:
         calibration, the chain in `log_psi` is built on the marginals raised to this power and renormalised
@@ -68,14 +68,32 @@ class ChainTwist:
         if not 0.0 < temp <= 1.0:
             raise ValueError("temp must lie in (0, 1]")
         self.temp = float(temp)
+        self.match = int(match)                             # sweeps of marginal matching in `transitions` (0 = the ratio formula)
         self.active = None if active is None else torch.as_tensor(active, dtype=torch.bool, device=device)
         self.delta = torch.full((self.Q, self.A), -1, dtype=torch.long, device=device)   # next state, -1 = no move
         self.delta[self.src, self.sym] = self.dst
 
     def transitions(self, mu):
-        """(B, N, A) marginals -> (B, N - 1, A, A) row-stochastic transitions Q_i(a, b)."""
-        kbar = torch.einsum("bia,ac->bic", mu[:, :-1], self.K).clamp_min(1e-300)
-        q = mu[:, 1:, None, :] * self.K[None, None] / kbar[:, :, None, :]
+        """(B, N, A) marginals -> (B, N - 1, A, A) row-stochastic transitions Q_i(a, b).
+
+        match = 0: the ratio formula of the module docstring. It keeps the marginals to first order only, and it is
+        not exact for a first-order chain once tokens elsewhere are revealed.
+        match > 0: for every adjacent pair, the joint J_i(a, b) = u(a) K(a, b) v(b) whose two marginals are exactly
+        mu_i and mu_{i+1}, found by `match` sweeps of row and column scaling; Q_i(a, b) = J_i(a, b) / mu_i(a). Of
+        all joints with those marginals it is the closest to the table's dependence (in KL), the chain law then has
+        the model's marginal at every position, and for a first-order Markov model with table K it is the exact
+        joint of the masked positions given any revealed tokens. No denoiser call."""
+        if self.match <= 0:
+            kbar = torch.einsum("bia,ac->bic", mu[:, :-1], self.K).clamp_min(1e-300)
+            q = mu[:, 1:, None, :] * self.K[None, None] / kbar[:, :, None, :]
+            return q / q.sum(-1, keepdim=True).clamp_min(1e-300)
+        r, c = mu[:, :-1], mu[:, 1:]                                         # row and column marginals, (B, N - 1, A)
+        v = torch.ones_like(c)
+        for _ in range(self.match):
+            u = r / torch.einsum("ac,bic->bia", self.K, v).clamp_min(1e-300)
+            v = c / torch.einsum("bia,ac->bic", u, self.K).clamp_min(1e-300)
+        u = r / torch.einsum("ac,bic->bia", self.K, v).clamp_min(1e-300)     # rows exact: Q is row-stochastic where mu_i(a) > 0
+        q = self.K[None, None] * v[:, :, None, :] / torch.einsum("ac,bic->bia", self.K, v).clamp_min(1e-300)[..., None]
         return q / q.sum(-1, keepdim=True).clamp_min(1e-300)
 
     def _read(self, g, i):
@@ -180,7 +198,7 @@ class ChainTwist:
         if getattr(self, "_free", None) is None:
             from types import SimpleNamespace
             d = SimpleNamespace(edges=[(0, a, 0) for a in range(self.A)], n=1, q0=0, A=self.A, F={0})
-            self._free = ChainTwist(d, self.K, eps=self.eps, device=self.K.device)
+            self._free = ChainTwist(d, self.K, eps=self.eps, device=self.K.device, match=self.match)
         return self._free
 
     def log_reference(self, lwc, lw, r, cr, rvalid=None):

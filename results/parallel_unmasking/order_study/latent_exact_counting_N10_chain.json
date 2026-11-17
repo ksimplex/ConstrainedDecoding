@@ -1,0 +1,101 @@
+{
+ "args": {
+  "N": 10,
+  "model": "latent_0.6_w0.5",
+  "constraint": "counting",
+  "pilot": 2000,
+  "surrogates": [
+   "markov1",
+   "markov2"
+  ],
+  "proposal": "chain",
+  "restarts": 12,
+  "out": "../../overnight/latent_exact_counting_N10_chain.json"
+ },
+ "provenance": {
+  "commit": "df5030c",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 00:27"
+ },
+ "log_pC": -2.0826965099074197,
+ "kl": {
+  "random": 0.018513452431474904,
+  "optimal": 0.0023658923055822883,
+  "greedy": 0.00523192374186021,
+  "rollout_greedy": 0.00357657979998405,
+  "rollout_random": 0.003578433863296621,
+  "least_tilted": 0.011516194848959986,
+  "static": 0.004318683911719146,
+  "markov1:optimal": 0.013964264567244433,
+  "markov1:rollout_random": 0.014466127859742078,
+  "markov1:static": 0.015545715221642536,
+  "mix-markov1:optimal": 0.011471133320789697,
+  "mix-markov1:rollout_random": 0.011328948273604958,
+  "markov1:own_optimal_value": 0.00010513118456878874,
+  "markov1:own_random_value": 0.0019965336146294034,
+  "markov2:optimal": 0.006275163855427822,
+  "markov2:rollout_random": 0.006448775204722735,
+  "markov2:static": 0.007959215499166629,
+  "mix-markov2:optimal": 0.012190711684293639,
+  "mix-markov2:rollout_random": 0.011622635553975746,
+  "markov2:own_optimal_value": 0.0008788379225950548,
+  "markov2:own_random_value": 0.016354031273758965
+ },
+ "checks": {
+  "optimal_kl": 0.0023658923055822883,
+  "optimal_total_tilt_plus_log_pC": 0.0023658923055691616,
+  "random_kl": 0.018513452431474904,
+  "random_total_tilt_plus_log_pC": 0.018513452431455413,
+  "best_plan_for_tilt_kl": 0.0023658923055845256
+ },
+ "static": {
+  "truth": {
+   "order": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9,
+    8,
+    0
+   ],
+   "kl": 0.004318683911719146
+  },
+  "markov1": {
+   "order": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    6,
+    2,
+    4,
+    8,
+    0
+   ],
+   "kl": 0.015545715221642536
+  },
+  "markov2": {
+   "order": [
+    7,
+    1,
+    4,
+    5,
+    8,
+    2,
+    3,
+    0,
+    9,
+    6
+   ],
+   "kl": 0.007959215499166629
+  }
+ },
+ "seconds": 179.6
+}

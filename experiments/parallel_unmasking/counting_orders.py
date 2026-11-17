@@ -52,6 +52,7 @@ def main():
     ap.add_argument("--constraint", default="counting", help="counting, or dyck (class 0 is the opening bracket; the spread "
                     "ratio is then that of the number of opening brackets, and `centred` does not apply)")
     ap.add_argument("--orders", nargs="+", default=["random", "lex", "separator", "sum", "cheapest", "centred"])
+    ap.add_argument("--match", type=int, default=0, help="sweeps of marginal matching in the chain law (0 = the ratio formula)")
     ap.add_argument("--proposal", choices=("product", "chain"), default="product", help="propose the revealed token from the product twist's constrained marginal, or the first-order chain twist's")
     a = ap.parse_args(); torch.set_num_threads(2)
     from pulib.cells import n_symbols
@@ -64,7 +65,7 @@ def main():
     if a.proposal == "chain":
         from twistroute.decode import ChainTwist, fit_pair_kernel
         from pulib.orders import exact_conditionals
-        chain = ChainTwist(truth.wdfa, fit_pair_kernel(den, cl, a.pilot, torch.Generator().manual_seed(5)), active=getattr(truth, "active", None))
+        chain = ChainTwist(truth.wdfa, fit_pair_kernel(den, cl, a.pilot, torch.Generator().manual_seed(5)), active=getattr(truth, "active", None), match=a.match)
 
     def proposal(lwc):
         qq = constrained_marginals(route, lwc) if chain is None else chain.marginals(lwc)
@@ -80,6 +81,23 @@ def main():
             pr = cheapest_order(ref, den) if chain is None else cheapest_chain
         elif oname == "ltr":
             pr = lambda sx: -torch.arange(N, dtype=torch.float64).expand(sx.st.x.shape)
+        elif oname == "estimate":                          # rank by the disagreement of the chain and product twists (no exact twist)
+            from twistroute.decode import ChainTwist as _CT, fit_pair_kernel as _fpk
+            from pulib.orders import estimate_order
+            pr = estimate_order(chain if chain is not None else _CT(truth.wdfa, _fpk(den, cl, a.pilot, torch.Generator().manual_seed(5)), active=getattr(truth, "active", None)))
+        elif oname == "estimate2":                         # rank by the disagreement of the first- and second-order chain twists
+            import twist_order as to
+            act2 = getattr(truth, "active", None)
+            ch2 = to.Chains(truth.wdfa, act2 if act2 is not None else [True] * N, den.S); K1, K2 = to.pooled_tables(den, a.pilot, 5)
+            def pr(sx, ch2=ch2, K1=K1, K2=K2):
+                w = torch.exp(sx.lwc.double()); mu = w / w.sum(-1, keepdim=True).clamp_min(1e-300)
+                Q1, R = to.ratio_tables(mu, K1, K2)
+                e = kl(ch2.marginals(ch2.order1, mu, Q1), ch2.marginals(ch2.order2, mu, Q1, R))
+                return torch.where(torch.isfinite(e), -e, torch.full_like(e, -1e30))
+        elif oname == "confident_proposal":                # lowest entropy of the marginal the token is actually drawn from
+            def pr(sx):
+                qq = proposal(sx.lwc); h = -(qq * torch.log(qq.clamp_min(1e-300))).sum(-1)
+                return -h
         elif oname == "centred":
             pr = lambda s: -torch.nan_to_num(influence(den, s.st.x, s.mu, k)[0], posinf=1e30)
         else:
