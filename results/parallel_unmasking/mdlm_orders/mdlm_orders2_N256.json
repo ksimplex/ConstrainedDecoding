@@ -1,0 +1,360 @@
+{
+ "args": {
+  "N": 256,
+  "synthetic": false,
+  "traces": 32,
+  "pilot_reps": 4,
+  "pair_pilot": 128,
+  "rows": 64,
+  "nrun": 48,
+  "K": 8,
+  "nout": 48,
+  "score_orders": 4,
+  "parts": "EF",
+  "seed": 0,
+  "out": "mdlm_orders2_N256.json"
+ },
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "pair_kernel": {
+  "table": [
+   [
+    0.7568557934944286,
+    0.08299337659556216,
+    0.1601508299100093
+   ],
+   [
+    0.3809961141355739,
+    0.40562392632387817,
+    0.21337995954054792
+   ],
+   [
+    0.34481878069725086,
+    0.2092905018030238,
+    0.4458907174997253
+   ]
+  ],
+  "seconds": 40.0,
+  "samples": 128,
+  "denoiser_calls": 256
+ },
+ "proposal": {
+  "window|fixed 1/step|product": {
+   "param": 13,
+   "log_mean_Z": -2.285185570618988,
+   "mean_logZ": -3.6405439125201284,
+   "sd_logZ": 2.9035891220056325,
+   "spread": 0.9463811246374371,
+   "rel_se": 0.13659834926635128,
+   "n": 48,
+   "seconds": 134.9
+  },
+  "window|fixed 1/step|chain": {
+   "param": 13,
+   "log_mean_Z": -2.6016578447484457,
+   "mean_logZ": -3.845683664803795,
+   "sd_logZ": 2.4636913095040502,
+   "spread": 1.0245210780911316,
+   "rel_se": 0.1478768800565901,
+   "n": 48,
+   "seconds": 250.6
+  },
+  "window|fixed 1/step|matched chain": {
+   "param": 13,
+   "log_mean_Z": -2.565654843218227,
+   "mean_logZ": -3.6560808434382785,
+   "sd_logZ": 2.29334889741209,
+   "spread": 0.9873282942565587,
+   "rel_se": 0.14250856411688956,
+   "n": 48,
+   "seconds": 257.9
+  },
+  "window|sum sequential|product": {
+   "param": 13,
+   "log_mean_Z": -2.15020917409802,
+   "mean_logZ": -3.0252030573438873,
+   "sd_logZ": 1.869999645232509,
+   "spread": 0.9067845647878778,
+   "rel_se": 0.13088307814431974,
+   "n": 48,
+   "seconds": 163.8
+  },
+  "window|sum sequential|chain": {
+   "param": 13,
+   "log_mean_Z": -2.565775421114889,
+   "mean_logZ": -3.7974501316175737,
+   "sd_logZ": 2.214631548523542,
+   "spread": 1.117128797028993,
+   "rel_se": 0.16124365292104298,
+   "n": 48,
+   "seconds": 279.7
+  },
+  "window|sum sequential|matched chain": {
+   "param": 13,
+   "log_mean_Z": -2.31088102398774,
+   "mean_logZ": -3.302352291753848,
+   "sd_logZ": 2.0149217493220246,
+   "spread": 0.9111368466197399,
+   "rel_se": 0.1315112759161234,
+   "n": 48,
+   "seconds": 286.9
+  },
+  "two_window|fixed 1/step|product": {
+   "param": 13,
+   "log_mean_Z": -2.784841448180738,
+   "mean_logZ": -4.735789620692774,
+   "sd_logZ": 3.16663653887872,
+   "spread": 1.3293473378850753,
+   "rel_se": 0.19187476084361516,
+   "n": 48,
+   "seconds": 134.4
+  },
+  "two_window|fixed 1/step|chain": {
+   "param": 13,
+   "log_mean_Z": -2.9522133079443655,
+   "mean_logZ": -4.667014555453088,
+   "sd_logZ": 2.8881577083740972,
+   "spread": 1.1076042147987175,
+   "rel_se": 0.1598688978924009,
+   "n": 48,
+   "seconds": 250.5
+  },
+  "two_window|fixed 1/step|matched chain": {
+   "param": 13,
+   "log_mean_Z": -2.825976552052243,
+   "mean_logZ": -4.358887264011506,
+   "sd_logZ": 2.534435713427919,
+   "spread": 1.1250791483125826,
+   "rel_se": 0.16239118728447613,
+   "n": 48,
+   "seconds": 257.8
+  },
+  "two_window|sum sequential|product": {
+   "param": 13,
+   "log_mean_Z": -2.4711468509399612,
+   "mean_logZ": -3.768886652274388,
+   "sd_logZ": 2.206631239307881,
+   "spread": 1.0582350972761418,
+   "rel_se": 0.1527430795695726,
+   "n": 48,
+   "seconds": 163.0
+  },
+  "two_window|sum sequential|chain": {
+   "param": 13,
+   "log_mean_Z": -2.496004825796729,
+   "mean_logZ": -3.6993851645392364,
+   "sd_logZ": 2.071455607357125,
+   "spread": 1.251327558944682,
+   "rel_se": 0.18061357575027737,
+   "n": 48,
+   "seconds": 281.8
+  },
+  "two_window|sum sequential|matched chain": {
+   "param": 13,
+   "log_mean_Z": -2.5466565740205613,
+   "mean_logZ": -3.3293431772822224,
+   "sd_logZ": 1.666409108722706,
+   "spread": 0.9132778991921097,
+   "rel_se": 0.13182031023587512,
+   "n": 48,
+   "seconds": 289.0
+  }
+ },
+ "outputs": {
+  "none|fixed 1/step": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5709635416666666,
+   "distinct_se": 0.016871450919566315,
+   "repeat": 0.018709150326797385,
+   "repeat_se": 0.0029382537356073646,
+   "logp_per_token": -4.193258814604511,
+   "logp_per_token_se": 0.1027154759829886,
+   "seconds": 154.7,
+   "texts": [
+    "<|endoftext|>.5, then you\u2019ve seen Daniel had Devon in double mode. That\u2019s an easy shot, he beats it 60-yard, he gets at those lines, he jumps up and goes up to third down, and then that\u2019s when he\u2019s gonna get the shot. Either Gates, Daniel does 216 yards, he finished it on, then a play, a play, a play from the fallback to get it from the boards. We send the ball back from the line and we\u2019re a touchdown.\n\n- Alright, the offense didn\u2019t get it in the game, the offense is great, and so I go out there and play a Stafford 3D, and I make him go-go 4-4, and you know Mathews doesn\u2019t get it on, that\u2019s be",
+    "<|endoftext|> home in Wisconsin with a 4-year-old son and finds that I can take the responsibility of sending it home. I am motivated by this perspective because I believe the lack of basic literacy constitutes the most pressing issue that county governments can address.\n\nHolding a high bar\n\nI believe it is reasonable for anyone to anyone. I focus on the importance for all children in an advanced stage to understand and communicate, many but not all we need to teach half. The education needs to be balanced and all classes must be accounted for. That priority must be accorded those by me, altho",
+    ") are among the the freest in the world, andformass in the the greatestest by the world, as have in 1910, depth of air past any major threat of any continent (such as Antarctica). In total, speed of travel from China and Japan was considerably apparatus in 1911, speed of travel from places with the two hour speed of other two faster in the league. [1][[2] [2] entry in 1911 was both the fastest and second-fastest!According to Paul Carman,with China and Japan soon to accelerate by sudden or other distination in the obvious spherical pattern wind pattern and their position in the stratovortical m"
+   ]
+  },
+  "none|sum sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5608723958333334,
+   "distinct_se": 0.02268128709970924,
+   "repeat": 0.038562091503267976,
+   "repeat_se": 0.011966546809255529,
+   "logp_per_token": -4.2901535114145775,
+   "logp_per_token_se": 0.1340651305511718,
+   "seconds": 173.5,
+   "texts": [
+    " one person is capable of accomplishing a number of scenarios, including one human\u2019s similarity, and one the differences that may have imprisoned the person\u2019s immunity from receiving a psychiatric needle infected with a rare mental disorder. A widely recognized method of neuropsychiatric synhenke is, Whitemagic Morgan-Doschke Collection, which identifies the most common, and innermost factors are incompleteness of person, the meltingeness of other persons, itingness of others, and the fullness of others. Psychositoschke of people may be mapped into patterns in the individual\u2019s behavior. A shee",
+    ", possibly more disregard of the basic standards of an adult. Very small: Kircine has physical ability of twelve, about to be obese in 4 inches, 8 inches tall of the tallest men tall, measuring about 1 in 3 or 3,8 inches, to 9 and 7 inches in size. O- Kircine also has draft efficiency of 60-80 for average 5-5 males and 7-7 males of their size, two senior obese (pressed committed 168) plus 60, and five to senior obese (same stated draft value of) 4 inches, 7.35 inches., 2.5 inches weighing 26 pounds, weighing 11 2 and 3 inches in size. A- Kircine also has a number of bodies that are 4 inches, 8",
+    "<|endoftext|> twenty-three reprimanded cases.[6] The hammer or importcan (lotatus meaning drug) is said to be formulating powder, which is defined as one of numerous instruments that cannot result in powder. According to trial notes, in cases, if the Plyot Tonatus constituted an item of crime or conspiracy, such crimes had occurred in Peru, Africa, Europe, U.S.A. through the Philippines.[5] Even if crime were judged on such a broad, international criteria could hardly be equated to tolerance. In Peru, the average Canadian offense there was nothing less than 12.3%; possession of the forbidden m"
+   ]
+  },
+  "none|lex sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5233561197916666,
+   "distinct_se": 0.023356698960110348,
+   "repeat": 0.04575163398692811,
+   "repeat_se": 0.017334620926567342,
+   "logp_per_token": -3.933601564552763,
+   "logp_per_token_se": 0.14527433666457368,
+   "seconds": 174.4,
+   "texts": [
+    " a person is capable of being able to sustain sustained intervals. This allows Guzschhardzenke to allow a level of thinker into her thoughts from terms of self-awareness with regards to general mental mental processes and the nature of thoughts of people. While fully imprisoned herself,z-hardzenke can positively focus her attention, exercise intuitive nerve contact, alertness, and rapid response to the sensory window of her popular journey. Since there are no fundamental differences in her action responses, Guzschhardzenke both her visually and her herself through the pressure and sensory surg",
+    "<|endoftext|> possibly more disregard of basic standard remarks. This accusation is based purely on the fact the small ring stopped the shot ball from happening. The ball was ultimately hit, but this charge actually isn't required. Is anyone going to root for a player who doesn't want to apologize for doing away with something and doing away with it without consequence? Indeed, there appears to be harmless absolution of responsibility between the two arguments, while that justification for Haslem hasn't committed to anything physical or specifics to claim that the small ring attack showed that",
+    "<|endoftext|> twenty-three pounds. Later he said that his brother was a retired pharmacist with Stage IV diabetes. Eventually he'd lose 27 pounds by having a Mini-Home, including racing in a catalytic converter square in Pennsylvania. On top of it was $1, where he got a license before and his father's put him on track by the Delaware State Fair to get a second license. Jackson's then participated in various lottery games, putting at risk greased the gun-toting crap of a depressed family on the streets. He eventually ended up winning $$20,000, after a impersonal driver had injured her car.[Job "
+   ]
+  },
+  "none|left to right": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.22469075520833334,
+   "distinct_se": 0.022931931070909163,
+   "repeat": 0.3818627450980392,
+   "repeat_se": 0.04945662862402671,
+   "logp_per_token": -2.1183479354469696,
+   "logp_per_token_se": 0.19662357474144782,
+   "seconds": 172.0,
+   "texts": [
+    " person or person or person or person or person or person or person or person or person or person or person or person or person or person or person orness submit write-in on Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag Ag ",
+    " possibly glaring on the top of the twelve-star pile.\n\nCurrent Standing Standing: Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat Cat M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M Mampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampampam",
+    " twenty-seven-eight. Forty-seven-eight-eight. Forty-nine-eight-eight. Forty-eight-eight-eight. Forty-nine-eight-eight. Forty-four-eight-eight. Forty-nine-seven-eight. Forty-nine-nine-eight. Forty-nine-nine-nine. Forty-five-three-nine. Forty-nine-three-four. Forty-nine-three-four. Forty-four-three-four. Forty-nine-three-four. Forty-nine-three-four. Forty-nine-three-four. Forty-nine-four-four. Forty-nine-four-four. Forty-nine-four-four. Forty-nine-five-four. Forty-nine-five-four. Forty-nine-four-four. Forty-nine-two-four. Twenty-seven-five-seven. Twenty-seven-two-four. Twenty-seven-three-six. Ei"
+   ]
+  },
+  "window|fixed 1/step": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.547119140625,
+   "distinct_se": 0.020321916560840897,
+   "repeat": 0.03823529411764706,
+   "repeat_se": 0.009880454994300182,
+   "logp_per_token": -4.155928040325424,
+   "logp_per_token_se": 0.11366123283127136,
+   "seconds": 162.3,
+   "texts": [
+    "<|endoftext|> better government, it off the fasters of people in a minimum. Islam makes him more willing to forgive and forget, heal and otherwise support those who were oppressed under pressure to support him? It protects the authorities imprisoned, peaceful the helper, polite, builds confidence, defends the proper? Which sturges in rebellion? But hold yourself accountable.\n\nTrolls are among the most passionate people who are the backbone of a civilization. Any such untrouded man, woman, righteous obviously needs to be challenged, what opens the door to Muslims.\n\nNo place for Hindus, anger, c",
+    "<|endoftext|>, of two hundred and thirty men surveyed the whole depth of their field and dissected problems, seemed as the tool for regular order and repeated elegance of their work.\n\namp., the inevitable result of the purely abstractation and codification of any sort of discussion is the literary subdivision that, among every generation, produced and tended to render much the discussion unsatisfactory, and unproductive.\n\nA new meta-sense only contributed in the same proportion to creative judgments and reflected in greater degree causally disregard for any contest with good or value.\n\nThe eve",
+    " expeditious the rehabilitation rehabilitation from the mosquito bite, PTSI said.\n\nCapital Offense, finding Feng Yang guilty, Criminal Submergence, Mao Zhou was convicted of counterfeiting of an interests, and Organized extortion, each for the two offenses being handed by Wickford County Magistrate Neer Gu.\n\nMr. Xiao who himself was remanded tropical on the down of the Poison Protection Industry and Asset Control (P.HPI) arms deal, allowed to stand in front of his family and wife with a summons for evidence for the high-match laundering indictment, authorities said.\n\nAccording to PTS2015, Mr. "
+   ]
+  },
+  "window|sum sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5542805989583334,
+   "distinct_se": 0.015074307507453671,
+   "repeat": 0.03815359477124183,
+   "repeat_se": 0.010244408247173204,
+   "logp_per_token": -4.166638604846974,
+   "logp_per_token_se": 0.08181807150389507,
+   "seconds": 169.2,
+   "texts": [
+    "<|endoftext|> done this shit five years. You can probably expect even less with that kind of hardware. I feel like, you know, then I don't care. At the end of the day, given that you have a conversation, you are being pretty polite. And I respect that. You are talking about the space you are just putting ours, and I am talking about an influx of new people that you want to experiment around. It seems like that is the possible white space that we are both expanding and scaling into.\n\nDoes it?\n\nSaeb: 12, 6, 7 8 of, 12. We don't know. 6 of them are necessarily theoretical; they're labeled \"experi",
+    "<|endoftext|> purpose.\n\nHis black formless eyes that, the world was now and was late, covered in dust and darkness and on the other side of the map..\n\nThe last granule of her time was in her pocket, and she seemed to proceed, pegging over her shoulder even as she glanced towards the precipice of the planet.\n\nFrief had finally bought the VANA that\u2019s that dressed as a Raven and by any chance she was a very convenient alternative for the Atlas which had failed to drop.\n\n\u201cYou don\u2019t\u2026RT\u2026RT\u2026RT\u2026RT\u2026RT you trust counter,\u201d \ufffd was his control.\n\nShe pushed the button, causing Frief to kneel across from the ",
+    " Brut - No Raidal in It All - Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut Brut - Brut Brut Brut Brut Brut - Brut Brut Brut Brut Brut Brut Brut Brut't Brut Brut Brut Brut Brut Brut One Brut Brut Brut Brut Dec't Brut Brut Brut Brut Brut One Brut Brut Brut Brut Brut Brut Brut One Brut Brut Brut Brut Brut the Killing This Killing Killing Killing Kills Killing Killing Your Killing while Killing Killing Killing Killing Killing'm Killing Killing Killing Killing Killing Killing Killing Killing Killing Killing -- Killing -- Killing -- Killing -- Killing Kil"
+   ]
+  },
+  "window|lex sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.4087727864583333,
+   "distinct_se": 0.025744970557237352,
+   "repeat": 0.08112745098039216,
+   "repeat_se": 0.021826300010558786,
+   "logp_per_token": -3.4949316630220815,
+   "logp_per_token_se": 0.1685574294505038,
+   "seconds": 169.5,
+   "texts": [
+    " quite unacceptable. The damage that a simple non serious tooth has in Aldo ( ) is almost as high as that of a denticle. (ref. 144 reviewing) + 25 ( 37) + 25. \u2212 . . . . .| <0.001\u2026 . .. . . . + 24 . . . . . . .*> 0.0001 (Th 36) * p \u2212 1\n\n(<9(10, 35)> 0.0002 (29.5 p-1%).\n\n<p} =:\n\n49\u201349\u201344. That\u2019s\u201349 Over; explain that so I used <9(9, 35)>.\n\n() + 3 + p \u2212 1}{%= when <p>.\n\nThe probabilities for the COFT range are taking consideration of the absolute smallest difference in surface area between gullible and remote levels. Hypers must be very near (if not highly-polarize, Will and RF). Henceforth, even",
+    " blackblack black black black black black blackblack black blackin\ufffd sum of black black black black black black black black black black black black black black black black blackblack black black black black black black black black blackblack black black blackblack black black black black black black black black black black black black black black black black black black black black black black blacks black black { black blackblack black black black black black black black\n black black featured black black black black black black black black black black black and black airtime.\n\n[50] carriage bl",
+    "VVVVVVVVVVV VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV -?\" -II --- -I \"I-- -II- -II- --IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIdiIdiIdiIdiIdiIdiIdiIdiIdiIdii ::IIIIIIIIIIIIIIIIIIIIIIIIIIIIIII -IIIIII -MiMiMi"
+   ]
+  },
+  "window|left to right": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.2734375,
+   "distinct_se": 0.021088144345608326,
+   "repeat": 0.24558823529411766,
+   "repeat_se": 0.0354126289862933,
+   "logp_per_token": -2.5216757386533284,
+   "logp_per_token_se": 0.15856629726929952,
+   "seconds": 163.7,
+   "texts": [
+    "s about this shit they fucking fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fucking fucked up shit fucking fucking fuck shit fucking fucking fuck shit fuckin fucking fuck shit fucking fucking fucking shit fucking fucking fuck shit fuckin fucking fuck shit fuckin fucking fuck shit fuckin fucking fuck shit fuckin fucking fuck shit fucking fucking fucking shit fuckin fucking fucking shit ",
+    " purpose of this vision. Endurance and Strength - Dodge, Driver, Driver, Driver Dodge Dodge Sweep - Dodge Dodge Tri-Plane Works - Dodge V-Drive-X XL EX - Dodge 4-Drive-X Mustang and Mustang Experience Head Out across the Midwest 7\u00d710, 5\u00d710, 7\u00d710, 8\u00d710, 10\u00d711,10\u00d710-10-10-3 Erie Erie\n\nTHIS PROGRAM IS FOR YOU YOU WILL NOT BASIS ON ANY RECENT PROGRAM PROGRAMMED OR PROGRAM WORKING PROGRAM PROGRAM WORKING PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM Program - - - - - - - - - - - - - - - - - - - - - - - - - US Outside ",
+    " the new version is in Itakura finding tune's melodies making a sound in the lyrics and managing to capture the voice of girl Girl Girl Girl Girl girl teen boy girl girl girl girl girl girl girl moon girl girl girl girl girls girls girls girls girls girls great Girls Girl Girl Girl Girl Girl\"amamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamam!!!!!!!!!!!!!!!!\"\"am\"amamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamamam"
+   ]
+  },
+  "two_window|fixed 1/step": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.5431315104166666,
+   "distinct_se": 0.018561779193899567,
+   "repeat": 0.042156862745098035,
+   "repeat_se": 0.010303963214585406,
+   "logp_per_token": -4.100326369118927,
+   "logp_per_token_se": 0.11005875739113107,
+   "seconds": 161.3,
+   "texts": [
+    ", Alzheimer\u2019s disease, 734 more people in federal prisons only, 100 percent more ill-treated and imprisoned, depression, fifth depression, suicide rate and high pressure, six-to-six times more imprisoned, mental disease treatments, treatment, predictors, and thewhen?\n\nSeecting. In 2016, nine studies \u2014 including 2015 and 16-year-old Galena, who did the team\u2019s lab \u2014 hadn\u2019t excluded a woman.\n\nAsked to be, Galena opens the door to false possibilities. A fictitious identification tool can be dismissed of all things, suicide, addiction, and other drug dependence, whom medical personnel question in t",
+    "<|endoftext|> only the two facets of the problem. Its whole depth of problem, and multiplication of problems, seemed as a tool for giving order to repeated thousands of labour motions.\n\nNevertheless, the central committee resorted to purely abstractation in the absence of any sort of discussion, whether literary, religious, imitative, visual, social,-al, the metaphysical, economic, and the everyday. Dialogues about meta-politics only contributed in the same proportion to abstract judgments and crept in with relatively causally disregard for any appearance of good psychological value.\n\nThe ever",
+    "<|endoftext|> in the Jackson incident.\n\nThe man has been charged with 27 counts of attempted murder, finding her guilty at a Criminal District Court.\n\nThe judge said she was part of an interests, not claims, settlement, and that the car was knowingly bought by him \u201csolely, basically, me.\u201d.\n\nShe was remanded tropical and put down on the street between 8 and 10 a.m. with nothing.\n\nThe information was taken in front of her family and wife who fled a building, and her husband was undergoing mental torture, she said.\n\nSpeaking in tears, she said it was shocking that her husband faced a PAA trial fo"
+   ]
+  },
+  "two_window|sum sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.545654296875,
+   "distinct_se": 0.015326123732909596,
+   "repeat": 0.03962418300653595,
+   "repeat_se": 0.010636488000037445,
+   "logp_per_token": -4.141369200713343,
+   "logp_per_token_se": 0.07875578169112167,
+   "seconds": 166.0,
+   "texts": [
+    "<|endoftext|> done this shit for years. I can't wrote my own ass. It's got to shake me like, \"Man, I really don't care what poop I end up with.\" Him taking that then doing a feeder, or being a polite person, I'm not a person. It's a space that's filled, and it's an empty space.\n\nEpisodes\n\nViewership\n\nGreg Berkesmond was the exec producer overseeing the BBC episode. He came on with a plan to release the episode as full series. I thought we'd need a total of 30 people per episode and there'd be 14 fans per episode. That would be great both for the BBC but for essentially the same eight people wh",
+    "<|endoftext|> purpose.\n\nHis black hairless glasses thickened his mouth that spoke nine times. We rained dust and ash pondering each other, higher just higher.\n\nSuddenly the grey part of his body was turned wizened and there seemed a large, grey and airy shoulder in front.\n\n\u201cIs this?\u201d he asked his grinning, as if his skin were pale and there was a certain clear line by his eye. Sometimes, we have men facing the sort of amigrous and prominent of the dressed male. However, it was now not \u201cIs.\u201d\n\nI had waited and I looked upon in a staggered manner before hearing the the words of a Friar dished acr",
+    "<|endoftext|> - No Raid Call in It Combat - Brutality - - We Have .1 Brut - He's Up Brut - Jump Up There Brut - One Shot At One Brut - One goes down Brut - Brutal Can't Be Killed Brut - Brutal One In/Out Brut - Apart From Brut - One Can't Be Killed Brut - One Don't Ask You Brut - One Don't Ask Me Brut - One Don't Mess With Me Brut - Brut - Behind Done Brut - South Mofd Brut - Marshall Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done One Be Shot One Be Shot One Be Shot One Be Shot Call"
+   ]
+  },
+  "two_window|lex sequential": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.4130859375,
+   "distinct_se": 0.029797160746860073,
+   "repeat": 0.09689542483660131,
+   "repeat_se": 0.027547152178050413,
+   "logp_per_token": -3.4268348241558555,
+   "logp_per_token_se": 0.1602239602746238,
+   "seconds": 166.1,
+   "texts": [
+    "<|endoftext|> and that I find supportive for my symptoms and reactions to dairy, non-cairy and gluten allergies. Make my fight to self-promote as safe for the lifestyle.\n\n\u2014\u2014\u2014\u2014\u2014 \u2014\u2014\n\nDr. Sulla: Immunodeficiency Disorder\n\n\u2014, \u2014, \u2014, \u2014, \u2014\u2014\n\n\u2014, \u2014, \u2014, \u2014, \u2014, \u2014, \u2014, \u2014\u2014\n\n\u2014\u2014\n\n\u2014, \u2014, \u2014, \u2014, \u2014\u2014 \u2014, \u2014, \u2014, \u2014, \u2014, \u2014, \u2014, \u2014, \u2014, \u2014\u2014\u2014\n\n\u2014, \u2014, \u2014, \u2014, \u2014\u2014\n\n\u2014, \u2014, \u2014, \u2014, \u2014, \u2014\u2014\u2014\u2014\u2014\u2014\n\nI\u2019ve almost done six months of research, last week I finished four hours, 35 minutes.\n\nI almost finished six days ago, I was finished three days, weeks.\n\nI\u2019ve almost done five months since. I\u2019ve almost done five months since.I\u2019ve almost done four yea",
+    "<|endoftext|> resignation that was his purpose.\n\nAnd so, the impeachment spoke to the destruction caused by the destruction when Chicago failed and rise that featured Nixon. Nixon laid the groundwork. As we have argued before, he shot Donald in the shoulder in the straight-ahead and the whole thing spread like wildfire. \u201d\n\n\u201cTrump's supporters who lie nearly live in my dreams, this hill are the republic\u2019s heel \u2014 Louis J. Jefferson (@JCLayerson) March 16, 2017\n\n\u201cTrump's supporters who lie nearly live in my dreams, this hill where they belong. A hill which will my counter and #Superbowl #PoDe #uf",
+    "\u0631 \u0648\u0647\u062f\u0645 \u0648\u0627\u0644\u0623\u062f\u0646 \u0641\u0642\u062d\u0648\u0644 \u0627\u0644\u0647\u062f\u0645 \u0648\ufffd\u0623\u062f\u0646 \u0627\u0644\u062a\u062f\u0639\u0646\u063a \u0642\u0637\u0644\u0629 \u0642\u0648\u0627\u0630\u062a \u0627\u0644\u062a\u062f\u0634\u063a \u0642\u0629\u0639\u060c\u3002\n\n\u0643\u0631 \u0639\u0646 \u0642\u0647\u0644 \u0641\u0627\u0644\u0639\u0648 \u0640\u0645\u0627\u0639\u064a\u0646 \u0644\u0633\u0642\u0648\u0644\u0644 \u0627 \u0648\u0642\u0602\u0648\u0644\u0647\u0627 \u0644\u062f\u0627\u0646 \u0627\u0644\u0642\u0648\u0644\u0644 \u0642\u062b\u0639\u0632 \u0648\u0645\u0627\u0644\u0642\u0625\u0645\u0646 \u0644\u0643\u0631 \u0639\u0646 \u0642\u064a\u0631 \u0639\u0647\u062f\u064a\u064a\u0627 \u0623\u0648\u0646\u062f\u0627 \u0642\u0648\u062f\u0648\u0646 \u0628\u0639\u0644\u0644\u0629\u0642\u0648\u0645\u0627 \u062d\u0631\u064a\u0647\u0627 \u0627\u0644\u062a\u0633\u0646 \u0641\u0642\ufffd\u062a\u0644\u0647 \u0648\u0625\u062f\u0645 \u0639\u0647\u062f\u0643\u0646 \u0628\u0627\u0647\u0627 \u0645\u062a\u0643\u064a\u062a\u0647 \u0641\u062a\u064a\u0647 \u062f\u062d\u0627 \u0627\u0644\u0646 \u062d\u064a\u062a\u0647 \u0645\u0644\u064a\u0633\u0647\u0627 \u0641\u064a\u0639\u062a\u062f \u0645\u0639\u0631\u0627\u0637 \u062b\u0644 \u0632"
+   ]
+  },
+  "two_window|left to right": {
+   "n": 48,
+   "satisfied": 1.0,
+   "distinct": 0.2813313802083333,
+   "distinct_se": 0.02104302986850297,
+   "repeat": 0.29076797385620917,
+   "repeat_se": 0.03366724975785417,
+   "logp_per_token": -2.6081952143076683,
+   "logp_per_token_se": 0.1663536904105405,
+   "seconds": 162.8,
+   "texts": [
+    "s about this shit they fucking fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fuckin fucked up shit fucking fucked up shit fucking fucking fuck shit fucking fucking fuck shit ???????? THIS IS PAAN SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH SH",
+    " purpose of this vision. Endurance and Strength - Dodge, Driver, Driver, Driver Dodge Dodge Sweep - Dodge Dodge Tri-Plane Works - Dodge V-Drive-X XL EX - Dodge 4-Drive-X Mustang and Mustang Experience Head Out across the Midwest 7\u00d710, 5\u00d710, 7\u00d710, 8\u00d710, 10\u00d711,10\u00d710-10-10-3 Erie Erie\n\nTHIS PROGRAM IS FOR YOU YOU WILL NOT BASIS ON ANY RECENT PROGRAM PROGRAMMED OR PROGRAM WORKING PROGRAM PROGRAM WORKING PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM Program PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM PROGRAM GAME THERE...",
+    " the new version is in Itakura finding tune's melodies making a sound in the lyrics and managing to capture the voice of girl Girl Girl Girl Girl girl teen boy girl girl girl girl girl girl girl moon girl girl girl girl girls girls girls girls girls girls great Girls Girl Girl Girl Girl Girl\"\"Datatatoshi, 2012\"- mo-t-mu-t.ma-ku-t sakata bound this report's appendix to the stele of stave.ai, Origu strict 2000 Apr. 25 . 233\u2013221 , typically edited by Tomoaki Tonguori, 18\u201319 and late-\u2013'late-setup, 19\u201319 the higher initial form of Stave.ai, Origu strict 2000 Sept. 24 , 213\u2013238 (typically edited by "
+   ]
+  }
+ }
+}

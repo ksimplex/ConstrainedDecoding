@@ -1,0 +1,360 @@
+{
+ "args": {
+  "N": 128,
+  "synthetic": false,
+  "traces": 32,
+  "pilot_reps": 4,
+  "pair_pilot": 128,
+  "rows": 96,
+  "nrun": 64,
+  "K": 8,
+  "nout": 64,
+  "score_orders": 4,
+  "parts": "EF",
+  "seed": 0,
+  "out": "mdlm_orders2_N128.json"
+ },
+ "model": {
+  "V": 50258,
+  "mask_id": 50257,
+  "time_conditioning": false
+ },
+ "pair_kernel": {
+  "table": [
+   [
+    0.7908780169430096,
+    0.08218166632521805,
+    0.12694031673177225
+   ],
+   [
+    0.25922728440546333,
+    0.5674738458992106,
+    0.1732988696953261
+   ],
+   [
+    0.32554702050826095,
+    0.21939690769050177,
+    0.45505607180123736
+   ]
+  ],
+  "seconds": 8.4,
+  "samples": 128,
+  "denoiser_calls": 128
+ },
+ "proposal": {
+  "window|fixed 1/step|product": {
+   "param": 8,
+   "log_mean_Z": -2.313996572357139,
+   "mean_logZ": -3.675204490966486,
+   "sd_logZ": 2.690600268293742,
+   "spread": 0.9688449627946005,
+   "rel_se": 0.12110562034932507,
+   "n": 64,
+   "seconds": 42.9
+  },
+  "window|fixed 1/step|chain": {
+   "param": 8,
+   "log_mean_Z": -2.5475517593380212,
+   "mean_logZ": -3.90594879590028,
+   "sd_logZ": 2.4083602806200695,
+   "spread": 1.2077771904146264,
+   "rel_se": 0.1509721488018283,
+   "n": 64,
+   "seconds": 72.6
+  },
+  "window|fixed 1/step|matched chain": {
+   "param": 8,
+   "log_mean_Z": -2.5374105250504844,
+   "mean_logZ": -3.6325890642786103,
+   "sd_logZ": 2.096699223455528,
+   "spread": 1.0845502178530495,
+   "rel_se": 0.1355687772316312,
+   "n": 64,
+   "seconds": 76.0
+  },
+  "window|sum sequential|product": {
+   "param": 8,
+   "log_mean_Z": -2.249407319099202,
+   "mean_logZ": -3.489319638005562,
+   "sd_logZ": 2.517598264648576,
+   "spread": 0.8724826545286373,
+   "rel_se": 0.10906033181607966,
+   "n": 64,
+   "seconds": 51.2
+  },
+  "window|sum sequential|chain": {
+   "param": 8,
+   "log_mean_Z": -2.165991256655369,
+   "mean_logZ": -3.259890810128298,
+   "sd_logZ": 2.085639514078512,
+   "spread": 0.9752105904509809,
+   "rel_se": 0.12190132380637261,
+   "n": 64,
+   "seconds": 80.7
+  },
+  "window|sum sequential|matched chain": {
+   "param": 8,
+   "log_mean_Z": -2.2628216082056127,
+   "mean_logZ": -3.134353711081242,
+   "sd_logZ": 2.0828314452311956,
+   "spread": 0.7992716712138366,
+   "rel_se": 0.09990895890172957,
+   "n": 64,
+   "seconds": 84.0
+  },
+  "two_window|fixed 1/step|product": {
+   "param": 8,
+   "log_mean_Z": -2.3772935777816753,
+   "mean_logZ": -3.828464673880019,
+   "sd_logZ": 2.8873133071948467,
+   "spread": 0.9269451403438705,
+   "rel_se": 0.11586814254298382,
+   "n": 64,
+   "seconds": 42.9
+  },
+  "two_window|fixed 1/step|chain": {
+   "param": 8,
+   "log_mean_Z": -2.7377343911156906,
+   "mean_logZ": -4.434166769430146,
+   "sd_logZ": 2.646611520857665,
+   "spread": 1.1750170053306552,
+   "rel_se": 0.1468771256663319,
+   "n": 64,
+   "seconds": 72.6
+  },
+  "two_window|fixed 1/step|matched chain": {
+   "param": 8,
+   "log_mean_Z": -2.6143766003286726,
+   "mean_logZ": -4.42268581772783,
+   "sd_logZ": 3.2405240447521755,
+   "spread": 1.1573290349019194,
+   "rel_se": 0.14466612936273993,
+   "n": 64,
+   "seconds": 76.2
+  },
+  "two_window|sum sequential|product": {
+   "param": 8,
+   "log_mean_Z": -2.328966102959069,
+   "mean_logZ": -3.6041277561643392,
+   "sd_logZ": 2.3810989246324286,
+   "spread": 0.982640055612985,
+   "rel_se": 0.12283000695162312,
+   "n": 64,
+   "seconds": 50.6
+  },
+  "two_window|sum sequential|chain": {
+   "param": 8,
+   "log_mean_Z": -2.4515901530665927,
+   "mean_logZ": -3.905858452745303,
+   "sd_logZ": 2.3846127142544695,
+   "spread": 1.1959477396440321,
+   "rel_se": 0.14949346745550401,
+   "n": 64,
+   "seconds": 80.1
+  },
+  "two_window|sum sequential|matched chain": {
+   "param": 8,
+   "log_mean_Z": -2.448160547047087,
+   "mean_logZ": -3.6347695635200017,
+   "sd_logZ": 2.4470848296168413,
+   "spread": 0.8852475569183059,
+   "rel_se": 0.11065594461478824,
+   "n": 64,
+   "seconds": 83.6
+  }
+ },
+ "outputs": {
+  "none|fixed 1/step": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.47802734375,
+   "distinct_se": 0.025813309487208343,
+   "repeat": 0.07824803149606299,
+   "repeat_se": 0.025324097977496553,
+   "logp_per_token": -3.820058926879315,
+   "logp_per_token_se": 0.15558450495470208,
+   "seconds": 43.7,
+   "texts": [
+    "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttasttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+    "<|endoftext|> your money and you have to deal with a bowl of cheese just because there has to be an ice change. That idea, the whole idea of \u2013 it\u2019s actually \u2013 like an owner of every \u2013 if you want the birth certificate, you know the pitcher\u2019s name, every king of the bowl of pizza goes all credit to the guy who ran at Massachusetts Academy or whatever school they chose to keep playing, that idea is just popularized, I wasn\u2019t really buying it.\n\nIn every way we have to think about every bowl that is put on, every reason somebody has to attend the \u2013 the",
+    " this inserted cup Inserts right in the middle of the cup into the cup Inserts along with the middle of the cup to establish the cup with the insert Runs to past runs of the turn to turn into the other insert Inserts out to the fast to roll the foot in the middle of the fastest run Inserts to the cutest to push the foot in the right of the cutest run Inserts to the cutest to push the shoe is the right of the insert run Inserts to the cutest run Inserts to the fastest run Insert blocks to the cutest Inserts added or removed to give them \"give\" an extending"
+   ]
+  },
+  "none|sum sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3468017578125,
+   "distinct_se": 0.0253545996929777,
+   "repeat": 0.21751968503937008,
+   "repeat_se": 0.0393714457330483,
+   "logp_per_token": -2.85235304313554,
+   "logp_per_token_se": 0.1691536103520987,
+   "seconds": 48.3,
+   "texts": [
+    "] [email protected protected] [email protected protected] [email] [email protected protected] [email protected protected] [email protected protected] [email] [email protected protected protected] [email protected] Share the email address Share the email address Share the email address Share the email address [email protected protected] [emailemail protected protected [email protected protected protected protected] <[email protected protected protected protected] [email protected protected protected protected] [email protected protected protected protected] [email protected protected protected ",
+    " 2004 2004 2004 2004 2004 2004 2005 1979 1977 1981 1975 1975 1975 1975 1978 1973 1975 1973 1974 1971 1971 1973 1971 1975 1972 1971 1975 1975 1971 1972 1973 1972 1973 1960 1975 1975 1975 1975 19751976 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1976 1983 2002 2002 2003 2003 2003 2003 2004 2004 2005 2004 2002 2004 2003 2003 2000 2003 2002 2003 2003 2004 2004 2002 2002 2007 2002 2007 1999 2001 2004 1997 2007 2007 2007 2001 1999 2001 1999 2002 2002 1998 2001 1998 2008 1998 1998 1998 1998 1999 1998 2007 2007 2007 2007 2007 2006 2007 2006 2006 2006 2006 2006 2007 2006 2006 ",
+    " don't receive the email newsletter you sign up You don't receive the email newsletter you\n\nThe Dakhdi Option]\n\nThe Dakhdi Option]\n\nThe Dakhdi Option]\n\nThe Dakhdi Option]\n\nThe Dakhdi Option] Life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-life-will-trump-confirmation #\n\nThe Dakhdi Option]\n\nThe Dakhdi"
+   ]
+  },
+  "none|lex sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3316650390625,
+   "distinct_se": 0.03063452218260772,
+   "repeat": 0.19205216535433073,
+   "repeat_se": 0.039638511671289844,
+   "logp_per_token": -2.8022492436464166,
+   "logp_per_token_se": 0.19692974769802832,
+   "seconds": 48.2,
+   "texts": [
+    "] [email] [email] [email] [email] [email] [email [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email] [email",
+    "<|endoftext|> 2001 2004 2004 2004 2005 2005 1981 footage of a minor using gun to steal a prescription drug in the classroom classroom of Longoria County District Attorney's Office. 4 October 1981\n\nfor prosecution of Paul Turner of Albemawy County and Daniel Weston of Alemawy County. 5 October 1981 1960 detention of Philip Frost of Eds Island, near where he was being held, and short opening statement discussing his participation. 6 August 1981 recording of a coastal court where an \"old-age male\" resident of Nichcy Island was convicted for recklessness. 6 August 1981 footage of a person carrying",
+    "<|endoftext|> to receive 1 payment within the 360 to be able to receive the money the Mearauw they provide.\n\nThis stuff is strange and unrealistic.\n\nThis stuff is confusing.\n\nWe need to make sure this stuff is done on its own, not gambling money in the form of real currency but as we did last time we also have to do for Xbox 360 this could make it a bit misleading.\n\nWe also already built this website around the Mearauw to install PC 411 where money is actually real-world money so he or she ended up receiving it but made some mistakes before they received it"
+   ]
+  },
+  "none|left to right": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.2171630859375,
+   "distinct_se": 0.02127919054995115,
+   "repeat": 0.3661417322834645,
+   "repeat_se": 0.049269433497619766,
+   "logp_per_token": -1.9138259354385456,
+   "logp_per_token_se": 0.16469250438814242,
+   "seconds": 47.5,
+   "texts": [
+    "emailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailemailEmailEmailEmailEmailEmailEmailEmailEmailEmailEmailEmail Email Email This is a SuperBowl matchup for the Football Hall of Fame. This is a SuperBowl matchup for the Football Hall of Fame. This is a SuperBowl matchup for the Football Hall of Fame. This is a SuperBowl matchup for the Football Hall of Fame. This",
+    " 2004 2006 2006 2005 2005 1981 1978 1978 1978 1978 1978 1978 1975 1978 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1974 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1973 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1975 1979 1977 1975 1979 1978 1977 1977 1975 1978 1978 1978 1974 1975 1975 1975 1970 1976 1975 1978 1975 1976 1975 1975 1975 1960 1969 1966 1965 1965 1961",
+    " receive payment pay fee to services delivered by the Services In In Review of the Accounts Of About 988,000 People By About 2.5 million People By About 3.4 million People By About 948,000 People In Total Total Cost of $1.1 million $1.2 million $1.1 million $1.2 million $1.2 million $1.2 million $1.0 million $1.0 million $1.0 million $1.0 million $11.0 million $23.1 million $24.1 million $26.2 million annual bill $291.8 million annual bill"
+   ]
+  },
+  "window|fixed 1/step": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.4451904296875,
+   "distinct_se": 0.024368131513687327,
+   "repeat": 0.09116633858267717,
+   "repeat_se": 0.021199118620029322,
+   "logp_per_token": -3.6757392585773356,
+   "logp_per_token_se": 0.14612355070005292,
+   "seconds": 45.7,
+   "texts": [
+    "<|endoftext|> or the width of the road for lane-preserving cyclists. The use of the baseline, is likely (once again) to say that the standard stand for the use of a mod of affect, or the linear and the differential, is much more controversial than the mod-of-gravity's 200-of-existence.\u2026) the \"7 post-precision\" is either the standard explanation of the mod-of-gravity, or the mod ofexistence. Or the space for which includes the uses of the baseline, or the mod of affects, is much more controversial than the space for a bed that uses the mod-of",
+    " someone who isn\u2019t recognized as well of being, that they\u2019re not lumped in together, a woman, she\u2019s not respected differently from the other of sharing work and community being an otherwise-diverse person, that isn\u2019t for a bridge to,-,,- shouldn\u2019t, a bridge to things which she shouldn\u2019t be in one place or cell or group or the other because they are so different from a public and public place, where they should be mated in kin and families and culture and gender, where they shouldn\u2019t be given a ticket or going",
+    "<|endoftext|> & Streaming\n\nClick right to see the list of the subscription music and streaming services. Complete but not required kick-off playlists. We recommend you cord cutting since an introductory fee can be paid for each month to receive access viewing. Cut cord and an additional fee. 1 or 1 length. $100,. Don't worry, this is the model of the subscription TV service\n\nAlternate TV Option For The Company In Practice\n\nCPENIX will soon be able to offer TV on Playstation 4.\n\nFor The Company In Practice\nCPENIX has the potential to market a Pay-to-one Video"
+   ]
+  },
+  "window|sum sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3935546875,
+   "distinct_se": 0.025214435149663865,
+   "repeat": 0.10728346456692912,
+   "repeat_se": 0.02442502909596416,
+   "logp_per_token": -3.3134888862266045,
+   "logp_per_token_se": 0.17148335711065396,
+   "seconds": 47.1,
+   "texts": [
+    "<|endoftext|>, and the growth of petrol will reduce the maximum volumes they produce over the next period by more than 50% and need to supply more.\n\nLuke Foy on Twitter and the picture courtesy of Flickr.<|endoftext|>ABOUT MLB. INFRUSTA. LASONS, P. 6th, 2012\n\nThe Players, 2011\n\nBattlest Auctions:\n\nPIRATES, 2011\n\nThe highlights of the game\n\nThe highlights of athletes and athletes\n\nThe highlights of a baseball family\n\nThe history of Calgary and its survivors and people when earthquake struck Calgary Those who survived in the earthquake",
+    " Feb 2017 \u2014 (Sun) 20, 2017 \u2014 [Sun 3 7thyear (Sun) July 1styear \u2013-Sun 18 February 2013 \u2014-Sun 22 February 2013 \u2014 [Sun] \u2013[Sat January] \u2013 [Jan] \u2013[IP run (Sun) 8, 2013(UTC)] 2050 * 2050 in 2050 to 2050?\"F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F. 60 Tr. \u2014-Sun 14 04 09",
+    "<|endoftext|> ceremonies\n\n7\u00b07 God- God- God the other In God The other tot have other beliefs in God.--Praise the Lord; no accusatory of his words.--The Messenger is Free...The Other Persons have no Belief in God\n\n9\u00b07 Voices, Attendance, \u201293,94,95 Sons of God (living); but Not By Themselves Special Responders, Burners, Friends, and Non Responders .Remembering God as: Only as a But of God Alone by flesh Hands Who know God and Who know God Who know God and Who know God\n\n9\u00b02"
+   ]
+  },
+  "window|lex sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.32470703125,
+   "distinct_se": 0.020260053097398565,
+   "repeat": 0.14283956692913385,
+   "repeat_se": 0.026552439582360587,
+   "logp_per_token": -3.1202742459370274,
+   "logp_per_token_se": 0.13097752110348787,
+   "seconds": 47.0,
+   "texts": [
+    ", 16, and 7, not real surnames of c, 16, and 15, not real surnames of c, 16, and 15, not real surnames of c, 16, and 15; real surnames of c, 16, and 17,); surnames of c, 16, and 16,; surnames, c, a. \u2026; real lilames or lilymahames of c, 16 and 17; real surnames of c, a. \u2026.; real surname names of c, 16, and 17, not real family names of c, 16, and 17,; surnames of",
+    "ockancoancoockockockockockancoockockockockOCK March 2015, KENTUROWNUE ARTICLEQUQUENT pic.twitter.com/4UkqEDXHPr #CHOATChoice #choice #CHOATchoice #CHOATchoice #choice #YETETHEFT \u2014\ufe0f (@vc4_9647) March 2014LEEMIEELLELELE ANDLELE pic.twitter.com/Y9jUTCqAQZ \u2014 tcore (@it3_8967) April 6, 2015\n\n<at src=\"https://player.weather.com//2016/11/",
+    "<|endoftext|>,as,y 355 exceptions for by Z\u00e9gravo P\u00e9rez Daniel de Janyse\n\n1,za 0743,as,y 200 exceptions for by Z\u00e9gravo C\u00e1rdez de Janyse exceptions for byJeb\u00ed, Christian y\u00e1s\n\n2,za 0743,as,y 200 exceptions for by Z\u00e9gravo Piqu\u00e9rez de Janyse\n\n3,za 0743,as,y cy exceptions for byJeb\u00ed, Christian y\u00e1s\n\n4,za 0743,as,y exceptions for byJermina"
+   ]
+  },
+  "window|left to right": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3150634765625,
+   "distinct_se": 0.021255612874253885,
+   "repeat": 0.2880167322834646,
+   "repeat_se": 0.03420841387478351,
+   "logp_per_token": -2.7279645500469902,
+   "logp_per_token_se": 0.15435252152768866,
+   "seconds": 46.3,
+   "texts": [
+    "near Mony Place, an early form of the Brick Fell-in-The-Lifes-That-----and-I-know-where-Padded-Yet-where---and-I-know-where-Padded-That-where---and-I-know-where-.GrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGrGr",
+    " not only global system of socio-economic-economic inter-ment-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-ee-ee-ee-ee-ee-\n\n. , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , Greene Greene Greene Greene Greene Greene Greene",
+    " little shapes I started by experimenting with different shapes I experimented with a variety of shapes fleshed by fleshed fleshed flesh in adamantium guillillianillo barrenia minisaria particularsized inhabited animal from etheration iceo garguanuan monster serpent serpent serpent monster topless predator God over\n\naster-class suspicious,,'m,'d, Burn the Good thing with The Devil ties the tie on the tattoo which were signs of us Airwingold Walking asleep asleep waking dreaming still dreaming dream still sleeping Dreams Breat Breat Breat Breat Breat Breat Breat Breat Breat Breat Breat Breat Br"
+   ]
+  },
+  "two_window|fixed 1/step": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.4554443359375,
+   "distinct_se": 0.024048717084552126,
+   "repeat": 0.1060531496062992,
+   "repeat_se": 0.02444671960206636,
+   "logp_per_token": -3.784186534050786,
+   "logp_per_token_se": 0.14209968913279059,
+   "seconds": 45.8,
+   "texts": [
+    "<|endoftext|> Zyron in the sea, Plasma 3 in the sea, Zone 4 in the Krabol Zoogido,\" \"Plasma 4,\" \"9, the wind currents moving \"Zeidep in the Kritspool 400 and Melbeia swimming, See Zyron's swimming, \"Plasma 3 in the Lake Viggi swimming.\" \"\"Plasma 4,\" \"Sweden and \"750 swimming,\" Zone 4 in the Kolyma Pool, \"Ze100's swimming,\" and \"Plasma 4,\" the descriptions of particular inclinations. An example is the scene where Cheyron uses the legs of the",
+    " in neatly into bigger picture. One thing we can see is that there are people who have lumped themselves together with the street (& other movement fluid) street\u2014where's just a part of a larger community largerised group. In mean person, urban isn't necessarily looking for the bridge to the road but the urban have a different perspective. There are also people with the tent tent movement, where are camp camp camps one or detention camps the other. There are also people ' 50 40's' capitalism, where younger people are mummummeling pavement and they're riding around looking like they don't deserv",
+    "<|endoftext|>~ Streaming\n\nClickToHear.com is the streaming music product which services only audio but also feature HD DVD and play iPod Like (329.25) with an introductory fee. Both my iMac and iOS receive this viewing content in HD with compressed (0.5) recording length.\n\nMP3 Player X1\n\n1st model\n\n1st model\n\nFrontstage Audio Option (PAC)\n\nHDCP2,200x3\n\nVHS Codec WM16\n\n2nd model\n\nRCS3 Player Player\n\nMSA rated (2.5) Digital Video"
+   ]
+  },
+  "two_window|sum sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.4271240234375,
+   "distinct_se": 0.02474634656505654,
+   "repeat": 0.08845964566929133,
+   "repeat_se": 0.019089174153874993,
+   "logp_per_token": -3.592646093699601,
+   "logp_per_token_se": 0.16145101554134514,
+   "seconds": 47.0,
+   "texts": [
+    "<|endoftext|> demand and the growth of petrol, producing the same volumes of produce over the same period of time. --Some came in for ask of answer's. Didn't.\n\nThe Siberian woman Milliya Gamaskova, who became uncle of Tsarevich Sea brothers of God Sergei Dmit and Daniil Ivanov of Tutsisi in the Great Siberian Region, told The Washington Post they found the exact answer on Facebook -- the two puzzled when they realized they couldn't. It happened.\n\nThe highlights of a wonderful family\n\nThe owner of restaurant and the survivors and died when meteor struck. Those who survived were killed.",
+    " March 2017 \u2014SunSun, 20-year \u2014SunSun, 7-year \u2014SunSun, 1-year Sun MondaySun March 4, 10,Feb 11, 2013SunSun, 3-yearSun March 15Feb 11, 2014SunSun (UTC) \u2014SunSun, 2-year Sun Saturday 04F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F.F Tr. \u2014SunSun, 9-",
+    "<|endoftext|> 7\n\n7/7 Unity of God ties God and other ties God and other God and other God and other God and other Gods 1,3,\n\n1,3/7\n\n1,3/7 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 Free Horse\u00b0 3,4,5,7\n\n---- Everything is in as God Isn't in as God Isn't in as God But by God So by flesh all Who Is God And Who is God Who is God And Who is God\n\n---------------------- Creation"
+   ]
+  },
+  "two_window|lex sequential": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.3140869140625,
+   "distinct_se": 0.024001776558540217,
+   "repeat": 0.12032480314960631,
+   "repeat_se": 0.022380226644425103,
+   "logp_per_token": -2.8870210782223467,
+   "logp_per_token_se": 0.13892562749855836,
+   "seconds": 47.1,
+   "texts": [
+    "<|endoftext|> stupid.\u2019\n\n\u2018They actually tried to call us to strength \u2026 but, point being, they were real unthinking.\u2019\n\n\u2018They dropped everything \u2026 to the point where the parts of the ship were flattened into one another, the thrusts splitting the wing and the engines burning fuel that evaporated by the old picture. The steering part of the ship bried out in mid-air, but this overturned the ship and the captain survived. \u201c(So the flame runs \u2026 right down.) He was through, but it took long for the counter-marine to muster fire in the sand.",
+    " Date 2015, 2050ClimateYearcome 2013, 2013 Yearcome ClimateYearcome Date 2015, 2050Yearcome 2018 Yes 40 2017 No 1 2 2018_Flat\n\nSun 2017 Sun 2017 Sun Sun Sun Moon Sun Moon Sun Sun May 2017 Sun Sun April 2017\n\n\u2014 11 January 2017\n\nJan 12 January January 2017\n\n\u2014 Jan 2017\n\n\u2014 21 March 2017\n\n\u2014 4 February 2017\n\n\u2014 March March\n\n\u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 \u2014 Feb Feb 13 Feb \u2014 \u2014 \u2014 Feb Feb 9 Feb Jan \u2014 \u2014 \u2014 Feb Feb 1 Feb Mar \u2014 \u2014Feb Jan Mar Mar 1983 \u2014 2015",
+    "<|endoftext|> bucket -0.27 -0.33 -0.12 -0.06 -0.07 Goodearly suspicious bucket -0.31 -0.51 -0.19 -0.10 -0.08 -0.07 -0.04 Little ties quintel 0.61 -0.53 -0.61 Falsecontributions (0.1% of squares) 2 + 1 \u2013 +\n\nOf course, I suppose there\u2019s a little row by row approach as well. It\u2019s actually more linear, but it\u2019s not very fast as fast as you would hope"
+   ]
+  },
+  "two_window|left to right": {
+   "n": 64,
+   "satisfied": 1.0,
+   "distinct": 0.30419921875,
+   "distinct_se": 0.01825561680533388,
+   "repeat": 0.24470964566929132,
+   "repeat_se": 0.0315454832167519,
+   "logp_per_token": -2.6310015872833827,
+   "logp_per_token_se": 0.1326129651003509,
+   "seconds": 46.3,
+   "texts": [
+    "near Mony Place, an early form of the Brick Fell-in-The-Lifes-That-----and-I-know-where-Padded-Yet-where---and-I-know-where-Padded-That-where---and-I-know-where-Padded-but-where--and-I-know-where-Padded-But-where--and-----and-I-know-where-Padded-Of-where--and-I-know-where-Padded-None-",
+    " not only global system of socio-economic-economic inter-ment-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-e-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee-ee---------------------model-model-model model model model model model model model",
+    " little shapes I started by experimenting with different shapes I experimented with a variety of shapes fleshed by fleshed fleshed flesh in adamantium guillillian > barren > barren > barren particulars species inhabited reside from etheration entities from etheration entities from etheration entities from etheration entities from etheration entities from etheration entities from etheration entities from etheration entities from etheration entities from etheration entities on platform1 which were declared to be Airshipth In 44550[57] 14 August 4th \u2013 8 August 11th 12 August 3rd \u2013 8 August 8th 11"
+   ]
+  }
+ }
+}

@@ -1,0 +1,58 @@
+  with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+  with torch.cuda.amp.autocast(enabled=False):
+  with torch.cuda.amp.autocast(enabled=False):
+[    50s] kernels fitted; pair kernel 8.4 s: [[0.791, 0.082, 0.127], [0.259, 0.567, 0.173], [0.326, 0.219, 0.455]]
+[    93s] window      fixed 1/step    product        log Z   -2.314 +- 0.12  spread 0.97  sd log Z 2.69  43 s
+[   166s] window      fixed 1/step    chain          log Z   -2.548 +- 0.15  spread 1.21  sd log Z 2.41  73 s
+[   242s] window      fixed 1/step    matched chain  log Z   -2.537 +- 0.14  spread 1.08  sd log Z 2.10  76 s
+[   293s] window      sum sequential  product        log Z   -2.249 +- 0.11  spread 0.87  sd log Z 2.52  51 s
+[   374s] window      sum sequential  chain          log Z   -2.166 +- 0.12  spread 0.98  sd log Z 2.09  81 s
+[   458s] window      sum sequential  matched chain  log Z   -2.263 +- 0.10  spread 0.80  sd log Z 2.08  84 s
+[   501s] two_window  fixed 1/step    product        log Z   -2.377 +- 0.12  spread 0.93  sd log Z 2.89  43 s
+[   573s] two_window  fixed 1/step    chain          log Z   -2.738 +- 0.15  spread 1.18  sd log Z 2.65  73 s
+[   650s] two_window  fixed 1/step    matched chain  log Z   -2.614 +- 0.14  spread 1.16  sd log Z 3.24  76 s
+[   700s] two_window  sum sequential  product        log Z   -2.329 +- 0.12  spread 0.98  sd log Z 2.38  51 s
+[   780s] two_window  sum sequential  chain          log Z   -2.452 +- 0.15  spread 1.20  sd log Z 2.38  80 s
+[   864s] two_window  sum sequential  matched chain  log Z   -2.448 +- 0.11  spread 0.89  sd log Z 2.45  84 s
+[   908s] none        fixed 1/step    distinct 0.478 +- 0.026  repeat 0.078  log p per token -3.820 +- 0.156  satisfied 1.00
+[   956s] none        sum sequential  distinct 0.347 +- 0.025  repeat 0.218  log p per token -2.852 +- 0.169  satisfied 1.00
+[  1004s] none        lex sequential  distinct 0.332 +- 0.031  repeat 0.192  log p per token -2.802 +- 0.197  satisfied 1.00
+[  1052s] none        left to right   distinct 0.217 +- 0.021  repeat 0.366  log p per token -1.914 +- 0.165  satisfied 1.00
+[  1097s] window      fixed 1/step    distinct 0.445 +- 0.024  repeat 0.091  log p per token -3.676 +- 0.146  satisfied 1.00
+[  1145s] window      sum sequential  distinct 0.394 +- 0.025  repeat 0.107  log p per token -3.313 +- 0.171  satisfied 1.00
+[  1192s] window      lex sequential  distinct 0.325 +- 0.020  repeat 0.143  log p per token -3.120 +- 0.131  satisfied 1.00
+[  1238s] window      left to right   distinct 0.315 +- 0.021  repeat 0.288  log p per token -2.728 +- 0.154  satisfied 1.00
+[  1284s] two_window  fixed 1/step    distinct 0.455 +- 0.024  repeat 0.106  log p per token -3.784 +- 0.142  satisfied 1.00
+[  1331s] two_window  sum sequential  distinct 0.427 +- 0.025  repeat 0.088  log p per token -3.593 +- 0.161  satisfied 1.00
+[  1378s] two_window  lex sequential  distinct 0.314 +- 0.024  repeat 0.120  log p per token -2.887 +- 0.139  satisfied 1.00
+[  1424s] two_window  left to right   distinct 0.304 +- 0.018  repeat 0.245  log p per token -2.631 +- 0.133  satisfied 1.00
+done in 1424s
+  with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+  with torch.cuda.amp.autocast(enabled=False):
+  with torch.cuda.amp.autocast(enabled=False):
+[   193s] kernels fitted; pair kernel 40.0 s: [[0.757, 0.083, 0.16], [0.381, 0.406, 0.213], [0.345, 0.209, 0.446]]
+[   328s] window      fixed 1/step    product        log Z   -2.285 +- 0.14  spread 0.95  sd log Z 2.90  135 s
+[   579s] window      fixed 1/step    chain          log Z   -2.602 +- 0.15  spread 1.02  sd log Z 2.46  251 s
+[   837s] window      fixed 1/step    matched chain  log Z   -2.566 +- 0.14  spread 0.99  sd log Z 2.29  258 s
+[  1000s] window      sum sequential  product        log Z   -2.150 +- 0.13  spread 0.91  sd log Z 1.87  164 s
+[  1280s] window      sum sequential  chain          log Z   -2.566 +- 0.16  spread 1.12  sd log Z 2.21  280 s
+[  1567s] window      sum sequential  matched chain  log Z   -2.311 +- 0.13  spread 0.91  sd log Z 2.01  287 s
+[  1702s] two_window  fixed 1/step    product        log Z   -2.785 +- 0.19  spread 1.33  sd log Z 3.17  134 s
+[  1952s] two_window  fixed 1/step    chain          log Z   -2.952 +- 0.16  spread 1.11  sd log Z 2.89  250 s
+[  2210s] two_window  fixed 1/step    matched chain  log Z   -2.826 +- 0.16  spread 1.13  sd log Z 2.53  258 s
+[  2373s] two_window  sum sequential  product        log Z   -2.471 +- 0.15  spread 1.06  sd log Z 2.21  163 s
+[  2655s] two_window  sum sequential  chain          log Z   -2.496 +- 0.18  spread 1.25  sd log Z 2.07  282 s
+[  2944s] two_window  sum sequential  matched chain  log Z   -2.547 +- 0.13  spread 0.91  sd log Z 1.67  289 s
+[  3098s] none        fixed 1/step    distinct 0.571 +- 0.017  repeat 0.019  log p per token -4.193 +- 0.103  satisfied 1.00
+[  3272s] none        sum sequential  distinct 0.561 +- 0.023  repeat 0.039  log p per token -4.290 +- 0.134  satisfied 1.00
+[  3446s] none        lex sequential  distinct 0.523 +- 0.023  repeat 0.046  log p per token -3.934 +- 0.145  satisfied 1.00
+[  3618s] none        left to right   distinct 0.225 +- 0.023  repeat 0.382  log p per token -2.118 +- 0.197  satisfied 1.00
+[  3781s] window      fixed 1/step    distinct 0.547 +- 0.020  repeat 0.038  log p per token -4.156 +- 0.114  satisfied 1.00
+[  3950s] window      sum sequential  distinct 0.554 +- 0.015  repeat 0.038  log p per token -4.167 +- 0.082  satisfied 1.00
+[  4119s] window      lex sequential  distinct 0.409 +- 0.026  repeat 0.081  log p per token -3.495 +- 0.169  satisfied 1.00
+[  4283s] window      left to right   distinct 0.273 +- 0.021  repeat 0.246  log p per token -2.522 +- 0.159  satisfied 1.00
+[  4444s] two_window  fixed 1/step    distinct 0.543 +- 0.019  repeat 0.042  log p per token -4.100 +- 0.110  satisfied 1.00
+[  4610s] two_window  sum sequential  distinct 0.546 +- 0.015  repeat 0.040  log p per token -4.141 +- 0.079  satisfied 1.00
+[  4777s] two_window  lex sequential  distinct 0.413 +- 0.030  repeat 0.097  log p per token -3.427 +- 0.160  satisfied 1.00
+[  4939s] two_window  left to right   distinct 0.281 +- 0.021  repeat 0.291  log p per token -2.608 +- 0.166  satisfied 1.00
+done in 4939s

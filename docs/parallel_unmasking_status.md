@@ -2970,6 +2970,72 @@ attention-based selection of weakly dependent reveal sets (DAPD, arXiv:2603.1299
 - Tuning the relative weight of the two terms of `sum`: not done and not planned; both terms are in nats.
 - Dream-7B as a second model: at final evaluations.
 
+## 36am. MDLM rerun with the corrected pair table: no gain from the chain proposal on window counts; `sum` keeps the text closest to the random order (cluster job `e3bec63c`, one L40S on node3203, 2026-11-17) [measured; 48 to 64 runs of 8 particles per arm; no exact truth]
+
+Replaces the chain-proposal half of section 36ak. Constraint: at least k tokens of the punctuation-and-digit class in a window (k the smallest value the product twist puts below 1e-3).
+Spread = relative standard deviation of Z_hat over runs (lower is better); cells are product | chain (ratio formula) | matched chain (30 sweeps).
+
+| tokens | constraint | schedule | spread | sd of log Z_hat | log of mean Z_hat | seconds per arm |
+|---|---|---|---|---|---|---|
+| 128 | window | uniformly random | 0.97 \| 1.21 \| 1.08 | 2.69 \| 2.41 \| 2.10 | -2.31 \| -2.55 \| -2.54 | 43 \| 73 \| 76 |
+| 128 | window | sum sequential | 0.87 \| 0.98 \| 0.80 | 2.52 \| 2.09 \| 2.08 | -2.25 \| -2.17 \| -2.26 | 51 \| 81 \| 84 |
+| 128 | two_window | uniformly random | 0.93 \| 1.18 \| 1.16 | 2.89 \| 2.65 \| 3.24 | -2.38 \| -2.74 \| -2.61 | 43 \| 73 \| 76 |
+| 128 | two_window | sum sequential | 0.98 \| 1.20 \| 0.89 | 2.38 \| 2.38 \| 2.45 | -2.33 \| -2.45 \| -2.45 | 51 \| 80 \| 84 |
+| 256 | window | uniformly random | 0.95 \| 1.02 \| 0.99 | 2.90 \| 2.46 \| 2.29 | -2.29 \| -2.60 \| -2.57 | 135 \| 251 \| 258 |
+| 256 | window | sum sequential | 0.91 \| 1.12 \| 0.91 | 1.87 \| 2.21 \| 2.01 | -2.15 \| -2.57 \| -2.31 | 164 \| 280 \| 287 |
+| 256 | two_window | uniformly random | 1.33 \| 1.11 \| 1.13 | 3.17 \| 2.89 \| 2.53 | -2.78 \| -2.95 \| -2.83 | 134 \| 250 \| 258 |
+| 256 | two_window | sum sequential | 1.06 \| 1.25 \| 0.91 | 2.21 \| 2.07 \| 1.67 | -2.47 \| -2.50 \| -2.55 | 163 \| 282 \| 289 |
+
+- The matched chain is at or below the product proposal in 4 of 8 cells and within the noise of it everywhere; the ratio-formula chain is slightly worse. No clear gain.
+- All arms are very noisy (log Z_hat varies by 2 to 3 nats between runs at 8 particles): the product twist starts at 1e-3 while the estimates are near 0.1,
+  so the twist is off by a factor of about 100. Likely cause (not tested): this class clusters at document level, which a neighbour table cannot see.
+- The comparison is underpowered and the constraint is of the kind (a count over a coarse class) where the chain helped least on the oracles.
+
+**Outputs by order** (single-particle decodes, matched chain proposal under the constraints; distinct share / repeat rate; 64 sequences at 128 tokens, 48 at 256).
+
+| tokens | constraint | uniformly random | sum | lex | left to right |
+|---|---|---|---|---|---|
+| 128 | none | 0.48 / 0.08 | 0.35 / 0.22 | 0.33 / 0.19 | 0.22 / 0.37 |
+| 128 | window | 0.45 / 0.09 | 0.39 / 0.11 | 0.32 / 0.14 | 0.32 / 0.29 |
+| 128 | two_window | 0.46 / 0.11 | 0.43 / 0.09 | 0.31 / 0.12 | 0.30 / 0.24 |
+| 256 | none | 0.57 / 0.02 | 0.56 / 0.04 | 0.52 / 0.05 | 0.22 / 0.38 |
+| 256 | window | 0.55 / 0.04 | 0.55 / 0.04 | 0.41 / 0.08 | 0.27 / 0.25 |
+| 256 | two_window | 0.54 / 0.04 | 0.55 / 0.04 | 0.41 / 0.10 | 0.28 / 0.29 |
+
+- Under a constraint `sum` stays at the random order's statistics at both lengths; `lex` is more repetitive and left to right much more. This favours `sum` over `lex` on a real model.
+
+## 36an. JSON on LLaDA-8B-Instruct: setting, classes, and the design of the dependence table (2026-11-17) [classes counted; pipeline tested with a stand-in denoiser; no model results yet]
+
+**Setting.** TWISTER and Dang & Ermon both evaluate on LLaDA-8B and Dream-7B (read from their experiment sections); TWISTER's structured-output task is JSON-Mode-Eval
+(NousResearch), 100 datapoints of which Outlines compiles 94. We use LLaDA-8B-Instruct first; Dream-7B at final evaluations. Generation length 1.5 times the reference answer, as in TWISTER.
+
+**Classes** (`json_mode_compile.py`, `compile/tokens.py`; LLaDA tokenizer, 126,080 ordinary tokens).
+
+| per datapoint | lowest | median | highest |
+|---|---|---|---|
+| generation length | 27 | 85 | 423 |
+| automaton states at token boundaries | 24 | 108 | 267 |
+| token classes | 57 | 152 | 282 |
+| legal (state, class) moves | 127 | 929 | 22997 |
+
+- 94 datapoints compile and 6 fail, the same split as TWISTER. The reference answer (padded with end tokens) is accepted by the compiled automaton for 91 of 94.
+- One class (ordinary text, legal only inside strings) holds 97% of the vocabulary in the typical schema; the structure is in the other 150 or so classes.
+- A dense chain-twist step over all classes is about 3e9 multiply-adds for 16 particles at the median schema and length, far below a forward pass of the model; the automaton's sparsity would cut it by a median factor 37.
+
+**Design decisions (with the user).**
+
+- Keep every class in the dependence table; get speed from the implementation, not from coarsening.
+- Counted table: token-level pair counts from a pilot corpus are collapsed exactly to any schema's classes (`pair_ratio_table`). The ratio for a pair is the Bayesian update of independence,
+  (observed + lam) / (expected under independence + lam), lam = 1: unchanged where nothing was expected, strongly below 1 where many were expected and none seen, never zero.
+- Probed table (`probe_pair_kernel`): the model hands us the pair conditional directly. Place a token at position i, read the prediction at i + 1; one call gives a whole row. Per prompt it costs a few hundred rows.
+  On a Markov model its ratios are the exact pointwise ratios and the matched chain built from it is the exact joint (test).
+- Precomputed table (not built): one row per vocabulary token under a generic answer-in-JSON instruction, token placed at an interior position; rows truncated with a larger budget for common tokens and
+  structural columns always kept; dropped entries filled with the row's exact dropped mass in proportion to overall frequency, capped at the row's cutoff; collapsed per schema. Build only if the probed table helps.
+- `proposal_mix`: a defensive share of the product proposal inside the chain proposal, so a wrong table cannot starve a sequence the model and constraint allow (unbiased; test with a table that nearly bans a needed pair).
+- Samples from constrained decodes must not feed the table (they follow the constrained law).
+
+**Bug fixed on the way.** `fit_pair_kernel` on a model without an exact sampler mapped class sequences to classes twice (section 36ak).
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
