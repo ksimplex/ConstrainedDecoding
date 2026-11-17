@@ -197,3 +197,62 @@ def test_chain_proposal_in_the_sampler(cname, T):
                                                    ess_min=0.0, proposal_twist=pt)["logZ"] - truth.log_pC))
         assert kl(tw) < 0.6 * kl(None)
 
+
+
+def _markov_case(seed, N=6, A=3):
+    """A first-order Markov chain (stationary start), its kernel T(a, b) / pi(b), and all sequences with their probabilities."""
+    g = torch.Generator().manual_seed(seed)
+    T = torch.rand(A, A, generator=g, dtype=torch.float64) + 3.0 * torch.eye(A, dtype=torch.float64); T = T / T.sum(1, keepdim=True)
+    pi = torch.full((A,), 1.0 / A, dtype=torch.float64)
+    for _ in range(500):
+        pi = pi @ T
+    ys = torch.tensor(list(itertools.product(range(A), repeat=N)))
+    p = pi[ys[:, 0]]
+    for i in range(N - 1):
+        p = p * T[ys[:, i], ys[:, i + 1]]
+    return T / pi[None], ys, p
+
+
+@pytest.mark.parametrize("revealed", [{}, {3: 1}, {0: 2, 4: 0}, {1: 0, 5: 2}])
+def test_matched_chain_law_is_exact_for_a_markov_model(revealed):
+    """With match > 0 the chain law is the exact joint of the masked positions of a first-order Markov model, whatever is
+    revealed; the ratio formula is not once a token is revealed away from the pair."""
+    N, A = 6, 3
+    K, ys, p = _markov_case(0, N, A)
+    keep = torch.ones(len(ys), dtype=torch.bool)
+    for i, a in revealed.items():
+        keep &= ys[:, i] == a
+    post = p * keep; post = post / post.sum()
+    mu = torch.stack([torch.stack([post[ys[:, i] == a].sum() for a in range(A)]) for i in range(N)])       # exact marginals
+    d = C.dfa_exactly_k(0, 2, A)
+
+    def law(match):
+        Q = ChainTwist(d, K, match=match).transitions(mu[None])[0]
+        q = mu[0, ys[:, 0]]
+        for i in range(N - 1):
+            q = q * Q[i, ys[:, i], ys[:, i + 1]]
+        return q
+
+    exact = law(80)
+    assert float((exact - post).abs().max()) < 1e-9
+    if len(revealed) == 1 and 3 in revealed:                                # a token revealed in the middle: the ratio formula is off
+        assert float((law(0) - post).abs().max()) > 1e-3
+
+
+def test_matched_chain_law_keeps_the_marginals():
+    """For arbitrary marginals and any positive table, the matched chain has the given marginal at every position."""
+    g = torch.Generator().manual_seed(4); B, N, A = 5, 8, 3
+    mu = torch.rand(B, N, A, generator=g, dtype=torch.float64) + 0.05; mu = mu / mu.sum(-1, keepdim=True)
+    mu[0, 2] = torch.tensor([0.0, 1.0, 0.0], dtype=torch.float64)           # a revealed position
+    K = torch.rand(A, A, generator=g, dtype=torch.float64) + 0.2 + 2.0 * torch.eye(A, dtype=torch.float64)
+    d = C.dfa_exactly_k(0, 2, A)
+    for match, tol in ((80, 1e-9), (0, None)):
+        Q = ChainTwist(d, K, match=match).transitions(mu)
+        assert torch.allclose(Q.sum(-1), torch.ones(B, N - 1, A, dtype=torch.float64), atol=1e-9)
+        m, worst = mu[:, 0], 0.0
+        for i in range(N - 1):
+            m = torch.einsum("ba,bac->bc", m, Q[:, i]); worst = max(worst, float((m - mu[:, i + 1]).abs().max()))
+        if tol is None:
+            assert worst > 1e-3                                             # the ratio formula drifts
+        else:
+            assert worst < tol

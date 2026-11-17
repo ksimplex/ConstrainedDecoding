@@ -2519,6 +2519,165 @@ RMS error at 16 particles through lower noise, without a lower bias. A reference
 co-revealed neighbours is the natural next candidate; not built. Deferred by the user on 2026-11-17: it matters only
 when neighbours must be revealed together (very few steps), and the order rule and the stress oracle come first.
 
+## 36aa. A second oracle: a sequence-wide latent variable (local, 2026-11-16/17) [exact at 10 to 12 positions; sampled at 64 with 300 decodes]
+
+Purpose: check that the order and proposal results of sections 36s to 36x are not artefacts of a short-range hidden chain.
+
+- Model `latent_0.6_w0.5`: a latent symbol is drawn once per sequence; the hidden chain stays with probability 0.6 and otherwise
+  redraws from an equal mix of the base distribution and the latent symbol; emission noise 0.3.
+- Dependence does not decay: mutual information between positions is 0.109 at distance 1 and levels off at 0.0146 from distance 16.
+
+**Exact, 10 to 12 positions.** KL of the sampler from the exact constrained law, as a multiple of the optimal order (lower is better).
+
+| constraint | proposal | optimal (nats) | random | ideal greedy | best fixed order | plan in fitted second-order chain |
+|---|---|---|---|---|---|---|
+| counting | product | 0.0088 | 3.71 | 2.11 | 1.52 | 1.29 |
+| counting | chain | 0.0024 | 7.83 | 2.21 | 1.83 | 2.65 |
+| dyck | product | 0.0402 | 4.33 | 1.29 | 1.52 | 1.19 |
+| dyck | chain | 0.0009 | 31.73 | 3.45 | 4.12 | 5.23 |
+| forbidden | product | 0.1379 | 2.26 | 1.06 | 1.08 | 1.05 |
+| forbidden | chain | 0.0077 | 4.87 | 1.08 | 2.05 | 3.28 |
+| window_small | product | 0.0122 | 19.65 | 1.40 | 1.00 | 1.16 |
+| window_small | chain | 0.0049 | 20.89 | 1.32 | 1.29 | 2.28 |
+| two_window_small | product | 0.0200 | 17.24 | 1.60 | 1.00 | 1.30 |
+| two_window_small | chain | 0.0010 | 94.26 | 1.13 | 1.18 | 1.72 |
+
+- With the product proposal the plan in the fitted surrogate beats ideal greedy in all five cells, as on the first oracle.
+- With the chain proposal it is worse than ideal greedy in 5 of 5 cells. Likely reason (not tested): the surrogate is in the same
+  model class as the proposal, so it cannot see the proposal's remaining error.
+- With the chain proposal the optimal order and ideal greedy differ by at most 0.01 nats at this size.
+
+**64 positions.** Per-particle KL in nats (lower is better), product proposal -> chain proposal. Ideal greedy is not honest.
+
+| constraint | random | left to right | lex | sum | ideal greedy |
+|---|---|---|---|---|---|
+| counting | 0.185 -> 0.153 | 0.497 -> 0.142 | 0.278 -> 0.212 | 0.157 -> 0.136 | 0.158 -> 0.085 |
+| dyck | 0.317 -> 0.080 | 0.966 -> 0.057 | 0.364 -> 0.093 | 0.324 -> 0.059 | 0.114 -> 0.023 |
+| forbidden | 1.960 -> 0.350 | 0.503 -> 0.183 | 0.497 -> 0.189 | 0.642 -> 0.174 | 0.490 -> 0.073 |
+| window | 0.609 -> 0.472 | 0.727 -> 0.606 | 0.027 -> 0.064 | 0.066 -> 0.098 | 0.026 -> 0.008 |
+| two_window | 0.900 -> 0.676 | 0.908 -> 0.685 | 0.031 -> 0.056 | 0.043 -> 0.077 | 0.088 -> 0.005 |
+
+- Same pattern as on the hidden chain (section 36w): the chain proposal is better under every order on counting, Dyck and forbidden;
+  on the windows it is worse under lex and sum and better under ideal greedy.
+
+## 36ab. Honest order rules at 64 positions, both proposals (local, 2026-11-16) [sampled, 300 decodes, hidden chain 0.85]
+
+An honest rule uses only what a real denoiser provides. Per-particle KL in nats, lower is better. Figure: [honest_orders_N64_heatmap.png]({{artifact:882570db-a514-4c54-9bed-4174e32b23da}}).
+
+| constraint | proposal | random | ltr | lex | sum | estimate | confident | confident_proposal | ideal greedy (not honest) |
+|---|---|---|---|---|---|---|---|---|---|
+| counting | product | 0.180 | 0.778 | 0.204 | 0.123 | 0.204 | 0.503 | 0.503 | 0.191 |
+| counting | chain | 0.188 | 0.208 | 0.263 | 0.146 | 0.170 | 0.359 | 0.467 | 0.078 |
+| dyck | product | 0.642 | 1.291 | 0.586 | 0.599 | 0.426 | 0.791 | 0.791 | 0.262 |
+| dyck | chain | 0.298 | 0.314 | 0.288 | 0.246 | 0.341 | 0.368 | 0.286 | 0.103 |
+| forbidden | product | 2.588 | 0.586 | 0.582 | 1.171 | 0.620 | 0.586 | 0.586 | 0.599 |
+| forbidden | chain | 0.419 | 0.216 | 0.216 | 0.284 | 0.197 | 0.216 | 0.218 | 0.096 |
+| window | product | 0.389 | 0.421 | 0.076 | 0.091 | 0.455 | 0.053 | 0.053 | 0.050 |
+| window | chain | 0.256 | 0.254 | 0.080 | 0.078 | 0.377 | 0.195 | 0.172 | 0.017 |
+| two_window | product | 0.730 | 0.733 | 0.085 | 0.115 | 0.835 | 0.176 | 0.176 | 0.278 |
+| two_window | chain | 0.450 | 0.365 | 0.102 | 0.135 | 0.728 | 0.200 | 0.170 | 0.032 |
+
+- `estimate`: least disagreement between the product and chain proposals first. `confident`: largest model probability first;
+  `confident_proposal`: largest proposal probability first.
+- No honest rule tracks ideal greedy. The best honest arm per constraint is 1.6 to 3.1 times above ideal greedy with the chain proposal.
+- `estimate` fails on the windows; `confident` fails on counting and Dyck.
+- Under the chain proposal, ideal greedy grows contiguously from the sequence ends, takes constraint positions early and pays evenly
+  across the decode; with the product proposal it defers and pays late.
+
+## 36ac. Marginal-matched chain law (local, 2026-11-17) [verified on a Markov chain; exact at 10 to 12 positions; sampled at 64 with 300 decodes]
+
+**Problem.** The chain law builds each transition from the pilot kernel and the two neighbouring marginals by a ratio formula.
+When the marginals of masked neighbours already condition on revealed tokens elsewhere, the resulting chain no longer has those marginals.
+
+**Fix.** `ChainTwist(match=k)`: each transition is rescaled on both sides (k sweeps) so that the pair table has exactly the two
+denoiser marginals, keeping the kernel's interaction. `match=0` is the old formula and stays the default.
+
+**Direct check** (200 random partly revealed states, 8 positions): on a Markov chain KL(model joint || chain law) falls from 0.093 to
+0.00000 and the largest marginal error from 0.41 to 6e-6 (30 sweeps). On the hidden chain the KL goes from 0.131 to 0.127 and the
+marginal error from 0.064 to 4e-16: the marginals become exact and the remaining error is the model's order.
+
+**Exact, 10 to 12 positions** (KL in nats, lower is better; ratio formula -> matched).
+
+| constraint, model, N | random | ideal greedy | best fixed order | optimal |
+|---|---|---|---|---|
+| counting, chain_0.85, 10 | 0.3277 -> 0.0007 | 0.0273 -> 0.0003 | 0.0005 -> 0.0002 | 0.0005 -> 0.0002 |
+| dyck, chain_0.85, 12 | 0.0891 -> 0.0001 | 0.0288 -> 0.0001 | 0.0000 -> 0.0001 | 0.0000 -> 0.0001 |
+| counting, hidden_0.85, 10 | 0.0549 -> 0.0452 | 0.0161 -> 0.0130 | 0.0145 -> 0.0132 | 0.0067 -> 0.0063 |
+| dyck, hidden_0.85, 12 | 0.0778 -> 0.0723 | 0.0052 -> 0.0107 | 0.0095 -> 0.0105 | 0.0015 -> 0.0015 |
+| forbidden, hidden_0.85, 10 | 0.0561 -> 0.0504 | 0.0117 -> 0.0167 | 0.0223 -> 0.0231 | 0.0095 -> 0.0135 |
+| window_small, hidden_0.85, 10 | 0.1953 -> 0.1917 | 0.0098 -> 0.0112 | 0.0115 -> 0.0110 | 0.0098 -> 0.0110 |
+| two_window_small, hidden_0.85, 10 | 0.1682 -> 0.1605 | 0.0008 -> 0.0009 | 0.0011 -> 0.0009 | 0.0007 -> 0.0008 |
+| counting, latent_0.6_w0.5, 10 | 0.0185 -> 0.0148 | 0.0052 -> 0.0049 | 0.0043 -> 0.0041 | 0.0024 -> 0.0023 |
+| dyck, latent_0.6_w0.5, 12 | 0.0276 -> 0.0256 | 0.0030 -> 0.0027 | 0.0036 -> 0.0039 | 0.0009 -> 0.0007 |
+| forbidden, latent_0.6_w0.5, 10 | 0.0377 -> 0.0329 | 0.0084 -> 0.0081 | 0.0159 -> 0.0137 | 0.0077 -> 0.0066 |
+| window_small, latent_0.6_w0.5, 10 | 0.1022 -> 0.1001 | 0.0065 -> 0.0056 | 0.0063 -> 0.0056 | 0.0049 -> 0.0055 |
+| two_window_small, latent_0.6_w0.5, 10 | 0.0900 -> 0.0868 | 0.0011 -> 0.0012 | 0.0011 -> 0.0012 | 0.0010 -> 0.0011 |
+
+- On the Markov chain the chain proposal becomes essentially exact in any order.
+- On the hidden chain and the stress oracle random order improves by 2 to 20%; good orders change little, and two hidden-chain cells get worse.
+
+**64 positions** (per-particle KL in nats, lower is better; ratio formula -> matched). Figure: [matched_chain_N64_heatmap.png]({{artifact:95dafc5e-4dc8-47a2-9ec2-b58b14bcc981}}).
+
+| model | constraint | random | left to right | lex | sum | estimate | ideal greedy (not honest) |
+|---|---|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.188 -> 0.097 | 0.208 -> 0.237 | 0.263 -> 0.137 | 0.146 -> 0.075 | 0.170 -> 0.133 | 0.078 -> 0.082 |
+| hidden_0.85 | dyck | 0.298 -> 0.244 | 0.314 -> 0.326 | 0.288 -> 0.189 | 0.246 -> 0.202 | 0.341 -> 0.248 | 0.103 -> 0.108 |
+| hidden_0.85 | forbidden | 0.419 -> 0.374 | 0.216 -> 0.206 | 0.216 -> 0.206 | 0.284 -> 0.285 | 0.197 -> 0.235 | 0.096 -> 0.142 |
+| hidden_0.85 | window | 0.256 -> 0.195 | 0.254 -> 0.247 | 0.080 -> 0.024 | 0.078 -> 0.031 | 0.377 -> 0.399 | 0.017 -> 0.024 |
+| hidden_0.85 | two_window | 0.450 -> 0.393 | 0.365 -> 0.360 | 0.102 -> 0.048 | 0.135 -> 0.077 | 0.728 -> 0.751 | 0.032 -> 0.041 |
+| latent_0.6_w0.5 | counting | 0.153 -> 0.106 | 0.142 -> 0.158 | 0.212 -> 0.157 | 0.136 -> 0.099 | n.d. -> 0.110 | 0.085 -> 0.077 |
+| latent_0.6_w0.5 | dyck | 0.080 -> 0.062 | 0.057 -> 0.087 | 0.093 -> 0.063 | 0.059 -> 0.048 | n.d. -> 0.071 | 0.023 -> 0.024 |
+| latent_0.6_w0.5 | forbidden | 0.350 -> 0.322 | 0.183 -> 0.153 | 0.189 -> 0.166 | 0.174 -> 0.195 | n.d. -> 0.253 | 0.073 -> 0.111 |
+| latent_0.6_w0.5 | window | 0.472 -> 0.460 | 0.606 -> 0.602 | 0.064 -> 0.034 | 0.098 -> 0.057 | n.d. -> 0.743 | 0.008 -> 0.010 |
+| latent_0.6_w0.5 | two_window | 0.676 -> 0.671 | 0.685 -> 0.681 | 0.056 -> 0.021 | 0.077 -> 0.033 | n.d. -> 1.160 | 0.005 -> 0.010 |
+
+- Cells where matching lowers the error: random 10 of 10; ltr 6 of 10; lex 10 of 10; sum 8 of 10; estimate 2 of 5; ideal greedy 1 of 10.
+- The gain is largest under lex and sum on counting and the windows (a factor 1.3 to 3.3).
+- It removes the chain proposal's weakness on the windows under lex and sum (section 36w).
+- Ideal greedy does not improve and is clearly worse on forbidden; left to right is worse on counting and Dyck. Not yet explained.
+- Only the weight-based estimate has a recorded standard error (0.02 to 0.09 here), so differences below about 0.03 are not resolved.
+- Unit tests (5 new, 20 in `tests/test_chain_twist.py`): exact joint on a Markov model for four reveal patterns; marginals kept for arbitrary inputs.
+- Not yet done: the end measure in the sampler with `match`; the cost of the sweeps on a language model.
+
+## 36ad. Can the order be learned from observed twist revisions? Ceiling check (local, 2026-11-17) [exact at 8 to 10 positions, hidden chain 0.85]
+
+After each reveal the sampler re-runs the denoiser and its incremental weight is G(a) = psi(x + a) / psi~(x, a).
+
+- Identity (holds to 1e-12 in every cell): eps_i(x) = E_q[-log G] + e(x) - E_q e(x + a), with e = log(psi* / psi) the twist's log error.
+- So the mean revision sums to the order-dependent error over a decode, but per position it includes the correction the twist receives anyway.
+- To second order eps_i(x) is half the variance of log G over the revealed value, if e(x + a) does not depend on a.
+
+Ceiling: greedy on the true half-variance for every candidate (one look-ahead denoiser call per candidate; more than a learned predictor could know).
+Exact KL in nats, lower is better; rank = median rank correlation with the true error within a state.
+
+| constraint | proposal | random | optimal | ideal greedy | greedy on revision spread | greedy on mean revision | least tilted | rank of spread |
+|---|---|---|---|---|---|---|---|---|
+| counting (N=8) | product | 0.0264 | 0.0070 | 0.0118 | 0.0293 | 0.0304 | 0.0362 | 0.09 |
+| dyck (N=10) | product | 0.2761 | 0.0632 | 0.0759 | 0.1926 | 0.0738 | 0.4036 | 0.70 |
+| forbidden (N=8) | product | 0.3041 | 0.1401 | 0.1559 | 0.1608 | 0.1702 | 0.5127 | 1.00 |
+| window_small (N=8) | product | 0.3716 | 0.0239 | 0.0249 | 0.0843 | 0.0804 | 0.8390 | 0.90 |
+| two_window_small (N=8) | product | 0.5063 | 0.0217 | 0.0333 | 0.0575 | 0.0857 | 1.1693 | 1.00 |
+| counting (N=8) | chain | 0.0391 | 0.0069 | 0.0092 | 0.0724 | 0.0475 | 0.0286 | 0.40 |
+| dyck (N=10) | chain | 0.0519 | 0.0009 | 0.0067 | 0.0274 | 0.0132 | 0.0240 | 0.80 |
+| forbidden (N=8) | chain | 0.0439 | 0.0067 | 0.0078 | 0.0087 | 0.0187 | 0.0579 | 0.90 |
+| window_small (N=8) | chain | 0.1450 | 0.0101 | 0.0122 | 0.0155 | 0.1128 | 0.3074 | 1.00 |
+| two_window_small (N=8) | chain | 0.0850 | 0.0025 | 0.0030 | 0.0033 | 0.0249 | 0.1607 | 0.90 |
+
+- Chain proposal: within 1.1 to 1.3 times ideal greedy on forbidden and the two windows; 4 times on Dyck; worse than random on counting.
+- On counting the twist's error depends on the revealed value (it ignores that zeros cluster), so the revision measures the twist
+  correcting itself. The signal has the same blind spot on global constraints as the cheaper estimates.
+- Conclusion: not a general order rule. Script `revision_check.py`.
+
+## 36ae. Decision: greedy for the sequential order (2026-11-17)
+
+- Agreed with the user: sequential decoding uses a well-implemented greedy rule with the chain proposal. The exact ideal-order results
+  (sections 36s, 36t, 36aa) are kept as understanding; further sequential planning is dropped. Planning effort goes to the parallel schedule.
+- Condition: an honest estimate of the per-position error that tracks ideal greedy. Not yet met (section 36ab).
+- Candidates under discussion: disagreement between first- and second-order chain twists; kernel pair cost; their sum; the collective
+  term for sum constraints; a monotone calibration of any score. Learning from twist revisions is ruled out as a general rule (section 36ad).
+- Best honest arms so far at 64 positions on the hidden chain, with the matched chain proposal (section 36ac): sum on counting 0.075,
+  lex on Dyck 0.189, lex on forbidden 0.206, lex on window 0.024, lex on two windows 0.048; ideal greedy is 0.078, 0.103, 0.096, 0.017, 0.032.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
