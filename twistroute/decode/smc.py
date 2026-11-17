@@ -44,7 +44,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                 resampler="multinomial", res_gen=None, return_trace=False, defensive=0.0, twist_power=1.0,
                 lookahead=0, lookahead_draws=1, lookahead_mean="arith", lookahead_shrink=1.0, mix_native=0.0,
                 twist_temp=1.0, guard="warn", schedule="fixed", path_stat=None, resample_power=1.0, twist=None,
-                proposal_twist=None):
+                proposal_twist=None, reference_twist=None):
     """Run `nrun` independent SMC runs of K particles each, batched as nrun * K rows.
 
     den          denoiser with .mask_id and .logits(x) -> (B, N, V) log-probs (models.mdlm_owt.MDLM interface)
@@ -73,6 +73,10 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
                  the constraint instead of the product law (see _propose). The weights use the proposal's exact
                  density, so Z_hat stays unbiased. Usually paired with twist= the same object. Not combined with
                  lookahead or twist_temp.
+    reference_twist  optional ChainTwist: the law of classes revealed together in one step, with no constraint, is the
+                 chain law's joint instead of the product of the model's marginals (one position: the marginal, as
+                 always). This redefines the parallel process that the weights converge to; with one token per
+                 step it changes nothing. Not combined with mix_native, twist_temp or lookahead.
     schedule     "fixed" (N / T positions per step, the default and TWISTER's) or "independent" (each masked
                  position reveals with probability 1 / (T - t), the MDLM reverse step; see reveal_indices).
                  The native kernel must use the same schedule for the result to target that process.
@@ -132,7 +136,9 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
         return torch.where(torch.isneginf(g), g, lookahead_shrink * g)
     if proposal_twist is not None and (lookahead > 0 or tau != 1.0):
         raise ValueError("proposal_twist is not combined with lookahead or twist_temp")
-    general = lookahead > 0 or mix_native > 0 or tau != 1.0 or twist is not None or proposal_twist is not None   # otherwise the TWISTER / tempered update below
+    if reference_twist is not None and (lookahead > 0 or tau != 1.0 or mix_native > 0):
+        raise ValueError("reference_twist is not combined with lookahead, twist_temp or mix_native")
+    general = lookahead > 0 or mix_native > 0 or tau != 1.0 or twist is not None or proposal_twist is not None or reference_twist is not None   # otherwise the TWISTER / tempered update below
     dev = classes.onehot.device
     policy = not isinstance(schedule, str)
     if policy and not hasattr(schedule, "reveal"):
@@ -170,7 +176,7 @@ def twisted_smc(den, classes, route, N, T, nrun, K, gen=None, ess_min=0.5, retur
 
     for t in range(T):
         last = t == T - 1
-        x2, y2, z_old, log_ratio = _propose(den, classes, route, s, t, T, schedule, gen, mix_native, tau, proposal_twist)
+        x2, y2, z_old, log_ratio = _propose(den, classes, route, s, t, T, schedule, gen, mix_native, tau, proposal_twist, reference_twist)
         if pstat is not None:                   # before the denoiser moves on to x2: it still holds its answer at s.x
             pstat = pstat + path_stat(s.x, x2)
         lp2, lw2, eta2, psi2 = _successor_twist(den, classes, route, x2, y2, z_old, last, beta, tau)

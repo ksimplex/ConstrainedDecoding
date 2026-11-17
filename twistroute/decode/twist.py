@@ -70,7 +70,7 @@ class _Particles:
             self.psi = self.psi[flat]
 
 
-def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.0, chain=None):
+def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.0, chain=None, reference=None):
     """One proposal step from state s: the step-exact proposal, or with probability mix_native per particle the
     native kernel (same reveal set, tokens from the unrestricted predictions). Returns (x2, y2, z_old, log_ratio)
     with z_old = Z(x2; x) and log_ratio = log(M(x2|x) / kappa(x2|x)), which is z_old - Z(x; x) for the
@@ -83,7 +83,12 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
     chain (a decode.chain_twist.ChainTwist): the classes at the reveal set are drawn from the chain law given the
     constraint instead of the product law, M(x'|x) = P_chain(classes at r, C) / P_chain(C) times the model's law of
     the token within its class. Then log(M / kappa) = log P_chain(classes at r, C) - log P_chain(C) - the sum over r
-    of the model's class log-probabilities. The reveal set is chosen without seeing the draw, as for the product."""
+    of the model's class log-probabilities. The reveal set is chosen without seeing the draw, as for the product.
+
+    reference (a ChainTwist): kappa, the law of the revealed classes with no constraint, is the chain law's joint for
+    a particle that reveals two or more positions in this step (the model's marginal for one position, as always).
+    This changes what the parallel process is, and so what the weights converge to; it leaves one token per step
+    untouched. The returned log_ratio is then log(M / kappa) for that kappa."""
     P = s.x.shape[0]
     view = lambda: RevealState(s.x, s.ycls, s.lw, den.mask_id, classes, route)   # for policy schedules only
     log_chain_c = None
@@ -119,6 +124,14 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
         cr = torch.where(rvalid, cr, torch.gather(s.ycls, 1, r))
     x2 = s.x.clone(); x2.scatter_(1, r, tok)
     y2 = s.ycls.clone(); y2.scatter_(1, r, cr)
+    shift = None
+    if reference is not None:                                              # log kappa_product - log kappa_reference
+        if mix_native > 0 or tau != 1.0:
+            raise ValueError("the chain reference is not combined with mix_native or twist_temp")
+        keep = torch.ones_like(r, dtype=torch.bool) if rvalid is None else rvalid
+        nat = torch.gather(s.lw, 1, r[..., None].expand(-1, -1, s.lw.shape[-1])).gather(2, cr[..., None]).squeeze(-1).double()
+        nat = torch.where(keep, nat, torch.zeros_like(nat)).sum(-1)
+        shift = nat - reference.log_reference(clamp_revealed(s.lw, s.x, s.ycls, den.mask_id), s.lw, r, cr, rvalid)
     if tau != 1.0:
         z_old = route.logZ(clamp_revealed(lwq, x2, y2, den.mask_id))        # Z_q(x'; x)
         return x2, y2, z_old, z_old - route.logZ(lwc)
@@ -129,9 +142,11 @@ def _propose(den, classes, route, s, t, T, schedule, gen, mix_native=0.0, tau=1.
         native = torch.where(keep, native, torch.zeros_like(native)).sum(-1)   # the model's class log-probabilities at r
         step = torch.nan_to_num(chain.log_clamped(lwc, r, cr, rvalid) - log_chain_c - native, nan=NEG_INF, neginf=NEG_INF)
         if mix_native <= 0:
-            return x2, y2, z_old, step
+            return x2, y2, z_old, step if shift is None else step + shift
     elif mix_native <= 0:
-        return x2, y2, z_old, None
+        if shift is None:
+            return x2, y2, z_old, None
+        return x2, y2, z_old, torch.nan_to_num(z_old.double() - s.eta.double(), nan=NEG_INF, neginf=NEG_INF) + shift
     else:
         step = torch.nan_to_num(z_old - s.eta, nan=NEG_INF, neginf=NEG_INF)
     log_ratio = torch.logaddexp(math.log1p(-mix_native) + step, torch.full_like(step, math.log(mix_native)))

@@ -174,6 +174,29 @@ class ChainTwist:
             y[:, i + 1] = draw(Qc[rows, i, y[:, i]] * bm[rows, i + 1, :, q]); q = move(q, y[:, i + 1], i + 1)
         return y, logc
 
+    def free(self):
+        """The same chain law with no constraint (an automaton that accepts everything): `free().log_clamped` is then
+        the chain law's joint log-probability of classes at a set of positions."""
+        if getattr(self, "_free", None) is None:
+            from types import SimpleNamespace
+            d = SimpleNamespace(edges=[(0, a, 0) for a in range(self.A)], n=1, q0=0, A=self.A, F={0})
+            self._free = ChainTwist(d, self.K, eps=self.eps, device=self.K.device)
+        return self._free
+
+    def log_reference(self, lwc, lw, r, cr, rvalid=None):
+        """log of the reference law of the classes cr revealed at positions r in one step: the model's own class
+        probability when a particle reveals one position, the chain law's joint when it reveals two or more.
+        lw (B, N, A) are the model's class log-probabilities (unclamped). Returns (B,) float64."""
+        keep = torch.ones_like(r, dtype=torch.bool) if rvalid is None else rvalid
+        native = torch.gather(lw, 1, r[..., None].expand(-1, -1, lw.shape[-1])).gather(2, cr[..., None]).squeeze(-1).double()
+        native = torch.where(keep, native, torch.zeros_like(native)).sum(-1)
+        many = keep.sum(-1) > 1
+        if not bool(many.any()):
+            return native
+        out = native.clone()
+        out[many] = self.free().log_clamped(lwc[many], r[many], cr[many], keep[many])
+        return out
+
     def log_clamped(self, lwc, r, cr, rvalid=None):
         """log P_chain(classes cr at positions r, and C): (B,) float64. r, cr (B, n) long; rvalid (B, n) bool marks
         the columns that count (None = all). The chain law itself is unchanged: its transitions come from lwc."""

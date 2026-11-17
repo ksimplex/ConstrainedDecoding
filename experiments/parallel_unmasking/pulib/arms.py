@@ -264,6 +264,24 @@ def chainprop(c):
             for sn, mk in scheds for pn, kw in samplers for rn, smc in res]
 
 
+@arm_set("chainref")
+def chainref(c):
+    """What should the weights take as the model's law of positions revealed together? Four parallel schedules (`lex` at
+    budgets 0.03, 0.3 and 1, and four uniformly random positions per step) by four samplers: product proposal and
+    chain proposal, each with the product of marginals and with the chain law as the reference for a co-revealed
+    set. The chain twist is the intermediate twist wherever the chain law is used. Scored against the exact p(C)
+    and the exact constrained law. Without resampling and with defensive resampling. Automaton constraints only."""
+    N, n, kg, tw = c.N, c.nrun, c.kernel("graded"), c.chain_twist()
+    scheds = (("lex B=0.03 +pull", lambda: c.policy(kg, 0.0, "lex", B=0.03, pull_forced=8), N), ("lex B=0.3 +pull", lambda: c.policy(kg, 0.0, "lex", B=0.3, pull_forced=8), N),
+              ("lex B=1 +pull", lambda: c.policy(kg, 0.0, "lex", B=1.0, pull_forced=8), N), ("fixed 4/step", lambda: "fixed", max(1, N // 4)))
+    samplers = (("product proposal, product reference", dict()), ("product proposal, chain reference", dict(reference_twist=tw)),
+                ("chain proposal, product reference", dict(twist=tw, proposal_twist=tw)),
+                ("chain proposal, chain reference", dict(twist=tw, proposal_twist=tw, reference_twist=tw)))
+    res = (("off", dict(ess_min=0.0)), ("defensive", dict()))
+    return [Arm(f"{sn} | {pn} | resampling {rn}", mk(), T, n, smc=dict(smc, **kw))
+            for sn, mk, T in scheds for pn, kw in samplers for rn, smc in res]
+
+
 AXIS_ORDERS = ("cheapest", "estimate", "confident", "lex", "sum", "separator", "random")
 AXIS_BUDGETS = (0.03, 0.3)
 
