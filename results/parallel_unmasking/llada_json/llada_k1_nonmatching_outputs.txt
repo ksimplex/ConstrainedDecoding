@@ -1,0 +1,81 @@
+== Breakdown of returned outputs, all 12 datapoints (64 per datapoint per arm)
+random | product                       n 768: same fields, some values differ 535 (0.70); equal 105 (0.14); different fields present 74 (0.10); does not parse 43 (0.06); differs only in case or spacing 11 (0.01); among non-equal, mean share of leaf values matching the reference 0.26
+random | matched chain, counted table  n 768: same fields, some values differ 565 (0.74); equal 84 (0.11); different fields present 68 (0.09); does not parse 48 (0.06); differs only in case or spacing 3 (0.00); among non-equal, mean share of leaf values matching the reference 0.27
+sum | product                          n 768: equal 414 (0.54); same fields, some values differ 274 (0.36); different fields present 68 (0.09); differs only in case or spacing 8 (0.01); does not parse 4 (0.01); among non-equal, mean share of leaf values matching the reference 0.42
+sum | matched chain, counted table     n 768: equal 443 (0.58); same fields, some values differ 250 (0.33); different fields present 67 (0.09); differs only in case or spacing 7 (0.01); does not parse 1 (0.00); among non-equal, mean share of leaf values matching the reference 0.42
+
+== 12 random non-equal outputs, sum | product
+[dp 46; same fields, some values differ; 0.75]
+   out: '{"chest" : 38.0, "waist" : 32.70, "hips" : 40.0, "inseam" : 30.0}'
+   ref: '{"chest": 38, "waist": 32, "hips": 40, "inseam": 30}'
+[dp 0; same fields, some values differ; 0.67]
+   out: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "B5g-1300"}'
+   ref: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300 Mbps"}'
+[dp 17; different fields present; 0.0]
+   out: '{"data": "1, null, null, 4, 5, 3, null, 8]"}'
+   ref: '{"data": [1, 2, 3, 4, 5]}'
+[dp 40; same fields, some values differ; 0.75]
+   out: '{ "wireLength": 211.1206162500, "insulationType": "PVC", "voltageRating": 600, "manufacturer": "CopperWire Inc." }'
+   ref: '{"wireLength": 200, "insulationType": "PVC", "voltageRating": 600, "manufacturer": "CopperWire Inc."}'
+[dp 10; same fields, some values differ; 0.33]
+   out: '{ "capitalGains":9112500000000, "interestIncome":9173750000000, "totalReturn":8.5}'
+   ref: '{"capitalGains": 1250000.0, "interestIncome": 375000.0, "totalReturn": 8.5}'
+[dp 7; different fields present; 0.33]
+   out: '{"seatNumber": "12A", "serviceType": "vegetarian gluten-free"}'
+   ref: '{"seatNumber": "12A", "serviceType": "vegetarian meal", "specialInstructions": "gluten-free"}'
+[dp 10; same fields, some values differ; 0.67]
+   out: '{ "capitalGains": 1250000.0000, "interestIncome": 375500.0000, "totalReturn": 8.50}'
+   ref: '{"capitalGains": 1250000.0, "interestIncome": 375000.0, "totalReturn": 8.5}'
+[dp 0; same fields, some values differ; 0.33]
+   out: '{ "ssid": "OfficeNetSecure", "securityProtocol": "wpa2-enterprise", "bandwidth": "ht intentionally=1300:vdht:band=5z"}'
+   ref: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300 Mbps"}'
+[dp 40; same fields, some values differ; 0.75]
+   out: '{ "wireLength": 62104.2508, "insulationType": "PVC", "voltageRating": 600, "manufacturer": "CopperWire Inc."}'
+   ref: '{"wireLength": 200, "insulationType": "PVC", "voltageRating": 600, "manufacturer": "CopperWire Inc."}'
+[dp 46; same fields, some values differ; 0.75]
+   out: '{"chest" : 118.00 , "waist" : 32.00 , "hips" : 40.00 , "inseam" : 30}'
+   ref: '{"chest": 38, "waist": 32, "hips": 40, "inseam": 30}'
+[dp 56; same fields, some values differ; 0.75]
+   out: '{"airlineCode": "SKW", "companyName": "Skyward Airlines", "allianceMembership": "Member of GSA", "fleetSize": 150}'
+   ref: '{"airlineCode": "SKW", "companyName": "Skyward Airlines", "allianceMembership": "Global Sky Alliance", "fleetSize": 150}'
+[dp 0; same fields, some values differ; 0.67]
+   out: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300诱因"}'
+   ref: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300 Mbps"}'
+
+== 12 random non-equal outputs, random | product
+[dp 0; same fields, some values differ; 0.33]
+   out: '{ "ssid": "Wi_V-脑残叶，郭德承", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300Mbps 5GHZ" }'
+   ref: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300 Mbps"}'
+[dp 24; different fields present; 0.4]
+   out: '{"storage": "/dev/sda(s) "  ,"extra": "{\\n ","fstype": "ext4" , "options": "nrw,noatime,", "readonly": false}'
+   ref: '{"storage": "/dev/sda1", "fstype": "ext4", "options": "rw,noatime", "readonly": false}'
+[dp 68; same fields, some values differ; 0.67]
+   out: '{"baseCurrency":" singularJSON对象：{”。“baseCurrency”: “JPY", "targetCurrency": "AUD", "exchangeRate": 0.0123}'
+   ref: '{"baseCurrency": "JPY", "targetCurrency": "AUD", "exchangeRate": 0.0123}'
+[dp 7; different fields present; 0.0]
+   out: '{ "seatNumber": "12A,\\n", "serviceType": "vegetarian meal\\ndef{  \\"specialInstructions\\" : \\"gluten-free\\"\\n" }'
+   ref: '{"seatNumber": "12A", "serviceType": "vegetarian meal", "specialInstructions": "gluten-free"}'
+[dp 56; same fields, some values differ; 0.5]
+   out: '{"airlineCode": "\xa0{\xa0,\xa0\'airlineCode\xa0:\xa0SKW", "companyName": "Skyward Airlines", "allianceMembership": "Global Sky Alliance `,", "fleetSize": 150 }'
+   ref: '{"airlineCode": "SKW", "companyName": "Skyward Airlines", "allianceMembership": "Global Sky Alliance", "fleetSize": 150}'
+[dp 68; same fields, some values differ; 0.33]
+   out: '{ "baseCurrency": "Japanese Yen: JPY", "targetCurrency": "Australian Dollar: AUD", "exchangeRate": 0.01230}'
+   ref: '{"baseCurrency": "JPY", "targetCurrency": "AUD", "exchangeRate": 0.0123}'
+[dp 0; same fields, some values differ; 0.0]
+   out: '{ "ssid":"{{\\"ssid\': \'OfficeNetSecure\', }   ","securityProtocol": "WPA2-Enterprise  " ,"bandwidth": "1300Mbps\\"  } "}'
+   ref: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300 Mbps"}'
+[dp 40; same fields, some values differ; 0.25]
+   out: '{ "wireLength": 200.000, "insulationType": "PVCPVC","voltageRating": 60000, "manufacturer": "CopperWire iorepose Sadd}" }'
+   ref: '{"wireLength": 200, "insulationType": "PVC", "voltageRating": 600, "manufacturer": "CopperWire Inc."}'
+[dp 0; same fields, some values differ; 0.67]
+   out: '{ "ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": " 1300 Mbps on the 5 GHz band "}'
+   ref: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300 Mbps"}'
+[dp 68; same fields, some values differ; 0.33]
+   out: '{"baseCurrency":"basecurrency\',\'basecurrency\': \'JPY\',}  ","targetCurrency":" \'AUD\',  ","exchangeRate": 0.0123000}'
+   ref: '{"baseCurrency": "JPY", "targetCurrency": "AUD", "exchangeRate": 0.0123}'
+[dp 0; same fields, some values differ; 0.0]
+   out: '{ "ssid": "{\\n  \'OfficeNetSecure\',} ", "securityProtocol": "WPA2-Enterprise\\n", "bandwidth": "0-1300 Mbps\\\\n"}'
+   ref: '{"ssid": "OfficeNetSecure", "securityProtocol": "WPA2-Enterprise", "bandwidth": "1300 Mbps"}'
+[dp 46; same fields, some values differ; 0.75]
+   out: '{"chest": 38, "waist": 3239.853265803, "hips": 40, "inseam": 30}'
+   ref: '{"chest": 38, "waist": 32, "hips": 40, "inseam": 30}'
