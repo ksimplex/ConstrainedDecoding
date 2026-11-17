@@ -3036,6 +3036,172 @@ Spread = relative standard deviation of Z_hat over runs (lower is better); cells
 
 **Bug fixed on the way.** `fit_pair_kernel` on a model without an exact sampler mapped class sequences to classes twice (section 36ak).
 
+## 36ao. Matched chain proposal at 256 positions and on four other chains at 64 (cluster job `a0e9bc3c`, CPU, 2026-11-17) [measured; 100 runs of 16 particles at 256, 200 at 64]
+
+Metric: standard deviation of log Z_hat across runs (lower is better); the root-mean-square of log(Z_hat / p(C)) from the per-run file gives the same counts to within one cell
+(`results/parallel_unmasking/matched_arms_N256_other_rms.json`). Arms as in section 36ah: orders `sum` and `lex` one token per step, and `sum` with budget 0.03 and pull-in (parallel);
+proposals product, chain (ratio formula), matched chain (5 sweeps).
+
+**256 positions** (`matched_arms_N256.json`).
+
+| model | constraint | sum sequential: product / chain / matched | sum B=0.03 +pull: product / chain / matched | parallel steps | parallel Z_hat / p(C), matched |
+|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.112 / 0.246 / 0.093 | 0.169 / 0.225 / 0.119 | 14 | 1.01 ± 0.01 |
+| hidden_0.85 | dyck | 0.405 / 0.224 / 0.183 | 0.431 / 0.279 / 0.202 | 13 | 0.98 ± 0.02 |
+| hidden_0.85 | forbidden | 1.487 / 0.601 / 0.700 | 1.210 / 0.641 / 0.732 | 15 | 0.84 ± 0.06 |
+| hidden_0.85 | window | 0.315 / 0.180 / 0.098 | 0.333 / 0.220 / 0.094 | 14 | 0.98 ± 0.01 |
+| hidden_0.85 | two_window | 0.402 / 0.195 / 0.131 | 0.336 / 0.210 / 0.136 | 14 | 0.99 ± 0.01 |
+| latent_0.6_w0.5 | counting | 2.989 / 1.538 / 1.857 | 2.947 / 1.502 / 1.817 | 84 | 0.63 ± 0.12 |
+| latent_0.6_w0.5 | dyck | 1.978 / 1.275 / 1.480 | 2.259 / 0.790 / 1.060 | 85 | 1.01 ± 0.12 |
+| latent_0.6_w0.5 | forbidden | 0.673 / 0.774 / 0.714 | 1.068 / 0.885 / 0.796 | 175 | 0.86 ± 0.08 |
+| latent_0.6_w0.5 | window | 0.831 / 0.519 / 0.504 | 0.839 / 0.601 / 0.528 | 76 | 0.95 ± 0.06 |
+| latent_0.6_w0.5 | two_window | 0.450 / 0.278 / 0.210 | 0.444 / 0.250 / 0.234 | 70 | 0.99 ± 0.02 |
+
+- Matched chain against product: lower or equal in 28 of 30 cells (all three orders). Against the unmatched chain: 21 of 30. Best of the three: 20 of 30.
+- Exception: on the stress oracle with counting and Dyck the unmatched chain is lower than the matched chain under all three orders. These cells have spreads of 1 to 3 nats from 100 runs,
+  so each comparison is noisy, but the direction is the same in six cells. Both chain proposals stay well below the product proposal there.
+- Budgeted parallel on the hidden chain: 13 to 15 steps instead of 256, spread close to sequential on four constraints. On forbidden the estimate is biased low (last column): co-reveal bias.
+- Wall time on these oracles is dominated by the chain twist where the oracle is cheap (window, hidden chain, sequential: 198 s product, 666 s matched for 100 runs); on LLaDA the twist is 4 to 10% (section 36ar).
+
+**64 positions, four other chains** (`matched_arms_N64_other.json`).
+
+| model | constraint | sum sequential: product / chain / matched | sum B=0.03 +pull: product / chain / matched | parallel steps | parallel Z_hat / p(C), matched |
+|---|---|---|---|---|---|
+| hidden_0.85_n0.1 | counting | 0.285 / 0.250 / 0.094 | 0.349 / 0.270 / 0.129 | 9 | 1.01 ± 0.01 |
+| hidden_0.85_n0.1 | dyck | 0.374 / 0.206 / 0.142 | 0.501 / 0.225 / 0.163 | 9 | 0.96 ± 0.01 |
+| hidden_0.85_n0.1 | forbidden | 0.702 / 0.308 / 0.297 | 0.706 / 0.306 / 0.286 | 9 | 0.91 ± 0.02 |
+| hidden_0.85_n0.1 | window | 0.172 / 0.226 / 0.054 | 0.165 / 0.228 / 0.086 | 9 | 1.00 ± 0.01 |
+| hidden_0.85_n0.1 | two_window | 0.183 / 0.242 / 0.081 | 0.162 / 0.260 / 0.083 | 10 | 0.99 ± 0.01 |
+| hidden_0.85_n0.5 | counting | 0.062 / 0.065 / 0.067 | 0.103 / 0.091 / 0.087 | 11 | 1.01 ± 0.01 |
+| hidden_0.85_n0.5 | dyck | 0.141 / 0.107 / 0.099 | 0.168 / 0.120 / 0.113 | 10 | 0.98 ± 0.01 |
+| hidden_0.85_n0.5 | forbidden | 0.233 / 0.104 / 0.108 | 0.256 / 0.145 / 0.150 | 14 | 0.94 ± 0.01 |
+| hidden_0.85_n0.5 | window | 0.049 / 0.043 / 0.037 | 0.093 / 0.084 / 0.085 | 11 | 0.99 ± 0.01 |
+| hidden_0.85_n0.5 | two_window | 0.052 / 0.062 / 0.049 | 0.056 / 0.061 / 0.056 | 11 | 0.99 ± 0.00 |
+| segments_0.85 | counting | 0.188 / 0.227 / 0.051 | 0.350 / 0.351 / 0.121 | 5 | 1.01 ± 0.01 |
+| segments_0.85 | dyck | 0.336 / 0.284 / 0.133 | 0.509 / 0.373 / 0.264 | 5 | 0.99 ± 0.02 |
+| segments_0.85 | forbidden | 1.003 / 0.330 / 0.309 | 1.594 / 0.292 / 0.280 | 5 | 1.01 ± 0.02 |
+| segments_0.85 | window | 0.214 / 0.256 / 0.091 | 0.210 / 0.253 / 0.129 | 5 | 1.00 ± 0.01 |
+| segments_0.85 | two_window | 0.132 / 0.300 / 0.185 | 0.227 / 0.395 / 0.231 | 5 | 1.00 ± 0.02 |
+| chain_0.6 | counting | 0.092 / 0.126 / 0.001 | 0.216 / 0.117 / 0.022 | 5 | 1.01 ± 0.00 |
+| chain_0.6 | dyck | 0.313 / 0.087 / 0.002 | 0.373 / 0.098 / 0.031 | 5 | 0.98 ± 0.00 |
+| chain_0.6 | forbidden | 0.856 / 0.102 / 0.002 | 1.025 / 0.087 / 0.021 | 5 | 0.90 ± 0.00 |
+| chain_0.6 | window | 0.138 / 0.108 / 0.001 | 0.138 / 0.103 / 0.023 | 4 | 0.99 ± 0.00 |
+| chain_0.6 | two_window | 0.115 / 0.108 / 0.002 | 0.117 / 0.105 / 0.025 | 5 | 1.00 ± 0.00 |
+
+- Matched chain: best of three in 51 of 60 cells, lower or equal to product in 56, to the unmatched chain in 54.
+- Markov chain (`chain_0.6`): spread 0.001 to 0.003 under the sequential orders, as the exactness result predicts (section 36ac).
+- Exception: `segments_0.85` with two windows, where the product proposal is lowest.
+
+Figure: [matched_arms_N256_other_heatmap.png]({{artifact:e6a9475b-9f9a-4b1a-8c74-19f2d758d80e}}). Traces by order at 256 positions are in `results/parallel_unmasking/order_study/matched256/` (not yet analysed).
+
+## 36ap. Forced positions: one at a time or in one step (2026-11-17) [derivation; exact check at 8 positions, 40,000 samples per arm]
+
+**Question** (user): in the sequential setting, can all forced positions be revealed in one step before anything else?
+
+**Answer.** The tokens are determined either way, and free positions revealed afterwards see the same context. With one particle the output law is unchanged. With several particles the
+weights differ: revealing a forced block F one at a time multiplies the weight by the model's joint probability of the block, call by call; revealing it in one step uses the product of the
+single-position probabilities p_j from one call. From the weight formula, (one-at-a-time weight) / (one-step weight) = p(x_F | state) / prod_j p_j.
+Both quantities lie in [1 - eps, min_j p_j] with eps = sum_j (1 - p_j) (union bound; Weierstrass product inequality), so |log ratio| <= -log(1 - eps). The union bound assumes the
+model's conditionals come from one joint law, which holds for the oracles and only approximately for a trained denoiser.
+
+**Implementation.** `CouplingPolicy(forced_batch=tol)`: when a particle has forced positions its step reveals forced positions only, in increasing 1 - p_j while -log(1 - eps) <= tol, at
+least one. Off by default. Tests: `tests/test_forced_batch.py`.
+
+**Check** (`forced_batch_check.py`; constraint content* end+ over three symbols; free positions in random order). `sticky_end_<delta>` is a chain that leaves the end symbol with probability
+delta per step, the shape of padding for a language model; on the project's oracles the end symbol is not sticky.
+
+| model | K | arm | mean Z_hat / p(C) (1 = exact) | KL(output law, target) (lower is better) | steps |
+|---|---|---|---|---|---|
+| hidden_0.85 | 1 | one at a time | 0.9992 ± 0.0036 | 0.05097 ± 0.00154 | 8.00 |
+| hidden_0.85 | 1 | all forced in one step | 0.9271 ± 0.0035 | 0.05010 ± 0.00152 | 6.70 |
+| hidden_0.85 | 1 | tolerance 0.01 | 0.9992 ± 0.0036 | 0.05097 ± 0.00154 | 8.00 |
+| hidden_0.85 | 1 | tolerance 0.1 | 0.9992 ± 0.0036 | 0.05097 ± 0.00154 | 8.00 |
+| hidden_0.85 | 4 | one at a time | 1.0006 ± 0.0018 | 0.00911 ± 0.00076 | 8.00 |
+| hidden_0.85 | 4 | all forced in one step | 0.9300 ± 0.0018 | 0.00566 ± 0.00064 | 6.73 |
+| hidden_0.85 | 4 | tolerance 0.01 | 1.0006 ± 0.0018 | 0.00912 ± 0.00076 | 8.00 |
+| hidden_0.85 | 4 | tolerance 0.1 | 1.0006 ± 0.0018 | 0.00912 ± 0.00076 | 8.00 |
+| chain_0.85 | 1 | one at a time | 0.9936 ± 0.0083 | 0.05745 ± 0.00150 | 8.00 |
+| chain_0.85 | 1 | all forced in one step | 0.9506 ± 0.0089 | 0.05734 ± 0.00150 | 5.94 |
+| chain_0.85 | 1 | tolerance 0.01 | 0.9936 ± 0.0083 | 0.05745 ± 0.00150 | 8.00 |
+| chain_0.85 | 1 | tolerance 0.1 | 0.9773 ± 0.0085 | 0.05745 ± 0.00149 | 6.35 |
+| chain_0.85 | 4 | one at a time | 0.9902 ± 0.0049 | 0.02735 ± 0.00113 | 8.00 |
+| chain_0.85 | 4 | all forced in one step | 0.9460 ± 0.0049 | 0.02607 ± 0.00109 | 5.98 |
+| chain_0.85 | 4 | tolerance 0.01 | 0.9902 ± 0.0049 | 0.02735 ± 0.00113 | 8.00 |
+| chain_0.85 | 4 | tolerance 0.1 | 0.9733 ± 0.0049 | 0.02771 ± 0.00113 | 6.38 |
+| latent_0.6_w0.5 | 1 | one at a time | 0.9985 ± 0.0022 | 0.01335 ± 0.00088 | 8.00 |
+| latent_0.6_w0.5 | 1 | all forced in one step | 0.9079 ± 0.0019 | 0.01251 ± 0.00087 | 7.23 |
+| latent_0.6_w0.5 | 1 | tolerance 0.01 | 0.9985 ± 0.0022 | 0.01335 ± 0.00088 | 8.00 |
+| latent_0.6_w0.5 | 1 | tolerance 0.1 | 0.9985 ± 0.0022 | 0.01335 ± 0.00088 | 8.00 |
+| latent_0.6_w0.5 | 4 | one at a time | 1.0011 ± 0.0011 | 0.00047 ± 0.00042 | 8.00 |
+| latent_0.6_w0.5 | 4 | all forced in one step | 0.9088 ± 0.0010 | 0.00390 ± 0.00060 | 7.24 |
+| latent_0.6_w0.5 | 4 | tolerance 0.01 | 1.0011 ± 0.0011 | 0.00047 ± 0.00042 | 8.00 |
+| latent_0.6_w0.5 | 4 | tolerance 0.1 | 1.0011 ± 0.0011 | 0.00047 ± 0.00042 | 8.00 |
+| sticky_end_0.001 | 1 | one at a time | 1.0073 ± 0.0065 | 0.03480 ± 0.00126 | 8.00 |
+| sticky_end_0.001 | 1 | all forced in one step | 1.0072 ± 0.0065 | 0.03474 ± 0.00127 | 7.05 |
+| sticky_end_0.001 | 1 | tolerance 0.01 | 1.0072 ± 0.0065 | 0.03474 ± 0.00127 | 7.05 |
+| sticky_end_0.001 | 1 | tolerance 0.1 | 1.0072 ± 0.0065 | 0.03474 ± 0.00127 | 7.05 |
+| sticky_end_0.001 | 4 | one at a time | 0.9992 ± 0.0029 | 0.01008 ± 0.00076 | 8.00 |
+| sticky_end_0.001 | 4 | all forced in one step | 1.0010 ± 0.0035 | 0.00998 ± 0.00076 | 7.02 |
+| sticky_end_0.001 | 4 | tolerance 0.01 | 1.0010 ± 0.0035 | 0.00998 ± 0.00076 | 7.02 |
+| sticky_end_0.001 | 4 | tolerance 0.1 | 1.0010 ± 0.0035 | 0.00998 ± 0.00076 | 7.02 |
+| sticky_end_0.02 | 1 | one at a time | 1.0014 ± 0.0055 | 0.03321 ± 0.00125 | 8.00 |
+| sticky_end_0.02 | 1 | all forced in one step | 0.9959 ± 0.0054 | 0.03303 ± 0.00125 | 7.11 |
+| sticky_end_0.02 | 1 | tolerance 0.01 | 1.0000 ± 0.0055 | 0.03420 ± 0.00126 | 7.48 |
+| sticky_end_0.02 | 1 | tolerance 0.1 | 0.9959 ± 0.0054 | 0.03303 ± 0.00125 | 7.11 |
+| sticky_end_0.02 | 4 | one at a time | 0.9984 ± 0.0026 | 0.00906 ± 0.00073 | 8.00 |
+| sticky_end_0.02 | 4 | all forced in one step | 0.9938 ± 0.0028 | 0.00901 ± 0.00074 | 7.09 |
+| sticky_end_0.02 | 4 | tolerance 0.01 | 0.9965 ± 0.0026 | 0.00929 ± 0.00075 | 7.48 |
+| sticky_end_0.02 | 4 | tolerance 0.1 | 0.9938 ± 0.0028 | 0.00901 ± 0.00074 | 7.09 |
+
+- One particle: the output-law KL is the same within its standard error in all five models, as derived.
+- Revealing all forced positions regardless: the estimate of p(C) is low by 5 to 9% where the end symbol is not sticky; within noise where it is.
+- Four particles, all forced regardless: the output-law KL moves in both directions (lower on the hidden chain, higher on the stress oracle), so it is not safe unconditionally.
+- The tolerance rule refuses to batch where the model is unsure and batches where it is sure; the estimate stays inside exp(± tol) in every case.
+
+**Decision (user, 2026-11-17).** Keep it off for the sequential runs: forced positions first, one at a time. Revisit for the parallel schedule, where forced positions can be folded into a larger reveal set.
+
+## 36aq. Text benchmarks: what prior work reports, the function-calling benchmark, and the scope decision (2026-11-17) [papers read; data counted; constraints compiled on a sample; no model runs on BFCL yet]
+
+**What the two papers report.**
+
+- Dang & Ermon (Table 1): task accuracy against the unconstrained model. The gain tracks how often the unconstrained model already satisfies the constraint (CS). LLaDA-8B, greedy:
+  xLAM JSON CS 90.2, 67.8 -> 69.0; BFCL live JSON CS 89.5, 59.6 -> 65.6; xLAM Python CS 77.3, 60.1 -> 71.4; BFCL live Python CS 74.5, 50.3 -> 64.0; Sudoku CS 20.7, 19.8 -> 79.6;
+  Spider CS 73.5, 53.2 -> 53.6; GSM-Symbolic CS 81.5, 49.6 -> 49.2. Their order for LLaDA is the highest top-token probability under the constrained marginals; the ablation (Table 2) attributes
+  part of the gain to that order (LLaDA, xLAM Python: 58.7 with the model's own confidence, 71.4 with constrained marginals). Table 4: constrained LLaDA 83.8 / 64.0 on BFCL non-live / live
+  (Python), against unconstrained Llama-3.1-8B 84.0 / 70.8 and Qwen3-8B 88.6 / 80.1.
+- TWISTER (Table 1, JSON-Mode-Eval): no unconstrained baseline; all four constrained methods 100% parse-valid and 98 to 99% schema-valid; on LLaDA-8B-Instruct 18 s and 21 s for the two local
+  methods, 29 s and 37 s for TWISTER with 1 and 4 particles. Its claim is total variation distance to the rejection-sampled law on small token-class regular expressions.
+- Neither paper shows that targeting the exact law changes task accuracy.
+
+**Unconstrained LLaDA on JSON-Mode-Eval** (`llada_pilot_check.py`; 112 samples over 14 datapoints, temperature 1, uniformly random order): full-matches the schema's regular expression 0
+(pilot stage of job `9b0801fb`); parses as written 10; parses after keeping the outermost braces 90; validates against the schema 71; equals the reference object 53.
+The model usually has the content and fails on the surface (fences, comments, single quotes, unquoted keys).
+
+**Function calling (BFCL), Dang & Ermon's setting.** LLaDA-8B-Instruct, 256 positions, 128 steps, blocks of 32, lowest-confidence remasking, temperature 0 and 1, BFCL default system prompt, official scorer.
+BFCL v3 single-turn splits reproduce their counts: 1,000 non-live (simple 400, multiple 200, parallel 200, parallel-multiple 200) and 1,351 live (258, 1,053, 16, 24).
+Reference call length with the LLaDA tokenizer, median tokens (Python / JSON format): simple 23 / 37, multiple 22 / 36, parallel 57 / 92, parallel-multiple 65 / 109, live simple 21 / 34, live multiple 24 / 36,
+live parallel 23 / 44, live parallel-multiple 36 / 63; so most of the 256 positions are padding. Parameter types: string 15,236, enumerated 4,171, integer 3,546, boolean 1,862, float 901, array 633, dict 114.
+
+**Our constraint** (`bfcl_constraints.py`; the paper does not specify theirs and its text has no code link): function name from the offered list; arguments in schema order, required ones mandatory;
+typed values with enumerations listed literally; one or more calls; one space after commas and colons. Untyped containers get one level of scalar content.
+Reference accepted by the pattern: 2316 of 2351 (Python), 2316 of 2351 (JSON); the remaining 35 are not yet classified.
+Token-level compile on a sample (`bfcl_compile.py`): states median 114 / 148 (max 794 / 753), classes median 228 / 198,
+reference accepted 31 of 32 and 31 of 32; 6 to 8 s per constraint at the median, up to 49 s. Scorer: the official checker from `bfcl-eval` (`bfcl_score.py`);
+our reference texts pass it for 2,341 of 2,351 in each format (the 10 failures not yet examined).
+
+**xLAM.** `Salesforce/xlam-function-calling-60k` (gated; file provided by the user): 60,000 records; flat parameter lists with Python-style type strings (30 distinct) and defaults, no required list.
+Arguments not marked optional are present in the reference call in 134,294 of 138,051 cases; reference arguments follow schema order in 97,964 of 100,011 calls. Rule for mandatory arguments still to be chosen.
+Dang & Ermon's 1,000-example subset is unspecified; ours will be drawn with a fixed seed.
+
+**Decisions (user, 2026-11-17).**
+
+- Function calling (BFCL, then xLAM) is the task benchmark, in both Python and JSON call formats, at the fixed length 256. JSON-Mode-Eval stays as the like-for-like comparison with TWISTER.
+- Text benchmarks are the comparability section, not the headline: masked diffusion is a poor fit for text with variable-length fields (section 36ar), and the method's claims live on
+  fixed-position families. Effort capped at the four-order comparison on JSON-Mode-Eval and one BFCL table of a few hundred examples per format, with Dang & Ermon's setting as the baseline arm
+  (temperature 1 first; temperature 0 needs a most-probable-path decode, parked).
+- Parked: the precomputed token-level probed table, the temperature-0 decode, forced batching in sequential runs.
+- Target venue: ICML.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
