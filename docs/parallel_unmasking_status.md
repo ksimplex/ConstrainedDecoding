@@ -2732,6 +2732,71 @@ reduces to left to right on the hidden chain). Motivation: with the chain propos
 No fitted second-order model, no learned estimator, no look-ahead calls: each costs more than the gap it could partly recover.
 Work on the sequential order stops here; effort goes to the parallel schedule.
 
+## 36ag. Relation to Discrete Copula Diffusion (read 2026-11-17) [paper read: sections 1 to 5; numerical check of the equivalence below]
+
+Liu, Broadrick, Niepert and Van den Broeck, *Discrete Copula Diffusion*, ICLR 2025, arXiv:2410.01949.
+
+**What the paper does.**
+
+- Problem: a denoiser predicts each masked position separately, so revealing many positions in one step ignores their dependence.
+  Their Proposition 1 bounds the loss from below by the total correlation of the true denoising distribution at each step.
+- Remedy: take the univariate marginals from the diffusion model and the dependence (the copula) from a second model, by
+  I-projecting the second model's joint onto the set of joints with the diffusion model's marginals. The result has the form
+  second-model joint times one factor per position (their Proposition 3), keeps the second model's copula (Proposition 4), and is
+  closer in KL to the target than the second model alone whenever the marginals differ (Proposition 2).
+- Instance: an autoregressive language model as the copula model, with an approximate projection; unconstrained and conditional
+  text generation in 8 to 32 times fewer steps. In the sections read (1 to 5) there is no hard constraint on the output and no
+  importance weighting; the experiments and appendices were not read.
+
+**Relation to this work.**
+
+- The marginal-matched chain law of section 36ac is this construction with a first-order Markov copula: it is the I-projection of the
+  chain with the pilot pair table onto the joints with the denoiser's marginals. For a chain the projection is exact and has a closed
+  form by row and column scaling of each adjacent pair. Checked numerically: the matched chain equals iterative proportional fitting
+  on the full joint to 3e-15 (5 positions, 3 classes).
+- So the idea of combining the denoiser's marginals with a separate dependence model is theirs and must be cited as such. Their
+  Proposition 2 also gives the matched law a guarantee against the raw table chain (not against our earlier ratio formula).
+- Their Proposition 1 is the same statement as our co-reveal bias: the error of revealing a set at once is the dependence among its members.
+- What is different here: (i) the copula model is chosen to be a chain over constraint classes so that the constraint can be
+  marginalised exactly through it (automaton forward-backward), which an autoregressive copula does not allow; (ii) it is used as the
+  twist and proposal of a sequential Monte Carlo sampler whose weights correct the remaining error, so the target stays the exact
+  constrained law; (iii) the dependence table is fitted from the denoiser's own samples, with no second model.
+
+**For the paper.** Cite it for the marginals-plus-copula construction and for the total-correlation bound. Claim only the constrained,
+class-level, weight-corrected use. The earlier copula remark of this document can be restated in exactly these terms.
+
+**Idea, untested.** A richer copula model for co-revealed sets (their autoregressive instance) could serve as a proposal in the
+parallel schedule; the weights would need its joint density, which an autoregressive model provides. Not planned.
+
+## 36ah. The matched chain law in the sampler: end measure at 64 positions (local, 2026-11-17) [sampled: 200 runs of 16 particles per arm, two oracles]
+
+Arm set `matched` (`pulib/arms.py`). RMS of log(Z_hat / p(C)), lower is better; default resampling. Cells: product | chain | matched chain.
+Figure: [matched_arms_N64_heatmap.png]({{artifact:ec965b89-b733-4e14-b459-1cfb1fb05fc0}}).
+
+| model | constraint | sum, one token per step | lex, one token per step | sum, budget 0.03 with pull-in | steps of the budgeted arm | Z_hat / p(C), budgeted matched |
+|---|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.101 \| 0.135 \| 0.094 | 0.161 \| 0.202 \| 0.114 | 0.182 \| 0.178 \| 0.120 | 11 | 1.02 +- 0.01 |
+| hidden_0.85 | dyck | 0.258 \| 0.170 \| 0.154 | 0.291 \| 0.181 \| 0.136 | 0.303 \| 0.190 \| 0.185 | 11 | 0.97 +- 0.01 |
+| hidden_0.85 | forbidden | 0.487 \| 0.208 \| 0.238 | 0.274 \| 0.195 \| 0.179 | 0.512 \| 0.240 \| 0.278 | 12 | 0.92 +- 0.02 |
+| hidden_0.85 | window | 0.089 \| 0.115 \| 0.068 | 0.080 \| 0.100 \| 0.053 | 0.121 \| 0.134 \| 0.083 | 11 | 1.00 +- 0.01 |
+| hidden_0.85 | two_window | 0.117 \| 0.148 \| 0.093 | 0.095 \| 0.123 \| 0.073 | 0.105 \| 0.148 \| 0.103 | 12 | 0.99 +- 0.01 |
+| latent_0.6_w0.5 | counting | 0.343 \| 0.143 \| 0.107 | 0.504 \| 0.205 \| 0.175 | 0.373 \| 0.138 \| 0.122 | 25 | 1.02 +- 0.01 |
+| latent_0.6_w0.5 | dyck | 0.267 \| 0.094 \| 0.084 | 0.218 \| 0.106 \| 0.086 | 0.272 \| 0.126 \| 0.131 | 24 | 1.06 +- 0.01 |
+| latent_0.6_w0.5 | forbidden | 0.346 \| 0.221 \| 0.235 | 0.262 \| 0.198 \| 0.153 | 0.376 \| 0.220 \| 0.261 | 49 | 0.95 +- 0.02 |
+| latent_0.6_w0.5 | window | 0.074 \| 0.112 \| 0.084 | 0.051 \| 0.098 \| 0.057 | 0.087 \| 0.129 \| 0.087 | 24 | 1.01 +- 0.01 |
+| latent_0.6_w0.5 | two_window | 0.074 \| 0.100 \| 0.063 | 0.057 \| 0.092 \| 0.049 | 0.073 \| 0.094 \| 0.072 | 24 | 1.00 +- 0.01 |
+
+- The matched chain is the best of the three proposals in 22 of 30 cells, at or below the product proposal in 27 and at or below
+  the ratio-formula chain in 25. The standard error of an entry is about 5% of its value, so several of the exceptions are ties.
+- It removes the chain proposal's weakness on the windows. The clearest exceptions are forbidden under `sum`, where the ratio-formula
+  chain is lower; on the stress oracle's single window the product proposal is level or slightly lower.
+- `lex` against `sum` with the matched chain, one token per step: `lex` lower in 7 of 10 cells, `sum` lower in 3 (counting on both oracles; Dyck on the stress oracle by 0.002).
+  This leans the other way from the per-particle traces of section 36af; the two rules remain close.
+- Budgeted parallel schedule with the matched chain: 1.03 to 1.56 times the sequential error, in 11 to 12 steps on the hidden chain
+  and 24 to 49 on the stress oracle instead of 64.
+- Wall time per arm (median, laptop, shared with other runs): product 49 s, chain 65 s, matched chain 123 s.
+  The 30 matching sweeps are the extra cost; fewer sweeps are untested in the sampler.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
