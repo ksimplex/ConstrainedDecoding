@@ -98,6 +98,14 @@ def main():
             def pr(sx):
                 qq = proposal(sx.lwc); h = -(qq * torch.log(qq.clamp_min(1e-300))).sum(-1)
                 return -h
+        elif oname in ("lex_near", "sum_near", "near"):    # stake first, then the position LEAST coupled to what is still masked
+            from twistroute.decode.policy import LEX_SCALE
+            def pr(s, oname=oname):
+                nb = CouplingPolicy.neighbour_sum(s, s.masked.double())
+                if oname == "near":
+                    return -nb
+                D = CouplingPolicy.distortion(s); D = torch.where(s.masked, D, torch.zeros_like(D))
+                return (LEX_SCALE if oname == "lex_near" else 1.0) * D - nb
         elif oname == "centred":
             pr = lambda s: -torch.nan_to_num(influence(den, s.st.x, s.mu, k)[0], posinf=1e30)
         else:
