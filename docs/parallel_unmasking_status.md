@@ -2685,6 +2685,7 @@ Question from the user: how close is the sequential order to the best one alread
 Per-particle KL to the exact constrained law in nats (lower is better), matched chain proposal. Start = product proposal with the
 policy's random order (section 36w). Particles = (exp(2 KL) - 1) / (2 x 0.01): the count for a tolerance of 0.01 on the returned
 sample's KL if log-weights are normal and the large-particle formula holds. Neither assumption is verified.
+**Correction (section 36ai): this formula is wrong. The error falls as 1/K^2, the counts below are too large, and the corrected counts are in section 36ai.**
 
 | model | constraint | start | random | lex | sum | ideal greedy | sum / ideal | particles: sum, lex, ideal |
 |---|---|---|---|---|---|---|---|---|
@@ -2796,6 +2797,1944 @@ Figure: [matched_arms_N64_heatmap.png]({{artifact:ec965b89-b733-4e14-b459-1cfb1f
   and 24 to 49 on the stress oracle instead of 64.
 - Wall time per arm (median, laptop, shared with other runs): product 49 s, chain 65 s, matched chain 123 s.
   The 30 matching sweeps are the extra cost; fewer sweeps are untested in the sampler.
+
+## 36ai. The particle rule was wrong: the error of the returned sample falls as 1/K^2 (local, 2026-11-17) [exact at 8 to 10 positions, no resampling; 15 cases]
+
+The rule used so far for the number of particles K at a tolerance on the KL of the returned sample's law was chi2 / (2K)
+(sections 36y and 36af). It was quoted, not derived, and it is wrong for this quantity.
+
+- Correct large-K expansion (importance sampling, one output drawn in proportion to the weights, no resampling): the output law is
+  q_K(x) = pi(x) [1 + (E_pi w - w(x)) / K + O(1/K^2)], and KL is second order in the deviation, so
+  **KL(q_K || pi) = Var_pi(w) / (2 K^2) + o(1/K^2)**, with w = pi / q and Var_pi(w) = E_q[w^3] - (E_q[w^2])^2.
+- chi2 / K is the relative variance of Z_hat, a different quantity.
+- Check (`particle_rule_check.py`): the sampler's law over complete sequences and the target are both known exactly, and the output
+  law for K particles is computed with 8,000 draws of the other particles' weights.
+
+| constraint | proposal | order | KL, one particle | Var_pi(w) | exact KL at K = 16 | Var_pi(w) / (2 K^2) | old rule chi2 / (2K) |
+|---|---|---|---|---|---|---|---|
+| counting (N=8) | product | left to right | 0.0326 | 0.1050 | 0.00020 | 0.00021 | 0.00242 |
+| counting (N=8) | product | random order A | 0.0260 | 0.0509 | 0.00010 | 0.00010 | 0.00157 |
+| counting (N=8) | product | random order B | 0.0359 | 0.0957 | 0.00018 | 0.00019 | 0.00246 |
+| dyck (N=10) | chain | left to right | 0.0395 | 0.1423 | 0.00027 | 0.00028 | 0.00305 |
+| dyck (N=10) | chain | random order A | 0.0717 | 0.0880 | 0.00018 | 0.00017 | 0.00356 |
+| dyck (N=10) | chain | random order B | 0.0366 | 0.0461 | 0.00009 | 0.00009 | 0.00186 |
+| dyck (N=10) | product | left to right | 0.3503 | 2.1522 | 0.00410 | 0.00420 | 0.03035 |
+| dyck (N=10) | product | random order A | 0.3156 | 0.6495 | 0.00135 | 0.00127 | 0.01816 |
+| dyck (N=10) | product | random order B | 0.2083 | 0.3996 | 0.00082 | 0.00078 | 0.01197 |
+| forbidden (N=8) | chain | left to right | 0.0453 | 0.1081 | 0.00021 | 0.00021 | 0.00295 |
+| forbidden (N=8) | chain | random order A | 0.0352 | 0.0989 | 0.00019 | 0.00019 | 0.00242 |
+| forbidden (N=8) | chain | random order B | 0.0503 | 0.1486 | 0.00028 | 0.00029 | 0.00336 |
+| forbidden (N=8) | product | left to right | 0.1568 | 0.4011 | 0.00075 | 0.00078 | 0.00905 |
+| forbidden (N=8) | product | random order A | 0.3766 | 0.2208 | 0.00045 | 0.00043 | 0.01081 |
+| forbidden (N=8) | product | random order B | 0.3604 | 0.1738 | 0.00036 | 0.00034 | 0.01006 |
+
+- At 16 particles the expansion is within 7% of the exact value in all 15 cases; the old rule is 7 to 28 times too large.
+- With normal log-weights Var_pi(w) = exp(4 kl) (exp(2 kl) - 1), kl the one-particle KL. At these sizes that proxy is between 0.68 and
+  26 times the true value and overestimates in 10 of 15 cases (weights are bounded on short sequences). A rough guide only.
+
+**Consequences.** (1) Exposure is dropped as the unifying criterion; it can stay as a per-step scale. (2) The
+  objective for the order is now exact: pay as little stake as possible beyond log(1 / p(C)). By the chain rule the
+  excess is the sum over steps of the error of the proposal's marginal at the revealed position, so the order should
+  reveal where the product twist's constrained marginal is accurate. A plausible reading of why constraint-first
+  wins on forbidden and copy [not tested]: a large D that comes from *revealed* context is exact, a constraint effect
+  that arrives through masked neighbours is where the product twist errs. (3) The chain twist gives an estimate of
+  exactly that error (the gap between its constrained marginal and the product one), so the two contributions meet.
+- **Not done.** The N = 256 run was stopped: the probe's kernel sums run over the full pilot range and would have
+  taken hours. Rerun with the pilot noise floor cut (entries below 1e-6), on the `hidden256` suite.
+- Files: `results/parallel_unmasking/exposure_N64.json`, `exposure_N64_summary.json`, `exposure_identity_N64.json`.
+
+## 36c. The schedule on every route family (2026-11-16) [verified]
+
+The policy needs one thing from a route: exact constrained marginals, obtained by differentiating `logZ`
+(`constrained_marginals`); the pull-in and the mixed term use the same query with clamps.
+
+- **Survey against enumeration** (`tests/test_route_marginals.py`, nothing revealed and two positions revealed).
+  Before the fix the query was right on automata, automaton products, the closed-form copy, the subset wrapper and
+  factor graphs, and returned NaN on charts (Dyck-1, Dyck-2, automaton x grammar) and on the lifted
+  automaton x factor-graph product.
+- **Cause and fix.** `torch.logsumexp` has a NaN gradient where every input is -inf, which charts and padded factor
+  tables contain by construction. `torch_routes/numerics.logsumexp_safe` gives gradient 0 there; without autograd it
+  is `torch.logsumexp` itself, so sampling and weights are unchanged (frozen reference reproduced).
+- **After the fix** all ten route types match enumeration to 1e-5 (masked wrapper included).
+- **The policy through a chart.** Dyck-1 at N = 12 on a Markov chain, `lex`, theta = 0, 1,500 runs x 2: automaton
+  Z-hat / p(C) = 0.992 +- 0.016, 8.12 calls; chart 0.997 +- 0.016, 8.13 calls.
+- **Cost of the chart query** (2 CPU threads, per particle): N = 32: 3.8 ms (Dyck-1), 20 ms (Dyck-2); N = 64: 56 ms,
+  57 ms. A 64-position grammar suite goes to the cluster; 32 runs locally.
+- **Still missing for a grammar study** (experiments, not the method): an exact truth for a chain model under a
+  grammar, and for a factor graph. Not covered at all: the spanning-tree route (excluded by decision). On an
+  ambiguous grammar the marginals are derivation-weighted, like the twist; the schedule stays legal.
+
+## 36d. Exact answers for grammar constraints (2026-11-16) [verified]
+
+- **`models.GrammarTruth`**: exact log p(C) and per-position marginals for a chain model (Markov or hidden) under a
+  grammar in Chomsky normal form, by an inside pass over the product of the grammar and the hidden chain
+  (O(N^3 |R| H^3); marginals by autograd, practical to N of about 128).
+- **Checked** (`tests/test_grammar_truth.py`): Dyck-1 as a grammar equals Dyck-1 as an automaton; Dyck-2 equals the
+  bounded-depth Dyck-2 automaton at N = 12; Dyck-2 with atoms equals a bounded-depth automaton at N = 14 and
+  brute-force enumeration at N = 7 (all to 1e-9, Markov and hidden chain); the three grammars are unambiguous (one
+  parse per accepted string, by enumeration); the sampler through the chart is unbiased for the new p(C).
+- **New constraints** in `pulib/cells.py`: `dyck_chart` (Dyck-1 through the chart, the control for `dyck`), `dyck2`
+  (two bracket types, every position constrained: the stress case), `dyck2_atoms` (two bracket types and a free atom:
+  the indicative case; grammar `compile.DYCK2_ATOMS`). **New models** `chain_0.85_atoms`, `hidden_0.85_atoms`: 5 symbols,
+  60% atoms, 10% each bracket. **New suites** `grammar32`, `atoms32` (local), `grammar64`, `atoms64` (cluster).
+- **log p(C) in nats** (closer to 0 = less constraining), at N = 32 | 64 | 128
+  (`results/parallel_unmasking/grammar_exact_answers.json`):
+  - `dyck` = `dyck_chart`: `chain_0.85` -4.93 | -5.85 | -6.84; `hidden_0.85` -4.90 | -5.82 | -6.80.
+  - `dyck2`: `chain_0.85` -7.44 | -10.66 | -16.49; `hidden_0.85` -12.01 | -19.85 | -34.90.
+  - `dyck2_atoms`: `chain_0.85_atoms` -2.39 | -4.28 | -7.75; `hidden_0.85_atoms` -7.23 | -11.90 | -20.21
+    (on the generic 5-symbol chains, where atoms are 20%: -5.29 | -8.80 | -14.21 and -9.69 | -15.85 | -27.16).
+- **Smoke run** (N = 32, 24 runs x 8, pilot 300; not a result): Z-hat / p(C) within its s.e. of 1 in every arm; Dyck-1
+  through the automaton and through the chart agree within the intervals (`lex` sequential: spread 0.25 and 0.24;
+  `lex` B = 0.03: 0.32 and 0.34 at 10.8 and 10.9 calls). The chart cell took 115 s against 3 s for the automaton.
+- Still without an exact truth: factor graphs under a chain.
+
+## 36e. Speed pass (2026-11-16) [verified: frozen reference reproduced exactly, all test files pass]
+
+Profiled on `hidden_0.85` x `window`, N = 256, 400 particles, one CPU thread, and on `dyck2_atoms` at N = 32.
+
+- **Done (exact, local changes).**
+  1. Kernel sums: the count of revealed positions was re-binned for every distance on every call; the kernel now
+     keeps a lookup from count to value (`DistanceKernel._by_count`).
+  2. The gap diagnostic asked the denoiser for the conditionals at a state the sampler had just evaluated; the
+     oracle keeps its last answer and the diagnostic is evaluated before the denoiser moves on (one denoiser pass
+     per step saved when there is no resampling).
+  3. (Earlier today) the memory watcher thread is stopped with its cell.
+- **Effect.** One token per step (256 calls): 67.6 s -> 48.4 s. Parallel, `lex` B = 0.03 with pull-in and guard
+  (19 calls): 13.6 s -> 10.1 s.
+- **Where the time goes now** (one token per step, 48 s): kernel sums 30%, constrained marginals 18%, route logZ 17%,
+  route sampling 14%, denoiser 12%. Chart cell (44 s for 192 particles, 24 calls): inside pass 53%, its backward
+  pass 27%.
+- **Not done, with reasons.**
+  - Reusing one route forward pass for the twist, the proposal and the marginals (the same input is evaluated three
+    times per step): needs a cache threaded through the sampler; estimated gain about 12% on chart cells, 2-3% on
+    automata. Worth doing when chart runs start.
+  - A noise floor on the pilot kernel: its range is 145-157 positions with any entry above zero and 37 above 1e-6
+    nats; cutting below 1e-6 makes a kernel sum 3-4 times cheaper. It changes which positions the exact threshold
+    admits, so it is a method change, not a speed fix.
+  - Charts on a GPU: the chart code is batched torch; the 64-position grammar suites go to the cluster GPU.
+  - Vectorising the chart's per-nonterminal reduction loop: a real rewrite of a core route; only if GPU runs show it
+    matters.
+
+## 36f. Chain twist in the main sampler (2026-11-16) [verified for automaton constraints; study in progress]
+
+- **`decode/chain_twist.py`**: `ChainTwist(wdfa, K, eps, active)`, the first-order chain twist of section 29 for automaton
+  constraints (whole sequence or a subset of positions), with `log_chain`, `log_psi` (mixture with a share eps of the
+  product twist) and `marginals` (constrained marginals under the chain law, by autograd). `fit_pair_kernel` fits K
+  on model samples. `twisted_smc(..., twist=...)` uses it as the intermediate twist in the weights; the proposal and
+  the terminal twist are unchanged, so without resampling the weights are those of the product twist.
+- **Tests** (`tests/test_chain_twist.py`, 6): value and marginals equal brute-force enumeration of the chain law
+  (also on a subset of positions, and for states that already break the constraint); equal to the reference of
+  `twist_error.py` to 1e-6; eps = 1 is the product twist; in the sampler the classes are identical and log Z-hat
+  agrees to 1e-4 without resampling, and Z-hat is unbiased with resampling at every step. Frozen reference
+  unchanged with the option off.
+- **Not done**: the chain-twisted proposal (the proposal is still the product twist's); grammars and copy; the
+  no-regression benchmark at 256 and 1,024.
+- **Study `--arms twist`** (`hidden_0.85`, N = 64, 200 runs x 16, 5 automaton constraints x 3 schedules x 2 twists x
+  3 resampling settings = 90 arms; complete). Spread of Z-hat = sd / mean over runs (lower is better); "ratio" = spread
+  with resampling / spread without (above 1 = resampling hurts).
+  - **Random one token per step** (the base sampler), product twist off | defensive | plain, then chain twist:
+    - `dyck`: 0.31 | 0.43 | 0.91, then 0.32 | 0.28 | 0.30 (plain ratio 2.97 -> 0.94; events per run 3.4 -> 1.2).
+    - `window`: 0.19 | 0.40 | 1.05, then 0.22 | 0.21 | 0.21 (5.53 -> 0.99; events 3.0 -> 0.2).
+    - `two_window`: 0.34 | 0.42 | 0.47, then 0.32 | 0.29 | 0.32 (1.36 -> 1.01; events 2.1 -> 0.8).
+    - `counting`: 0.16 | 0.17 | 0.15, then 0.16 | 0.14 | 0.15 (resampling never fires at K = 16: no information).
+    - `forbidden`: 0.67 | 0.68 | 0.66, then 0.52 | 0.54 | 0.51 (ratios 0.99 and 0.99; the product/chain gap is
+      heavy-tail noise, the two "off" arms have the same law).
+  - **Over all 15 (constraint, schedule) settings**, ratio for plain resampling: product twist median 1.06, worst 5.53,
+    above 1.25 in 4 of 15; chain twist median 0.99, worst 1.13, above 1.25 in none. Defensive: product worst 2.11,
+    chain worst 1.17.
+  - With the constraint-first order (`lex`, sequential or B = 0.03 with pull-in) resampling fires rarely (0-2.2 events
+    per run) and there is little harm to remove: product 0.88-1.26, chain 0.80-1.13.
+  - **Unbiasedness**: on the one-token-per-step arms (exact schedules), (Z-hat / p(C) - 1) / s.e. has largest absolute
+    value 2.51 over the 20 chain-twist arms with resampling and 2.98 over the 20 product-twist ones. Under the budget
+    Z-hat estimates that schedule's own hit rate (0.90-0.98 of p(C) here), as before.
+  - **Reading.** The chain twist does what section 29 found in the reference sampler, now in the main one: it makes
+    resampling safe (never more than 1.13 times worse than none, against up to 5.5 times) and gains nothing by itself
+    without resampling. In these cells resampling with the chain twist is roughly neutral, not a gain; whether it
+    becomes a gain needs longer sequences or fewer particles, where degeneracy bites.
+  - Files: `results/parallel_unmasking/twist_N64.json` (+ `.logZ.npz`), `twist_N64_summary.json`; logged.
+
+## 36g. Is the chain-product disagreement an estimate of the product twist's error? (2026-11-16) [verified at N = 64]
+
+`error_estimate_check.py`: three hidden chains (noise 0.15, 0.3, 0.5), N = 64, counting / dyck / forbidden / window /
+two_window, 60 states per cell from the exact constrained law at reveal fractions 0.1-0.75. Per masked position:
+true error eps = KL(product twist's constrained marginal || exact conditional) and the estimate
+est = KL(product's || chain twist's). All in nats; `ratio` = pilot chain as in the sampler, `exact` = the model's own
+pair conditionals.
+
+- **Identity** [derived]: eps = est + KL(chain || exact) + sum (q0 - q1) log(q1 / pi); to leading order
+  |sqrt(eps) - sqrt(est)| <= sqrt(chain's own error). At the level of unconstrained joints the errors add exactly
+  (Pythagoras for nested exponential families), so there the disagreement is a lower bound; not so for constrained
+  per-position marginals.
+- **Sanity**: on the Markov chain the exact-pair chain's error is zero (ratio 6e-8).
+- **The chain twist is only moderately better per position** (root-KL error relative to the product's, median over the
+  costlier half): counting 0.85, dyck 0.58, forbidden 0.63, window 0.48, two_window 0.44 (`exact`: 0.53, 0.54, 0.32,
+  0.30, 0.33). The whole-state figures of section 29 (0.2-0.3) were more favourable.
+- **Calibration** (median est / eps): 0.48, 0.25, 1.62, 1.09, 0.68. **Tail**, share of the costlier half
+  underestimated more than tenfold: 0.23, 0.34, 0.08, 0.09, 0.12 (more than a hundredfold: 0.04-0.08);
+  overestimated more than tenfold: 0.02, 0.01, 0.17, 0.09, 0.05.
+- **Ranking within a state** (Spearman): 0.12, 0.47, 0.72, 0.58, 0.60 (`exact`: 0.55-0.86). The costliest tenth of
+  positions is ranked above the estimate's median in 77%, 94%, 91%, 98%, 97% of cases.
+- **True error at the position each rule would reveal next**, positions that are not forced, nats x 1000:
+
+  | Constraint | Ideal | Lowest estimate | Lowest entropy | Highest stake | Separator | Random |
+  |---|---|---|---|---|---|---|
+  | counting | 0.13 | 2.57 | 2.02 | 5.80 | 9.11 | 3.21 |
+  | dyck | 0.08 | 5.87 | 5.32 | 29.5 | 23.7 | 13.8 |
+  | forbidden | 0.84 | 3.45 | 3.95 | 13.3 | 59.7 | 28.6 |
+  | window | 0.00 | 0.29 | 2.10 | 16.3 | 9.89 | 4.67 |
+  | two_window | 0.06 | 1.92 | 4.70 | 23.3 | 30.3 | 13.2 |
+
+- **Reading.** (1) The estimate is one-sided: a high value marks a costly position, a low value certifies nothing;
+  on the global constraint (counting) both twists miss the long-range dependence and it carries little information.
+  Unsafe as an admission test against an absolute budget; usable as a ranking signal. (2) Lowest entropy of the
+  constrained marginal (the old `confident` order) does about as well on three constraints without any chain twist;
+  its earlier weakness was steps (29.7 against 7-14), not accuracy. (3) Highest stake is worse than random at one
+  step on four of five, yet constraint-first did well in full runs on the windows: one-step error is not the whole
+  story, and "cheapest first" needs a full-run test. (4) The ideal pick is far better than the best practical rule on every constraint: by a factor of 15 (counting), 68 (dyck), 4 (forbidden), 947 (window), 32 (two_window). On `window` the ideal error is essentially zero (3e-7 nats; the table shows it as 0.00). (Corrected 2026-11-16: an earlier version said "4-70 times", which left out `window`.)
+- **Why counting is the hard case** [rough calculation, not measured]: a first-order chain fitted on adjacent
+  tokens predicts dependence decaying as the adjacent correlation to the power of the distance; with a hidden state
+  the true decay is slower, and at noise 0.3 the chain captures about a quarter of the covariance summed over all
+  distances. A constraint that sums over all positions feels all of the shortfall. A chain over a small latent state
+  (same marginal matching) is the natural richer stand-in; not built.
+- Files: `results/parallel_unmasking/error_estimate_N64.json`, `error_estimate_N64_summary.json`.
+
+## 36h. Second-order chain twist: error against cost (2026-11-16) [verified, reference implementation only]
+
+`twist_order.py`: product, first-order and second-order chain stand-ins against the exact twist, in the pooled-table
+version (`ratio`: pairs K, triples K2 from 20,000 model samples, marginal-matched, no denoiser call) and with the
+model's own conditionals (`exact`). Three hidden chains x five automaton constraints at N = 64 (120 states per cell,
+four reveal fractions); `hidden_0.85` x forbidden / window / two_window at N = 256 (60 states). Not in the sampler.
+
+- **Sanity**: on the Markov chain both exact chains have zero error (5e-15 nats whole-state).
+- **Spread of the whole-state log-twist error** (nats, lower is better; what moves the weights), N = 64,
+  product | order 1 pooled | order 2 pooled | order 1 exact | order 2 exact:
+  counting 0.62 | 0.14 | 0.10 | 0.22 | 0.10; dyck 0.80 | 0.23 | 0.14 | 0.32 | 0.15; forbidden 0.65 | 0.39 | 0.17 | 0.47 | 0.19;
+  window 0.69 | 0.16 | 0.10 | 0.22 | 0.09; two_window 0.41 | 0.13 | 0.11 | 0.09 | 0.02.
+  At N = 256: forbidden 1.42 | 0.96 | 0.37 | 1.12 | 0.48; window 1.65 | 0.45 | 0.15 | 0.61 | 0.24; two_window 1.29 | 0.33 | 0.14 | 0.42 | 0.16.
+  Order 2 over order 1 (pooled): 1.1-2.3 times lower at 64, 2.4-3.0 times lower at 256.
+- **Mean KL per position** (nats x 1000; the error a proposal built on the stand-in would add at a reveal; costlier half
+  of positions), N = 64, same order of columns: counting 6.0 | 6.6 | 4.7 | 1.6 | 0.5; dyck 24.5 | 8.6 | 3.7 | 6.5 | 1.9;
+  forbidden 53.7 | 12.1 | 5.4 | 6.2 | 2.6; window 36.2 | 8.1 | 4.4 | 6.4 | 2.0; two_window 59.0 | 10.5 | 3.8 | 9.9 | 1.5.
+  Order 1 pooled cuts the product's by 2.8-5.6 times except on counting (no gain); order 2 pooled cuts a further
+  1.4-2.7 times; exact conditionals reach 12-39 times below the product at order 2.
+- The median position gains less than the mean (per-position root-KL relative to the product, median: order 1 pooled
+  0.58-1.02, order 2 pooled 0.39-0.85): the chains remove the largest errors first.
+- **Cost** (ms per state, one CPU thread, three classes): N = 64: product 0.04, order 1 0.09, order 2 0.19;
+  N = 256: 0.14, 0.43, 0.77. Order 2 costs about twice order 1 here; in general a factor of the class count.
+- Files: `results/parallel_unmasking/twist_order_N64.json`, `twist_order_N256.json`, `twist_order_summary.json`.
+
+## 36i. Order study: cheapest-first to separator-first (cluster job `91729edd`, 2026-11-16) [verified at N = 64]
+
+Setting: 3 hidden chains (noise 0.15, 0.3, 0.5) x 5 automaton constraints, 64 positions, 100 runs x 16 particles, 43 arms
+per cell, 645 results, no errors. Code commit `7bb07b0`. Files: `results/parallel_unmasking/axis_N64.json`,
+`axis_N64.logZ.npz`, `axis_N64_summary.json`; logged to `log.jsonl`.
+
+Orders: `cheapest` ranks by the true error of the next reveal using the exact twist (the ideal greedy reference, oracle
+models only); `estimate` ranks by the chain-against-product disagreement; `confident` is lowest entropy; `lex` is
+constraint-first; `sum` is stake plus coupling; `separator` is highest coupling; `random` is uniform.
+
+**Check of the exact arms.** The 210 sequential arms should estimate p(C) without bias. 2.9% are more than two
+standard errors from the truth (chance level); the largest deviation is 3.38 standard errors (`confident`, Dyck, noise 0.15).
+
+**Sequential orders, resampling off.** KL(sampler || exact constrained law) per particle in nats, lower is better.
+Geometric mean over the 3 chains. All arms use 64 calls. Largest standard error of any entry before averaging: 0.2.
+
+| constraint | mode | cheapest | estimate | confident | lex | sum | separator | random |
+|---|---|---|---|---|---|---|---|---|
+| counting | sequential | 0.152 | 0.189 | 0.415 | 0.180 | 0.101 | 0.126 | 0.159 |
+| dyck | sequential | 0.232 | 0.383 | 0.668 | 0.506 | 0.525 | 0.511 | 0.561 |
+| forbidden | sequential | 0.548 | 0.595 | 0.540 | 0.589 | 1.009 | 3.806 | 2.416 |
+| window | sequential | 0.051 | 0.444 | 0.061 | 0.073 | 0.069 | 0.314 | 0.351 |
+| two_window | sequential | 0.258 | 0.716 | 0.145 | 0.085 | 0.098 | 0.464 | 0.658 |
+
+Mean rank over the 15 cells (1 = lowest KL): cheapest 2.40, estimate 4.87, confident 4.07, lex 3.27, sum 2.87, separator 4.80, random 5.73.
+Times lowest: cheapest 5, estimate 0, confident 3, lex 4, sum 3, separator 0, random 0.
+
+Differences per chain (noise 0.3, 0.15, 0.5), in standard errors of the difference:
+
+| constraint | comparison | noise 0.3 | noise 0.15 | noise 0.5 |
+|---|---|---|---|---|
+| two_window | cheapest against lex | 0.269 against 0.090 (+8.1 s.e.) | 0.461 against 0.212 (+8.2 s.e.) | 0.139 against 0.032 (+7.4 s.e.) |
+| two_window | cheapest against confident | 0.269 against 0.161 (+4.5 s.e.) | 0.461 against 0.301 (+5.0 s.e.) | 0.139 against 0.063 (+4.9 s.e.) |
+| window | estimate against cheapest | 0.504 against 0.051 (+16.9 s.e.) | 0.399 against 0.105 (+10.3 s.e.) | 0.435 against 0.025 (+16.8 s.e.) |
+| window | estimate against random | 0.504 against 0.363 (+4.0 s.e.) | 0.399 against 0.570 (-4.2 s.e.) | 0.435 against 0.210 (+7.8 s.e.) |
+| window | cheapest against lex | 0.051 against 0.070 (-1.4 s.e.) | 0.105 against 0.247 (-6.2 s.e.) | 0.025 against 0.023 (+0.3 s.e.) |
+| dyck | cheapest against estimate | 0.254 against 0.424 (-5.5 s.e.) | 0.559 against 0.727 (-3.8 s.e.) | 0.089 against 0.182 (-5.1 s.e.) |
+| dyck | cheapest against lex | 0.254 against 0.611 (-9.4 s.e.) | 0.559 against 1.138 (-10.1 s.e.) | 0.089 against 0.186 (-5.1 s.e.) |
+| counting | cheapest against sum | 0.176 against 0.122 (+2.6 s.e.) | 0.324 against 0.197 (+4.4 s.e.) | 0.062 against 0.043 (+1.6 s.e.) |
+| counting | cheapest against random | 0.176 against 0.179 (-0.1 s.e.) | 0.324 against 0.336 (-0.4 s.e.) | 0.062 against 0.067 (-0.4 s.e.) |
+| counting | confident against random | 0.508 against 0.179 (+11.0 s.e.) | 0.842 against 0.336 (+11.8 s.e.) | 0.168 against 0.067 (+5.8 s.e.) |
+| forbidden | cheapest against confident | 0.615 against 0.576 (+0.9 s.e.) | 1.020 against 1.011 (+0.2 s.e.) | 0.262 against 0.270 (-0.3 s.e.) |
+| forbidden | cheapest against random | 0.615 against 2.662 (-23.4 s.e.) | 1.020 against 5.092 (-29.7 s.e.) | 0.262 against 1.040 (-16.5 s.e.) |
+| forbidden | separator against random | 4.248 against 2.662 (+11.1 s.e.) | 8.477 against 5.092 (+14.1 s.e.) | 1.532 against 1.040 (+6.7 s.e.) |
+
+Readings:
+- No order is lowest on every constraint.
+- Ideal greedy cheapest-first is not the optimum. It is lowest on Dyck and tied lowest on the single window and on
+  forbidden, but on two windows constraint-first is 2 to 4 times lower on every chain (7 to 8 standard errors), and on
+  counting it is no better than random and worse than `sum` (resolved on two of the three chains). This is the myopia
+  expected of a greedy rule, now measured.
+- The estimate order is never lowest. On the single window it is 4 to 17 times worse than the ideal order across the
+  chains (0.399 to 0.504 against 0.025 to 0.105), and about 3 times worse on two windows.
+- Lowest entropy is the worst order on counting, and among the best on forbidden and the windows.
+- Separator-first is the worst order on forbidden (worse than random) and second lowest on counting.
+
+**Why the estimate order fails on windows** (`experiments/parallel_unmasking/order_attribution.py`, local, noise 0.3,
+400 particles). The sampler's KL equals the sum over steps of the true error at the revealed position, so it can be
+split by where the revealed position lies: inside the window, near it (within 6 positions, one correlation length), or
+far. `true` and `est` are the summed true error and the summed estimate at the same positions, in nats per particle.
+`step` is the mean step at which positions of that group are revealed.
+
+| constraint | order | KL (sum of steps) | true inside | true near | true far | est inside | est near | est far | step inside | step near | step far | cluster KL |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| window | estimate | 0.467 | 0.060 | 0.326 | 0.081 | 0.033 | 0.015 | 0.000 | 57 | 49 | 22 | 0.504 ± 0.025 |
+| window | cheapest | 0.053 | 0.019 | 0.014 | 0.019 | 0.046 | 0.028 | 0.139 | 49 | 51 | 23 | 0.051 ± 0.008 |
+| window | lex | 0.074 | 0.074 | 0.000 | 0.000 | 0.072 | 0.016 | 0.041 | 8 | 36 | 35 | 0.070 ± 0.011 |
+| window | random | 0.371 | 0.086 | 0.262 | 0.024 | 0.133 | 0.052 | 0.049 | 29 | 32 | 32 | 0.363 ± 0.025 |
+| two_window | estimate | 0.861 | 0.084 | 0.619 | 0.158 | 0.050 | 0.033 | 0.000 | 54 | 42 | 18 | 0.835 ± 0.035 |
+| two_window | cheapest | 0.285 | 0.079 | 0.119 | 0.087 | 0.061 | 0.078 | 0.098 | 42 | 40 | 23 | 0.269 ± 0.019 |
+| two_window | lex | 0.087 | 0.087 | 0.000 | 0.000 | 0.064 | 0.031 | 0.032 | 7 | 36 | 34 | 0.090 ± 0.011 |
+| two_window | random | 0.741 | 0.105 | 0.577 | 0.059 | 0.163 | 0.145 | 0.034 | 28 | 32 | 32 | 0.756 ± 0.033 |
+
+- The estimate order reveals the far and near positions before the window, because the estimate rates them almost
+  free: 0.000 summed over the far positions and 0.015 over the near ones on the single window, against true errors of
+  0.081 and 0.326. Most of its KL is paid at the near positions.
+- Revealing the window late is not the cause in itself: the ideal order also reveals it late and has the lowest KL.
+- Constraint-first pays only inside the window. Once the window is resolved every other position is free.
+- This is the failure anticipated in section 36g: where the product and chain twists are wrong in the same way, their
+  disagreement is small and the estimate understates the error.
+- An earlier hypothesis, that the estimate is exactly zero everywhere outside the window, was wrong: its largest value
+  outside the window at the fully masked state is 0.056.
+- Check of the attribution: the step-sum agrees with the cluster's weight-based KL in all 8 cases. The local
+  weight-based KL (not tabulated) agrees in 7; for `lex` on the single window it is 0.011 ± 0.019 against the
+  cluster's 0.070 ± 0.011, 2.7 standard errors apart, taken to be a fluctuation of a heavy-tailed mean at 400 particles.
+
+**Parallel modes.** Denoiser calls per particle, lower is faster, resampling off:
+
+| constraint | mode | cheapest | estimate | confident | lex | sum | separator | random |
+|---|---|---|---|---|---|---|---|---|
+| counting | B=0.03 +pull | 15.2 | 14.7 | 17.7 | 12.7 | 10.8 | 11.0 | 12.7 |
+| counting | B=0.3 +pull | 10.2 | 9.6 | 10.1 | 7.6 | 6.7 | 6.6 | 7.9 |
+| dyck | B=0.03 +pull | 17.8 | 14.8 | 16.1 | 11.7 | 10.1 | 10.0 | 11.5 |
+| dyck | B=0.3 +pull | 9.6 | 8.9 | 8.5 | 6.8 | 5.7 | 5.9 | 6.8 |
+| forbidden | B=0.03 +pull | 19.4 | 19.5 | 19.0 | 20.7 | 12.1 | 10.9 | 12.8 |
+| forbidden | B=0.3 +pull | 13.2 | 13.2 | 11.0 | 12.4 | 7.9 | 6.7 | 8.0 |
+| window | B=0.03 +pull | 16.7 | 17.1 | 20.1 | 11.4 | 10.8 | 10.7 | 12.7 |
+| window | B=0.3 +pull | 10.0 | 10.0 | 11.4 | 6.8 | 6.7 | 6.7 | 8.0 |
+| two_window | B=0.03 +pull | 17.2 | 18.2 | 19.4 | 11.5 | 11.1 | 10.7 | 12.7 |
+| two_window | B=0.3 +pull | 9.9 | 10.4 | 11.9 | 6.8 | 6.7 | 6.6 | 8.0 |
+
+Cost = calls x spread^2, lower is better, where spread is the sd/mean of the estimate of p(C) over runs. Resampling off:
+
+| constraint | mode | cheapest | estimate | confident | lex | sum | separator | random |
+|---|---|---|---|---|---|---|---|---|
+| counting | sequential | 1.28 | 1.47 | 6.75 | 4.62 | 0.59 | 0.57 | 1.37 |
+| counting | B=0.03 +pull | 1.04 | 0.85 | 0.85 | 0.37 | 0.28 | 0.32 | 0.51 |
+| counting | B=0.3 +pull | 0.50 | 0.37 | 0.35 | 0.21 | 0.19 | 0.16 | 0.31 |
+| dyck | sequential | 1.96 | 4.29 | 5.51 | 3.41 | 2.77 | 4.11 | 4.52 |
+| dyck | B=0.03 +pull | 1.51 | 1.76 | 1.35 | 0.77 | 0.84 | 0.62 | 0.70 |
+| dyck | B=0.3 +pull | 0.71 | 0.74 | 0.93 | 0.48 | 0.41 | 0.39 | 0.62 |
+| forbidden | sequential | 5.19 | 5.39 | 5.51 | 4.74 | 11.83 | 26.19 | 20.78 |
+| forbidden | B=0.03 +pull | 2.63 | 3.54 | 2.83 | 4.03 | 2.91 | 4.22 | 4.16 |
+| forbidden | B=0.3 +pull | 3.54 | 2.59 | 3.07 | 3.09 | 2.71 | 3.08 | 4.22 |
+| window | sequential | 0.39 | 3.48 | 0.46 | 0.51 | 0.48 | 1.47 | 2.30 |
+| window | B=0.03 +pull | 0.07 | 0.99 | 0.20 | 0.11 | 0.13 | 0.34 | 0.45 |
+| window | B=0.3 +pull | 0.07 | 0.29 | 0.17 | 0.14 | 0.12 | 0.23 | 0.30 |
+| two_window | sequential | 2.08 | 6.67 | 1.47 | 0.51 | 0.62 | 2.80 | 5.23 |
+| two_window | B=0.03 +pull | 0.28 | 1.07 | 0.12 | 0.08 | 0.08 | 1.15 | 1.20 |
+| two_window | B=0.3 +pull | 0.06 | 1.04 | 0.17 | 0.08 | 0.09 | 0.60 | 0.81 |
+
+- Orders that rank by coupling (`sum`, `separator`) need the fewest calls; `cheapest`, `estimate` and `confident` need
+  1.3 to 2 times more at the same budget.
+- The lowest-cost arm is a parallel arm in all 15 cells (`sum` in 6, `cheapest` in 5, `lex` in 2, `separator` and
+  `estimate` in 1 each; B = 0.3 in 10, B = 0.03 in 5).
+- **Caveat that changes how to read the cost table.** Cost measures spread around the arm's own mean. A budgeted
+  parallel schedule is not exact, and the bias against the exact law is not in the cost:
+
+| mode | arms | Z_hat / p(C): min | median | max | share more than 2 s.e. from 1 | median marginal TV error |
+|---|---|---|---|---|---|---|
+| sequential | 105 | 0.858 | 1.001 | 1.099 | 4% | 0.0158 |
+| B=0.03 +pull | 105 | 0.815 | 0.995 | 1.083 | 14% | 0.0171 |
+| B=0.3 +pull | 105 | 0.585 | 0.958 | 1.206 | 74% | 0.0210 |
+
+  At B = 0.3 most arms sample a measurably different law (forbidden: 0.62 to 0.74 of the true p(C)). The marginal TV
+  column is at 16 particles and is dominated by sampling noise, so it does not separate bias from noise. This study
+  therefore does not answer "error against the exact law at equal calls" for the budgeted arms.
+
+**Chain twist with defensive resampling against resampling off.** Ratio of spreads over the 315 matched pairs: median
+0.98, 10th to 90th percentile 0.81 to 1.14, range 0.40 to 2.05. Below 1 means resampling helped.
+
+| constraint | median ratio | min | max | resampling events per run |
+|---|---|---|---|---|
+| counting | 1.02 | 0.40 | 2.05 | 0.21 |
+| dyck | 0.98 | 0.74 | 1.25 | 0.60 |
+| forbidden | 0.88 | 0.60 | 1.14 | 1.80 |
+| window | 1.00 | 0.78 | 1.19 | 0.08 |
+| two_window | 1.02 | 0.75 | 1.32 | 0.27 |
+
+Neutral at this length except on forbidden, where resampling fires most. Consistent with section 36f.
+
+## 36j. Where the time of a step goes on MDLM (cluster job `1fc965f6`, one L40S, 2026-11-16) [verified: 12 cells, per-stage split; small pilot]
+
+`experiments/parallel_unmasking/mdlm_timing.py`, commit `5c12f04`; file `results/parallel_unmasking/mdlm_timing_run1.json`.
+Half-revealed state, three token classes, two constraints: a count on a window of a tenth of the positions and a count
+on the whole sequence. Median of 7 repetitions, milliseconds for the whole batch, lower is better. The last three
+columns are in denoiser calls at the same batch size.
+
+| N | particles | constraint | denoiser | class projection | kernel sum | route logZ | route marginals | reveal, sequential | reveal, parallel | chain twist | chain twist (calls) | step, sequential (calls) | step, parallel (calls) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 8 | window | 9.0 | 0.9 | 5.6 | 0.7 | 3.6 | 10.7 | 48.5 | 7.4 | 0.82 | 2.67 | 6.86 |
+| 128 | 8 | whole_sequence | 9.0 | 0.9 | 5.6 | 6.3 | 32.1 | 38.4 | 191.2 | 10.1 | 1.12 | 8.73 | 25.69 |
+| 128 | 64 | window | 30.0 | 7.6 | 5.6 | 0.7 | 3.5 | 11.1 | 61.1 | 7.4 | 0.25 | 1.74 | 3.40 |
+| 128 | 64 | whole_sequence | 30.0 | 7.6 | 5.6 | 6.3 | 32.8 | 38.6 | 320.4 | 10.2 | 0.34 | 3.55 | 12.94 |
+| 128 | 256 | window | 155.1 | 30.3 | 5.6 | 0.7 | 3.6 | 10.7 | 62.6 | 7.4 | 0.05 | 1.29 | 1.62 |
+| 128 | 256 | whole_sequence | 155.1 | 30.3 | 5.6 | 6.3 | 32.4 | 38.7 | 323.9 | 10.2 | 0.07 | 1.64 | 3.48 |
+| 256 | 8 | window | 10.7 | 1.9 | 11.1 | 1.4 | 6.8 | 19.4 | 108.8 | 14.4 | 1.36 | 3.60 | 12.00 |
+| 256 | 8 | whole_sequence | 10.7 | 1.9 | 11.1 | 12.5 | 64.3 | 75.8 | 626.5 | 20.1 | 1.89 | 14.02 | 65.72 |
+| 256 | 64 | window | 65.3 | 15.1 | 11.1 | 1.4 | 6.9 | 19.8 | 112.7 | 14.5 | 0.22 | 1.63 | 3.06 |
+| 256 | 64 | whole_sequence | 65.3 | 15.1 | 11.1 | 12.6 | 64.6 | 77.7 | 637.6 | 20.3 | 0.31 | 3.35 | 11.92 |
+
+- The run stopped at N = 256 with 256 particles: the full-vocabulary log-softmax of that batch needs 12.3 GiB on top of
+  35 GiB held. That cell is not measured.
+- Route, kernel and twist times do not grow with the number of particles; they are about 50 to 60 microseconds per
+  position step, which is GPU per-operation overhead. The script passes the full particle batch to each timer
+  (read from the code; a shape assertion is added in the rerun).
+- The chain twist costs 0.05 to 0.34 of a denoiser call at 64 or more particles, and 0.8 to 1.9 at 8.
+- The constraint-aware sequential reveal equals one constrained-marginals pass plus one kernel sum.
+- The parallel reveal is 4.5 to 8.4 times dearer than the sequential one. From the code, the candidates are the
+  forced-partner pull-in (up to 8 extra constrained-marginals passes per step) and an admission loop over all
+  positions. Component times predict 38 + 8 x 32 = 294 ms at N = 128 on the whole-sequence constraint against 320 to
+  324 measured. This is a prediction, not a stage measurement.
+- This run did not record how many positions a parallel reveal admits, so its cost per revealed position is unknown.
+- The run used rate 1/N for the parallel reveal, which is a whole-sequence budget of B = 1, looser than the studies'
+  0.03 and 0.3.
+- Rerun with per-stage timers, a no-pull-in variant and the admitted count (commit `7395e53`): the second and third
+  submissions (nodes node4204 and node3403) hung at Python start-up or `import torch` before any timing code ran and
+  were cancelled at their time limits; a 5-minute `timeout` did not end the third. A fresh Python from the same
+  environment started in 2.7 s on the login node afterwards (user's check). A fourth submission with staged start-up
+  diagnostics (job `48847543`, node3502) located the problem: a plain `ls` of a file under `~/orcd/pool` did not
+  return in 120 s and was hard-killed, while the job's working directory under the home filesystem worked. So the
+  pooled storage, which holds the environment and the model cache, was unreachable from three GPU nodes between 02:01
+  and at least 05:03 (four GPU nodes in all; node-specific, see the cluster notes). No timing code ran in attempts 2
+  to 5. The sixth, pinned to a node that passed a storage probe, completed; its results follow. Section 36l has the
+  stage split on CPU.
+
+**Per-stage rerun (job `b41c1480`, node3203, commit `7395e53`, all 12 cells; file `results/parallel_unmasking/mdlm_timing_stages.json`).**
+Same settings as the first run, with the reveal timed by stage, a variant without the pull-in, and the positions admitted.
+Milliseconds for the whole batch, lower is better; the last three columns are one sampler step in denoiser calls at the
+same batch size.
+
+| N | particles | constraint | denoiser | reveal, sequential | reveal, parallel | reveal, parallel, no pull-in | pull-in | pull-in passes | positions per step (with, without pull-in) | step, sequential (calls) | step, parallel (calls) | step, parallel, no pull-in (calls) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 8 | window | 9.1 | 10.6 | 48.1 | 25.1 | 15.5 | 4 | 2.0, 2.0 | 2.64 | 6.77 | 4.23 |
+| 128 | 8 | whole_sequence | 9.1 | 38.3 | 188.6 | 52.8 | 127.5 | 4 | 2.0, 2.0 | 8.68 | 25.23 | 10.28 |
+| 128 | 64 | window | 30.2 | 10.7 | 59.6 | 28.0 | 30.6 | 8 | 2.0, 2.0 | 1.71 | 3.33 | 2.29 |
+| 128 | 64 | whole_sequence | 30.2 | 38.3 | 315.4 | 55.9 | 257.3 | 8 | 2.0, 2.0 | 3.53 | 12.70 | 4.11 |
+| 128 | 256 | window | 155.7 | 10.7 | 62.0 | 30.5 | 30.5 | 8 | 2.0, 2.0 | 1.28 | 1.61 | 1.41 |
+| 128 | 256 | whole_sequence | 155.7 | 38.3 | 317.9 | 58.3 | 257.6 | 8 | 2.0, 2.0 | 1.64 | 3.43 | 1.76 |
+| 256 | 8 | window | 10.7 | 19.5 | 106.2 | 48.0 | 55.8 | 8 | 2.6, 2.6 | 3.60 | 11.70 | 6.26 |
+| 256 | 8 | whole_sequence | 10.7 | 75.4 | 615.8 | 104.0 | 509.2 | 8 | 2.6, 2.6 | 13.89 | 64.36 | 16.56 |
+| 256 | 64 | window | 65.4 | 19.5 | 110.3 | 52.3 | 56.3 | 8 | 2.6, 2.6 | 1.63 | 3.01 | 2.13 |
+| 256 | 64 | whole_sequence | 65.4 | 75.5 | 623.6 | 108.6 | 513.5 | 8 | 2.6, 2.6 | 3.32 | 11.69 | 3.82 |
+| 256 | 256 | window | 315.1 | 19.2 | 115.9 | 58.4 | 56.7 | 8 | 2.5, 2.5 | 1.27 | 1.58 | 1.39 |
+| 256 | 256 | whole_sequence | 315.1 | 75.3 | 628.3 | 114.5 | 513.0 | 8 | 2.5, 2.5 | 1.62 | 3.38 | 1.75 |
+
+- The pull-in is 32 to 83% of the parallel reveal's time. It runs up to 8 extra constrained-marginals passes per step.
+- It admitted nothing in this state: positions per step are identical with and without it in all 12 cells.
+- Without the pull-in the parallel reveal costs 1.4 to 3.0 times the sequential reveal; with it, 4.5 to 8.3 times.
+- Limits of this measurement: one half-revealed state per cell, a pilot of only 8 traces, and rate 1/N (B = 1). The
+  schedule admits 2.0 to 2.6 positions per step here, far fewer than a properly piloted schedule would, so the
+  per-step costs are measured but the cost per revealed position is not representative.
+- The N = 256, 256-particle cell that ran out of memory in the first run fits once nothing large is held while the
+  denoiser is timed.
+
+## 36k. A resampling pressure case: 256 positions, whole-sequence constraints (cluster job `a16667c2`, 2026-11-16) [verified; small samples]
+
+Setting: `hidden_0.85`, 256 positions, forbidden, counting and Dyck; the native random order one token per step
+(exact, 256 calls) and constraint-first under B = 0.03 with pull-in (15 to 26 calls); product against chain twist;
+resampling off, defensive, plain. 50 runs of 16 particles and 12 runs of 64 particles. Code commit `5c12f04`.
+Files: `results/parallel_unmasking/pressure_K16.json`, `pressure_K64.json`, `pressure_N256_summary.json`; logged.
+Exact log p(C): forbidden -42.4, counting -3.98, Dyck -7.82.
+
+Criterion stated before the run: poor accuracy without resampling under both twists, unreliable resampling under the
+product twist, and a clear gain from resampling under the chain twist.
+
+**Which statistic.** The usual spread (sd/mean of the estimate of p(C)) is not usable on forbidden: 19 of its 24
+arms are flagged heavy-tailed (21 of 72 overall), and the two resampling-off arms, which are the same sampler under
+different seeds, give spreads of 2.53 and 0.88 on one schedule. The table therefore reports the root-mean-square over
+runs of log(estimate / p(C)) in nats, lower is better, with the mean ± its standard error in brackets (0 is ideal; an
+unbiased estimator has mean at most 0). On this statistic the two replicate off arms agree.
+
+16 particles, 50 runs:
+
+| constraint | schedule | calls | twist | off | defensive | plain | resampling events (defensive) | ESS, off |
+|---|---|---|---|---|---|---|---|---|
+| forbidden | fixed 1/step | 256 | product | 3.32 (-2.29 ± 0.34) | 2.18 (-1.31 ± 0.25) | 2.68 (-1.78 ± 0.29) | 20.8 | 0.064 |
+| forbidden | fixed 1/step | 256 | chain | 3.59 (-2.45 ± 0.37) | 1.39 (-0.71 ± 0.17) | 1.98 (-1.31 ± 0.21) | 17.4 | 0.065 |
+| forbidden | lex B=0.03 +pull | 26 | product | 1.39 (-0.85 ± 0.16) | 1.20 (-0.79 ± 0.13) | 1.34 (-1.00 ± 0.13) | 6.5 | 0.095 |
+| forbidden | lex B=0.03 +pull | 26 | chain | 1.35 (-1.00 ± 0.13) | 0.98 (-0.45 ± 0.12) | 1.03 (-0.41 ± 0.14) | 5.5 | 0.099 |
+| counting | fixed 1/step | 256 | product | 0.16 (-0.00 ± 0.02) | 0.15 (-0.01 ± 0.02) | 0.15 (+0.01 ± 0.02) | 0.1 | 0.640 |
+| counting | fixed 1/step | 256 | chain | 0.14 (-0.04 ± 0.02) | 0.14 (+0.01 ± 0.02) | 0.15 (-0.01 ± 0.02) | 0.0 | 0.759 |
+| counting | lex B=0.03 +pull | 17 | product | 0.17 (-0.03 ± 0.02) | 0.19 (+0.02 ± 0.03) | 0.17 (+0.02 ± 0.02) | 0.2 | 0.583 |
+| counting | lex B=0.03 +pull | 17 | chain | 0.17 (-0.03 ± 0.02) | 0.20 (-0.01 ± 0.03) | 0.21 (-0.01 ± 0.03) | 0.1 | 0.652 |
+| dyck | fixed 1/step | 256 | product | 0.48 (-0.11 ± 0.07) | 0.68 (-0.16 ± 0.09) | 0.88 (-0.57 ± 0.09) | 6.4 | 0.174 |
+| dyck | fixed 1/step | 256 | chain | 0.44 (-0.09 ± 0.06) | 0.39 (-0.02 ± 0.06) | 0.42 (-0.06 ± 0.06) | 2.3 | 0.292 |
+| dyck | lex B=0.03 +pull | 16 | product | 0.39 (-0.03 ± 0.06) | 0.38 (-0.18 ± 0.05) | 0.59 (-0.28 ± 0.07) | 2.7 | 0.297 |
+| dyck | lex B=0.03 +pull | 16 | chain | 0.37 (-0.07 ± 0.05) | 0.39 (-0.09 ± 0.05) | 0.33 (-0.08 ± 0.05) | 1.2 | 0.348 |
+
+64 particles, 12 runs:
+
+| constraint | schedule | calls | twist | off | defensive | plain | resampling events (defensive) | ESS, off |
+|---|---|---|---|---|---|---|---|---|
+| forbidden | fixed 1/step | 256 | product | 2.13 (-1.45 ± 0.47) | 1.35 (-0.93 ± 0.29) | 1.00 (-0.64 ± 0.23) | 24.8 | 0.019 |
+| forbidden | fixed 1/step | 256 | chain | 2.38 (-0.69 ± 0.69) | 0.66 (-0.13 ± 0.20) | 1.05 (-0.58 ± 0.26) | 20.2 | 0.018 |
+| forbidden | lex B=0.03 +pull | 26 | product | 0.84 (-0.38 ± 0.22) | 0.60 (-0.25 ± 0.16) | 0.79 (-0.51 ± 0.18) | 7.9 | 0.037 |
+| forbidden | lex B=0.03 +pull | 26 | chain | 0.94 (-0.32 ± 0.27) | 0.37 (-0.08 ± 0.11) | 0.55 (-0.35 ± 0.13) | 6.4 | 0.040 |
+| counting | fixed 1/step | 256 | product | 0.07 (-0.03 ± 0.02) | 0.10 (+0.00 ± 0.03) | 0.07 (+0.02 ± 0.02) | 0.0 | 0.657 |
+| counting | fixed 1/step | 256 | chain | 0.08 (+0.02 ± 0.02) | 0.08 (+0.01 ± 0.02) | 0.07 (-0.02 ± 0.02) | 0.0 | 0.690 |
+| counting | lex B=0.03 +pull | 17 | product | 0.08 (+0.02 ± 0.02) | 0.08 (-0.02 ± 0.02) | 0.14 (-0.08 ± 0.03) | 0.0 | 0.602 |
+| counting | lex B=0.03 +pull | 17 | chain | 0.13 (+0.03 ± 0.04) | 0.10 (+0.00 ± 0.03) | 0.11 (-0.01 ± 0.03) | 0.0 | 0.595 |
+| dyck | fixed 1/step | 256 | product | 0.21 (-0.00 ± 0.06) | 0.42 (-0.22 ± 0.11) | 0.95 (+0.26 ± 0.28) | 7.7 | 0.171 |
+| dyck | fixed 1/step | 256 | chain | 0.18 (+0.01 ± 0.06) | 0.23 (+0.07 ± 0.07) | 0.14 (+0.03 ± 0.04) | 2.8 | 0.267 |
+| dyck | lex B=0.03 +pull | 16 | product | 0.20 (-0.11 ± 0.05) | 0.23 (-0.09 ± 0.06) | 0.26 (-0.04 ± 0.08) | 3.6 | 0.298 |
+| dyck | lex B=0.03 +pull | 16 | chain | 0.16 (-0.02 ± 0.05) | 0.18 (+0.01 ± 0.06) | 0.23 (-0.03 ± 0.07) | 1.3 | 0.333 |
+
+Against the criterion:
+- Pressure exists on forbidden only. Without resampling its effective sample size is 2 to 6% and the log error is
+  2.1 to 3.6 nats at 256 calls. Counting is not a pressure case at this length (resampling almost never fires) and
+  Dyck is mild (0.18 to 0.48 nats).
+- Forbidden, one token per step: chain twist with defensive resampling has the lowest log error at both particle
+  counts, 1.39 against 3.32 and 3.59 without resampling (16 particles) and 0.66 against 2.13 and 2.38 (64 particles).
+  The product twist also gains there (2.18 and 1.35 with defensive resampling), so the chain's margin over the product
+  is 1.6 to 2.0 times with defensive resampling. With plain resampling the two twists are level at 64 particles
+  (1.05 and 1.00).
+- Dyck: resampling under the product twist is harmful (0.68 and 0.88 against 0.44 to 0.48 at 16 particles; 0.42 and
+  0.95 against 0.18 to 0.21 at 64). Under the chain twist it is neutral (0.39 and 0.42; 0.23 and 0.14).
+- So the criterion is met in part: a pressure case exists, chain-twist resampling gives a 2.4 to 3.6-fold gain in it,
+  and product-twist resampling is unsafe on Dyck. It is not met in the stronger sense that only the chain twist
+  gains: on forbidden the product twist gains as well.
+- The constraint-first parallel schedule at 26 calls has a lower log error on forbidden than the random order at 256
+  calls even without resampling (1.35 to 1.39 against 3.32 to 3.59 at 16 particles). Its reference p(C) is slightly
+  off because a budgeted schedule is not exact.
+- Limits: one chain, 12 runs at 64 particles, and no arm with the chain twist in the proposal.
+
+## 36l. Where the schedule's own time goes over a whole decode (local CPU, 2026-11-16) [verified on oracle cells; GPU split in section 36j]
+
+`experiments/parallel_unmasking/reveal_stages.py`; file `results/parallel_unmasking/reveal_stages_local.json`.
+`hidden_0.85`, 16 particles, pilot 2,000, constraint-first order, the study's arm settings (B is the whole-sequence
+budget). Each policy is run from the fully masked state to completion and every reveal is timed by stage. The denoiser
+is not timed: these are the schedule's own costs. Times are milliseconds per decode of the batch on 2 CPU threads,
+lower is better. `steps` counts reveal steps until the last particle finishes, so it is a little above the per-particle
+call counts of the studies.
+
+| N | constraint | arm | steps | positions per step | pull-in passes per step | context | scoring | admission loop | pull-in | total | per step | pull-in share |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 64 | window | sequential lex | 64.0 | 1.00 | 0.00 | 115 | 146 | 17 | 0 | 279 | 4.4 | 0% |
+| 64 | window | lex B=0.03 | 13.0 | 5.04 | 0.00 | 20 | 29 | 63 | 0 | 112 | 8.6 | 0% |
+| 64 | window | lex B=0.03 +pull | 13.0 | 5.04 | 6.05 | 22 | 30 | 77 | 114 | 244 | 18.7 | 47% |
+| 64 | window | lex B=0.3 | 8.3 | 7.82 | 0.00 | 14 | 19 | 43 | 0 | 76 | 9.1 | 0% |
+| 64 | window | lex B=0.3 +pull | 8.3 | 7.82 | 5.68 | 14 | 19 | 50 | 73 | 156 | 18.8 | 47% |
+| 64 | counting | sequential lex | 64.0 | 1.00 | 0.00 | 642 | 149 | 18 | 0 | 808 | 12.6 | 0% |
+| 64 | counting | lex B=0.03 | 14.7 | 4.48 | 0.00 | 143 | 34 | 71 | 0 | 248 | 16.9 | 0% |
+| 64 | counting | lex B=0.03 +pull | 14.7 | 4.48 | 6.57 | 145 | 34 | 85 | 857 | 1121 | 76.5 | 76% |
+| 64 | counting | lex B=0.3 | 9.7 | 6.80 | 0.00 | 94 | 23 | 49 | 0 | 166 | 17.2 | 0% |
+| 64 | counting | lex B=0.3 +pull | 9.7 | 6.80 | 6.48 | 97 | 23 | 59 | 583 | 761 | 78.8 | 77% |
+| 64 | forbidden | sequential lex | 64.0 | 1.00 | 0.00 | 560 | 149 | 17 | 0 | 725 | 11.3 | 0% |
+| 64 | forbidden | lex B=0.03 | 24.7 | 2.64 | 0.00 | 217 | 58 | 99 | 0 | 374 | 15.2 | 0% |
+| 64 | forbidden | lex B=0.03 +pull | 24.7 | 2.64 | 5.73 | 222 | 60 | 127 | 1207 | 1616 | 65.5 | 75% |
+| 64 | forbidden | lex B=0.3 | 14.0 | 4.66 | 0.00 | 119 | 32 | 61 | 0 | 213 | 15.2 | 0% |
+| 64 | forbidden | lex B=0.3 +pull | 14.0 | 4.66 | 5.90 | 121 | 33 | 75 | 707 | 935 | 66.8 | 76% |
+| 256 | window | sequential lex | 256.0 | 1.00 | 0.00 | 1243 | 2217 | 168 | 0 | 3628 | 14.2 | 0% |
+| 256 | window | lex B=0.03 | 18.5 | 14.04 | 0.00 | 72 | 137 | 300 | 0 | 509 | 27.5 | 0% |
+| 256 | window | lex B=0.03 +pull | 18.5 | 14.04 | 5.73 | 72 | 136 | 333 | 345 | 885 | 47.8 | 39% |
+| 256 | counting | sequential lex | 256.0 | 1.00 | 0.00 | 20554 | 1975 | 144 | 0 | 22674 | 88.6 | 0% |
+| 256 | counting | lex B=0.03 | 19.0 | 13.60 | 0.00 | 1586 | 156 | 353 | 0 | 2095 | 110.2 | 0% |
+| 256 | counting | lex B=0.03 +pull | 19.0 | 13.60 | 7.13 | 1464 | 143 | 372 | 6491 | 8470 | 445.8 | 77% |
+
+- A sequential step is one constrained-marginals pass (context) plus one kernel sum (scoring).
+- A parallel step without pull-in costs 1.2 to 2.1 times a sequential step; the extra is the admission loop, which
+  visits every position. Over a whole decode its schedule time is 1.9 to 10.8 times lower than sequential, because
+  there are fewer steps.
+- The pull-in runs 5.7 to 7.1 extra constrained-marginals passes per step and takes 39 to 77% of the schedule's
+  time. With it, a decode's schedule time is 1.7 to 4.6 times that without it.
+- On these constraints (window, counting, forbidden) the pull-in admitted nothing: in all 8 pairs the number of steps
+  and the positions per step are identical with and without it. The pull-in was built for constraints with forced
+  partners (the block copy, section 31), where it lowered the spread from 0.40 to 0.12. Here there are none to find.
+- With the pull-in, the parallel schedule's own time exceeds the sequential schedule's at 64 positions on counting and
+  forbidden, and is below it at 256.
+- This explains the GPU measurement of section 36j in kind (the parallel reveal is several times dearer per step and
+  the candidate was the pull-in). The GPU run used a looser budget (rate 1/N, i.e. B = 1) and a small pilot, so its
+  ratios are not the same quantity. The per-stage GPU rerun (end of section 36j) agrees in kind: the pull-in dominates and admits nothing.
+- Not done: a pull-in that skips constraints or steps with nothing to pull. That is a design choice for the selection
+  rule.
+
+## 36m. How biased are the budgeted schedules against the one-token-per-step law? (2026-11-16) [verified at N = 64]
+
+**Decision (user, 2026-11-16).** The target for parallel schedules is the law of the one-token-per-step sampler
+conditioned on the constraint, taken as the denoiser's underlying joint. On a real denoiser, which is not
+order-consistent, the reference is the average over uniformly random orders (each particle draws its own order);
+a constraint-aware order is then an approximation whose error is the model's order inconsistency (zero on oracle
+models; to be measured on MDLM). A budgeted parallel schedule is then an
+approximation, its bias counts as error, and the budget is the tolerance.
+
+From the order study (section 36i), resampling off. The sampler is exact for the model run under the same schedule,
+so the mean of the estimate of p(C) differs from the exact p(C) only through the dependence among positions revealed
+together. Pooled over 3 chains and 7 orders (21 arms each), inverse-variance weighted; 0 is unbiased.
+
+| budget | constraint | mean calls | log(estimate / p(C)), nats | in s.e. | as a multiple of the budget | arms beyond 2 s.e. |
+|---|---|---|---|---|---|---|
+| none (sequential) | counting | 64.0 | -0.003 ± 0.003 | -1.1 |  | 0% |
+| none (sequential) | dyck | 64.0 | -0.002 ± 0.004 | -0.4 |  | 5% |
+| none (sequential) | forbidden | 64.0 | +0.006 ± 0.007 | +0.9 |  | 0% |
+| none (sequential) | window | 64.0 | +0.001 ± 0.002 | +0.7 |  | 10% |
+| none (sequential) | two_window | 64.0 | -0.005 ± 0.003 | -1.8 |  | 5% |
+| B = 0.03 | counting | 13.6 | +0.016 ± 0.004 | +4.4 | 0.5 | 14% |
+| B = 0.03 | dyck | 13.2 | -0.005 ± 0.005 | -1.0 | 0.2 | 14% |
+| B = 0.03 | forbidden | 16.4 | -0.053 ± 0.009 | -6.2 | 1.8 | 24% |
+| B = 0.03 | window | 14.3 | -0.005 ± 0.002 | -2.6 | 0.2 | 14% |
+| B = 0.03 | two_window | 14.5 | -0.007 ± 0.002 | -3.0 | 0.2 | 5% |
+| B = 0.3 | counting | 8.5 | +0.066 ± 0.003 | +19.0 | 0.2 | 67% |
+| B = 0.3 | dyck | 7.6 | -0.016 ± 0.005 | -3.1 | 0.1 | 76% |
+| B = 0.3 | forbidden | 10.5 | -0.387 ± 0.011 | -36.3 | 1.3 | 100% |
+| B = 0.3 | window | 8.6 | -0.068 ± 0.003 | -24.0 | 0.2 | 76% |
+| B = 0.3 | two_window | 8.7 | -0.031 ± 0.003 | -11.9 | 0.1 | 52% |
+
+- The sequential arms are unbiased within noise, as they must be.
+- At B = 0.03 the bias is at most 1.6% on four constraints and 5.3% on forbidden, at 13 to 16 calls instead of 64.
+- At B = 0.3 it is 2 to 7% on four constraints and 0.39 nats on forbidden (the estimate is 0.68 of p(C)), at 8 to 10 calls.
+- In nats the bias is 0.1 to 0.5 of the budget, except on forbidden, where it is 1.3 to 1.8 times the budget.
+- Pooling hides biases of opposite sign between orders: on Dyck at B = 0.3 individual orders are off by +14% and -14%
+  (section 36i), which pools to -1.6%.
+- Why forbidden exceeds its budget is examined below: the conditioned sequences are unusually regular, so they
+  realise several times the model's average dependence.
+
+**Where the bias comes from (added the same day).** Each run records, per particle, the gap r = log of the true
+joint over the schedule's law. Since the sampler is exact for the schedule's law, the bias is
+log(estimate / p(C)) = -log E[exp r] over the weighted particles, which is about -(mean of r + half its variance).
+Pooled over chains and orders:
+
+| budget | constraint | mean gap | half variance | predicted log bias | measured |
+|---|---|---|---|---|---|
+| B = 0.03 | counting | -0.036 | 0.017 | +0.020 | +0.012 |
+| B = 0.03 | dyck | -0.008 | 0.016 | -0.009 | -0.008 |
+| B = 0.03 | forbidden | +0.048 | 0.006 | -0.054 | -0.051 |
+| B = 0.03 | window | -0.005 | 0.013 | -0.008 | -0.004 |
+| B = 0.03 | two_window | -0.007 | 0.014 | -0.007 | -0.005 |
+| B = 0.3 | counting | -0.270 | 0.204 | +0.066 | +0.055 |
+| B = 0.3 | dyck | -0.181 | 0.202 | -0.020 | -0.009 |
+| B = 0.3 | forbidden | +0.275 | 0.092 | -0.367 | -0.381 |
+| B = 0.3 | window | -0.100 | 0.170 | -0.070 | -0.071 |
+| B = 0.3 | two_window | -0.157 | 0.192 | -0.035 | -0.035 |
+
+- The identity closes to about 0.01 nats on the pooled values (per arm: median 0.006 to 0.065, largest 0.16).
+- With no constraint, mean and half-variance cancel exactly. On four constraints they still nearly cancel. On
+  forbidden the mean is positive: sequences that satisfy the constraint are more probable under the true joint than
+  under the schedule's law, so the parallel sampler under-produces them. The excess is a shift of the mean, not spread.
+- Constraint-induced linkage among co-revealed positions cannot bias the estimate by itself [derived]: with an
+  independent model the schedule's law equals the joint for any schedule. It costs weight variance and dead particles.
+
+**Motif test (local, `hidden_0.85`, constraint-first order, 100 runs x 16 particles, one arm per cell;
+`results/parallel_unmasking/motif_N64.json`).** The standard forbidden cell bans two motifs of length 2. Variants:
+the same kind of motif at lengths 3 and 4, and each length-2 motif alone.
+
+| motifs banned | log 1/p(C) | calls, B = 0.3 | log bias, B = 0.3 | mean gap | half variance | shift = mean + half variance | log bias, B = 0.03 | sequential (should be 0) |
+|---|---|---|---|---|---|---|---|---|
+| 00, 12 | 10.54 | 12.9 | -0.294 ± 0.055 | +0.265 | 0.076 | +0.341 | -0.071 ± 0.032 | -0.001 ± 0.031 |
+| 000, 121 | 3.67 | 11.0 | -0.150 ± 0.051 | +0.014 | 0.176 | +0.190 | -0.009 ± 0.041 | +0.089 ± 0.041 |
+| 0000, 1212 | 1.95 | 10.8 | -0.110 ± 0.030 | -0.135 | 0.191 | +0.056 | -0.025 ± 0.026 | +0.072 ± 0.031 |
+| 00 | 3.12 | 8.4 | -0.254 ± 0.028 | +0.072 | 0.170 | +0.242 | -0.024 ± 0.019 | +0.014 ± 0.021 |
+| 12 | 4.25 | 10.2 | -0.161 ± 0.019 | -0.033 | 0.203 | +0.170 | +0.004 ± 0.022 | +0.028 ± 0.021 |
+
+- The bias at B = 0.3 falls with motif length: -0.29, -0.15, -0.11. Only length 2 against length 4 is resolved
+  (2.9 standard errors).
+- Rarity is not the explanation: banning the repeat "00" alone is as biased as the standard cell (-0.25 against
+  -0.29, not resolved apart) although it is far less rare (3.1 against 10.5 nats). It is more biased than banning the
+  switch "12" alone (2.7 standard errors).
+- The length trend does not separate explanations: a longer motif links more positions but less hard (user), and it
+  is also less rare. Rarity alone is ruled out by the repeat motif. The regularity measurement below gives the
+  mechanism for the standard cell.
+- Caution: two of the five sequential controls sit 2.2 and 2.3 standard errors from zero, where they must be zero, so
+  these standard errors are somewhat too small.
+
+**Are the conditioned sequences unusually regular? Yes** (`experiments/parallel_unmasking/regularity_check.py`,
+`results/parallel_unmasking/regularity_N64.json`; 40,000 exact draws from p(. | C) and from the model, `hidden_0.85`,
+64 positions, 3 symbols). "Model dependence realised" is the model's pointwise log dependence
+log p(a, b) / (p(a) p(b)) for a pair of tokens at the given distance, averaged over the conditioned sequences and
+divided by its average under the model (the mutual information: 0.0601, 0.0168, 0.0013 nats at distances 4, 8, 16).
+
+| motifs banned | log 1/p(C) | allowed set, entropy as a share of log 3 | symbol frequencies | adjacent agreement | mean run length | agreement at distance 8 | at 16 | model dependence realised, as a multiple of its average, at distance 4 | at 8 | at 16 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| none (the model) | 0.00 | 1.000 | 0.30, 0.30, 0.40 | 0.612 | 2.51 | 0.426 | 0.363 | 1.0 | 1.0 | 1.0 |
+| 00, 12 | 10.54 | 0.742 | 0.12, 0.32, 0.57 | 0.743 | 3.72 | 0.628 | 0.544 | 2.8 | 4.8 | 13.3 |
+| 000, 121 | 3.67 | 0.939 | 0.13, 0.26, 0.61 | 0.643 | 2.72 | 0.515 | 0.475 | 1.3 | 2.1 | 6.9 |
+| 0000, 1212 | 1.95 | 0.982 | 0.15, 0.36, 0.49 | 0.616 | 2.54 | 0.467 | 0.415 | 1.1 | 1.6 | 4.0 |
+| 00 | 3.12 | 0.916 | 0.09, 0.39, 0.52 | 0.629 | 2.62 | 0.517 | 0.462 | 1.6 | 2.6 | 7.5 |
+| 12 | 4.25 | 0.878 | 0.53, 0.20, 0.28 | 0.670 | 2.94 | 0.486 | 0.420 | 1.9 | 2.8 | 7.7 |
+
+- With 2 symbols and one switch banned, only n + 1 = 65 of 2^64 sequences are allowed, all of them two runs. With 3
+  symbols and 2 of 9 pairs banned the allowed set is still exponentially large (entropy 0.74 of log 3 per position).
+- The conditioned law is nevertheless far more regular than the model, because the model's weights concentrate it on
+  the run-like part of the allowed set: symbol 0 falls from 30% to 12%, adjacent agreement rises from 0.61 to 0.74
+  although one repeat is banned, the mean run lengthens from 2.5 to 3.7, and tokens 16 apart agree 54% of the time
+  against 36%.
+- On those sequences the model's dependence between tokens 4 to 16 apart is 2.8 to 13.3 times its average. The
+  schedule's kernel is that average, so its budget under-counts the dependence among positions revealed together.
+  This is the mean shift of the gap seen above.
+- The variants order the same way for motif length (standard cell most, lengths 3 and 4 least), matching their biases.
+  The two single motifs do not: the switch alone shows more excess than the repeat alone but less bias. So this
+  context-free measure (pairs with nothing revealed around them) is not the whole account.
+- Correction: an earlier version of this section said the "unusually regular sequences" explanation was not
+  supported and that banning a repeat does not make sequences more run-like. Neither had been measured; both are
+  contradicted here (banning "00" alone raises agreement at distance 8 from 0.43 to 0.52).
+
+**Decision (user, 2026-11-16).** Treat this as a known failure mode and do not pursue it now: a 3-symbol alphabet with
+length-2 motifs that oppose the model's agreement pressure is not a realistic setting; realistic motifs are longer and
+alphabets larger. Warning sign to keep: a constraint that opposes the model's strongest local dependence, so that
+conditioning makes sequences much more regular than the model's own samples. Not built: a kernel measured on
+constrained samples, or a budget rescaled by the constraint's effect on long-range agreement.
+
+Relative RMS error of the estimate of p(C) at equal total denoiser calls, constraint-first order, geometric mean over
+chains; lower is better. Error squared = bias squared (noise-corrected) + spread squared scaled to the number of
+particles the budget buys. First three columns: the calls that 16 sequential particles cost; last three: 16 times that.
+
+| constraint | sequential | B = 0.03 | B = 0.3 | sequential, 16x calls | B = 0.03, 16x | B = 0.3, 16x |
+|---|---|---|---|---|---|---|
+| counting | 0.269 | 0.085 | 0.091 | 0.067 | 0.037 | 0.055 |
+| dyck | 0.231 | 0.110 | 0.158 | 0.058 | 0.030 | 0.117 |
+| forbidden | 0.272 | 0.265 | 0.406 | 0.068 | 0.087 | 0.325 |
+| window | 0.089 | 0.043 | 0.109 | 0.022 | 0.014 | 0.097 |
+| two_window | 0.090 | 0.037 | 0.051 | 0.022 | 0.014 | 0.037 |
+
+- B = 0.03 is at or below the sequential error on four of five constraints at both budgets; on forbidden it is level
+  at the smaller budget and worse at the larger.
+- B = 0.3 is worse than sequential at the larger budget on four of five constraints (counting is the exception).
+- This is the estimate of p(C) only. Sample quality needs enough particles that noise sits below the bias; not run.
+- Consequence for reporting: `cost` (calls x spread squared) ignores this bias and must not be used alone to rank
+  budgeted arms.
+
+## 36n. Selection as planning on pair costs: formulation and first check (2026-11-16) [formulation derived; check verified at N = 64]
+
+**Objective (user and assistant, 2026-11-16).** Maximum accuracy at a fixed compute budget. With K particles and T
+steps the compute is K T, and the variance of the estimate is about (exp(kappa E) - 1) / K, where E is the KL
+divergence of one particle's path from the target and kappa is about 2.4 here (section 36i). At a fixed budget the
+quantity to minimise is therefore T (exp(kappa E) - 1), which for small E is T x E: steps times total error. No price
+per step is tuned. The exchange rate is implied: saving a step is worth an extra error of up to E / T, the current
+average error per step (for large E, about 1 / (kappa T)). Since T is the sum over reveals of 1 / (positions revealed
+in that step), the compute can be charged per reveal as its share of a call; the errors themselves add and are not
+divided. The co-reveal bias is not reduced by more particles, so it is budgeted against the target accuracy and is
+the one place the operating point enters. [derived; untested]
+
+**Total error is additive** (section 36b; rechecked in 36i): for one token per step, KL(sampler || target) is the
+expected sum of the per-step errors, for any order that depends only on what is revealed. In `_propose`
+(`twistroute/decode/twist.py`) the classes of all positions revealed in a step are read from one joint draw of the
+route, so the constraint's own coupling within a step is handled by the sampler, and the reveal set is chosen without
+seeing that draw.
+
+**Pair picture [derived at leading order].** Revealing i while j is masked costs
+c(i before j) = 1/2 Var over the class a at i of E[rho_j(x_j) | x_i = a], with rho_j the constrained over the model
+marginal at j. It is zero if j has no stake or is independent of i. The two mechanisms are two properties of c:
+asymmetry (an unconstrained position revealed before a constrained one it depends on pays; the reverse is free), and
+screening (c shrinks when something between the pair is revealed, which is a separator's value). A forced position
+has zero cost against every partner. Pairs revealed together pay the model's dependence, which is the bias.
+
+**First check** (`experiments/parallel_unmasking/pair_cost_check.py`, `results/parallel_unmasking/pair_cost_N64.json`):
+`hidden_0.85`, 64 positions, 60 exact constrained states at four reveal fractions, every unforced masked position
+(about 9,000 per constraint). Unlike section 36g, positions are not restricted to those carrying a stake and their
+immediate neighbours. `pair` is the sum of c over masked j. `lookahead` re-evaluates the product twist at the
+successor state. `exact update` takes the model's marginals after the reveal from the model (tests the derivation);
+`kernel update` multiplies the current marginals by the model's unconditional pair ratio at that distance, with no
+screening by revealed tokens (a first cut at what a pilot kernel would give).
+
+Rank correlation with the true cost within a state, 1 is the same ranking:
+
+| constraint | pair, exact update | lookahead, exact update | pair, kernel update | chain twist (section 36g) |
+|---|---|---|---|---|
+| counting | 0.21 | 0.22 | 0.23 | 0.06 |
+| dyck | 0.42 | 0.37 | 0.38 | 0.46 |
+| forbidden | 0.83 | 0.94 | 0.62 | 0.80 |
+| window | 0.92 | 0.98 | 0.88 | 0.28 |
+| two_window | 0.86 | 0.93 | 0.79 | 0.27 |
+
+Median of estimate over true cost on the costlier half of positions, 1 is the right size:
+
+| constraint | pair, exact update | lookahead, exact update | pair, kernel update | chain twist |
+|---|---|---|---|---|
+| counting | 1.31 | 12.48 | 2.94 | 0.45 |
+| dyck | 0.40 | 2.94 | 1.03 | 0.23 |
+| forbidden | 0.28 | 2.74 | 1.80 | 1.88 |
+| window | 0.72 | 3.69 | 6753.48 | 0.72 |
+| two_window | 0.75 | 2.09 | 110.48 | 0.20 |
+
+True cost at the position each rule would reveal next, nats x 1000, lower is better:
+
+| constraint | ideal | pair, exact update | lookahead, exact update | pair, kernel update | chain twist | lowest entropy | random |
+|---|---|---|---|---|---|---|---|
+| counting | 0.10 | 4.40 | 4.62 | 3.85 | 3.08 | 2.72 | 3.28 |
+| dyck | 0.06 | 10.03 | 15.39 | 10.60 | 5.92 | 9.26 | 16.15 |
+| forbidden | 0.90 | 2.01 | 2.28 | 6.35 | 6.04 | 4.55 | 36.24 |
+| window | 0.00 | 0.00 | 0.00 | 0.00 | 0.26 | 3.81 | 8.28 |
+| two_window | 0.12 | 0.56 | 0.45 | 0.66 | 3.02 | 5.26 | 15.22 |
+
+Windows by distance from the window (inside, within 6, farther), mean cost in nats x 1000:
+
+| constraint | revealed | true: inside, near, far | pair, exact update | pair, kernel update | chain twist |
+|---|---|---|---|---|---|
+| window | 10% | 20.2, 68.7, 2.2 | 155.2, 65.9, 2.0 | 192.3, 94.4, 4.2 | 29.5, 9.1, 1.4 |
+| window | 25% | 14.1, 27.2, 0.4 | 68.4, 22.7, 0.3 | 108.3, 47.7, 2.0 | 19.9, 6.2, 1.8 |
+| window | 50% | 5.8, 3.9, 0.0 | 6.9, 2.8, 0.0 | 13.1, 9.9, 0.4 | 12.3, 3.5, 1.3 |
+| window | 75% | 1.3, 1.0, 0.0 | 0.4, 1.1, 0.0 | 1.6, 6.4, 0.3 | 4.7, 0.8, 0.6 |
+| two_window | 10% | 21.9, 62.8, 6.1 | 92.8, 49.8, 4.1 | 107.4, 63.9, 7.5 | 20.5, 9.4, 1.4 |
+| two_window | 25% | 19.6, 34.8, 1.7 | 46.0, 23.8, 1.0 | 67.9, 44.8, 5.1 | 22.2, 7.8, 1.8 |
+| two_window | 50% | 10.1, 7.4, 0.2 | 11.0, 5.2, 0.1 | 21.1, 13.4, 1.7 | 13.3, 4.0, 1.2 |
+| two_window | 75% | 2.3, 0.6, 0.0 | 2.5, 0.5, 0.0 | 22.0, 5.1, 0.8 | 10.3, 0.9, 0.5 |
+
+Median of the kernel-update pair estimate over the true cost, by fraction revealed:
+
+| constraint | 10% revealed | 25% | 50% | 75% |
+|---|---|---|---|---|
+| counting | 3.88 | 2.69 | 2.03 | 2.23 |
+| dyck | 0.60 | 0.97 | 1.57 | 1.71 |
+| forbidden | 0.26 | 0.68 | 2.00 | 10.77 |
+| window | 1.86 | 6.89 | 36.98 | 68996.92 |
+| two_window | 1.02 | 1.92 | 9.13 | 1095.65 |
+
+- The asymmetric cost is predicted well: for unconstrained positions near a window the pair estimate with the exact
+  update is 0.68 to 1.06 of the true mean across the four fractions and both window constraints. The chain twist's
+  estimate there is 4 to 8 times too small at 10 to 25% revealed.
+- For positions inside the window the pair estimate is 2 to 8 times too large at 10 to 25% revealed and about right
+  at 50%. It uses the
+  constraint ratio at j before i's own class is fixed; the ratio conditional on that class is the correction to try.
+- Ranking within a state is good on the local constraints (0.83 to 0.98) and poor on the global ones (0.2 to 0.4), as
+  expected of a pairwise account. On counting its next pick is worse than a random one; on Dyck it is better than random but worse than the chain
+  twist's.
+- The lookahead estimate ranks slightly better but is 2 to 12 times too large: re-evaluating a mean-field twist after
+  updating every marginal counts shared dependence several times.
+- The size is off by a constraint-dependent factor (0.28 on forbidden, 1.3 on counting), so sums over a plan are not
+  yet comparable across constraints.
+- The kernel update without screening is usable when little is revealed and fails progressively after that. A kernel
+  that conditions on what lies between is needed before this can run without the model's exact update.
+- Open: on counting the ideal pick is about 30 times cheaper than a random one and no estimator finds it.
+
+**Two fixes and a diagnostic (later the same day; `results/parallel_unmasking/pair_cost2_N64.json`).** The constraint
+ratio at j is now also taken after position i is fixed at the candidate class ("conditioned ratio"; one route pass per
+position and class), and the kernel update is screened: the log pair ratio is scaled by
+sqrt(kernel given what is revealed in between / unscreened kernel), from the pilot kernel.
+
+Rank correlation with the true cost within a state:
+
+| constraint | pair, exact update | pair with conditioned ratio, exact update | pair with conditioned ratio, screened kernel | lookahead, exact update | chain twist |
+|---|---|---|---|---|---|
+| counting | 0.21 | 0.20 | 0.18 | 0.22 | 0.06 |
+| dyck | 0.42 | 0.43 | 0.40 | 0.37 | 0.46 |
+| forbidden | 0.83 | 0.95 | 0.90 | 0.94 | 0.80 |
+| window | 0.92 | 0.92 | 0.89 | 0.98 | 0.28 |
+| two_window | 0.86 | 0.86 | 0.81 | 0.93 | 0.27 |
+
+Median of estimate over true cost on the costlier half of positions:
+
+| constraint | pair, exact update | pair with conditioned ratio, exact update | pair with conditioned ratio, screened kernel | lookahead, exact update | chain twist |
+|---|---|---|---|---|---|
+| counting | 1.31 | 1.30 | 1.90 | 12.48 | 0.45 |
+| dyck | 0.40 | 0.44 | 0.66 | 2.94 | 0.23 |
+| forbidden | 0.28 | 0.75 | 2.08 | 2.74 | 1.88 |
+| window | 0.72 | 0.77 | 12.50 | 3.69 | 0.72 |
+| two_window | 0.75 | 0.77 | 3.23 | 2.09 | 0.20 |
+
+True cost at the next pick, nats x 1000:
+
+| constraint | ideal | pair, exact update | conditioned ratio, exact update | conditioned ratio, screened kernel | chain twist | lowest entropy | random |
+|---|---|---|---|---|---|---|---|
+| counting | 0.10 | 4.40 | 4.54 | 4.06 | 3.08 | 2.72 | 3.28 |
+| dyck | 0.06 | 10.03 | 11.09 | 11.37 | 5.92 | 9.26 | 16.15 |
+| forbidden | 0.90 | 2.01 | 2.56 | 2.48 | 6.04 | 4.55 | 36.24 |
+| window | 0.00 | 0.00 | 0.00 | 0.00 | 0.26 | 3.81 | 8.28 |
+| two_window | 0.12 | 0.56 | 0.56 | 0.59 | 3.02 | 5.26 | 15.22 |
+
+Windows by distance from the window (inside, within 6, farther), mean cost in nats x 1000:
+
+| constraint | revealed | true: inside, near, far | conditioned ratio, exact update | conditioned ratio, screened kernel |
+|---|---|---|---|---|
+| window | 10% | 20.2, 68.7, 2.2 | 164.7, 65.9, 2.0 | 192.7, 75.8, 2.3 |
+| window | 25% | 14.1, 27.2, 0.4 | 74.1, 22.7, 0.3 | 104.7, 30.5, 0.3 |
+| window | 50% | 5.8, 3.9, 0.0 | 9.7, 2.8, 0.0 | 13.4, 4.4, 0.0 |
+| window | 75% | 1.3, 1.0, 0.0 | 0.9, 1.1, 0.0 | 1.6, 1.2, 0.0 |
+| two_window | 10% | 21.9, 62.8, 6.1 | 93.7, 49.8, 4.1 | 107.1, 56.3, 4.4 |
+| two_window | 25% | 19.6, 34.8, 1.7 | 47.2, 23.8, 1.0 | 65.3, 30.1, 1.4 |
+| two_window | 50% | 10.1, 7.4, 0.2 | 10.7, 5.2, 0.1 | 17.3, 6.2, 0.1 |
+| two_window | 75% | 2.3, 0.6, 0.0 | 2.3, 0.5, 0.0 | 14.5, 0.9, 0.0 |
+
+- The conditioned ratio fixes forbidden: rank 0.83 to 0.95, size 0.28 to 0.75, tenfold underestimates 11% to 0%.
+- It does not fix the overestimate inside the window, so that explanation was wrong (see the collective term below).
+- With the screened pilot kernel and no denoiser call, mean costs near the window are 0.84 to 1.13 of the truth at
+  10 to 50% revealed (up to 1.6 at 75%, where the costs are about 1e-3 nats). The next pick costs 0.00 on the window
+  (ideal 0.00), 0.59 on two windows (ideal 0.12, random 15.2) and 2.48 on forbidden (ideal 0.90, random 36.2).
+  The median ratio is still large late in a decode, where the true costs are below 1e-3 nats.
+- Counting and Dyck are unchanged.
+- Is the cost a common over- or under-reaction of the twist? Fitted slope of the true log tilt on the product twist's
+  (1 = the twist's tilt is right), median [quartiles]; interquartile range within a state:
+
+| constraint | 10% revealed | 25% | 50% | 75% |
+|---|---|---|---|---|
+| counting | 0.97 [0.62, 1.34]; 0.67 | 0.90 [0.55, 1.33]; 0.69 | 0.86 [0.66, 1.22]; 0.49 | 0.95 [0.83, 1.14]; 0.28 |
+| dyck | 1.65 [0.43, 2.40]; 1.68 | 1.23 [0.44, 1.82]; 1.30 | 1.01 [0.73, 1.44]; 0.62 | 0.98 [0.82, 1.19]; 0.29 |
+| forbidden | 1.45 [1.04, 2.08]; 1.02 | 1.17 [0.75, 1.51]; 0.75 | 1.03 [0.39, 1.14]; 0.69 | 1.01 [0.49, 1.08]; 0.84 |
+| window | 1.30 [1.16, 1.39]; 0.21 | 1.25 [1.09, 1.41]; 0.22 | 1.24 [1.08, 1.42]; 0.22 | 1.08 [1.01, 1.21]; 0.20 |
+| two_window | 1.20 [1.01, 1.41]; 0.36 | 1.20 [0.91, 1.44]; 0.52 | 1.17 [0.97, 1.40]; 0.32 | 1.05 [1.00, 1.17]; 0.12 |
+
+  On the windows the factor is consistent (1.05 to 1.3 with a narrow range: the twist under-reacts). On counting
+  it varies widely between positions of one state, so no single factor explains the cost there.
+
+## 36o. The missing term on a sum constraint: mean shift and spread together (2026-11-16) [verified on counting at N = 64]
+
+`experiments/parallel_unmasking/collective_check.py`, `results/parallel_unmasking/collective_N64.json`; counting
+(exactly k of 64 positions are class 0), `hidden_0.85`, 60 states, exact one-step updates.
+
+**Derivation.** Revealing i as class a leaves the other masked positions to supply k_a zeros. The exact conditional is
+pi_i(a) proportional to p_i(a) P(S = k_a | x_i = a), S the number of zeros among the others. The product twist uses an
+independent sum at the current marginals, which is wrong in two ways with opposite signs: the mean (a zero at i raises
+the others' expected count, by position i's influence) and the spread (the true count is more dispersed; the ratio of
+variances, VIF, minus 1 is the variance-weighted average influence over positions). To leading order the error in the
+log odds at i is proportional to (influence of i - average influence): positions with typical coupling are cheap, and
+both weakly and strongly coupled ones are dear. `both` predicts pi_i with a normal count using the shifted mean and
+the inflated variance; `closed form` is 1/2 q_i(0)(1 - q_i(0)) (slope x (influence_i - (VIF - 1)))^2.
+
+| revealed | spread ratio (VIF) | influence, median [10%, 90%] | rank: mean only | spread only | both | closed form | size, both | next pick x1000: ideal | both | closed form | random |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10% | 4.21 | 3.10 [1.35, 4.56] | 0.17 | 0.09 | 0.23 | 0.35 | 0.61 | 0.05 | 2.18 | 1.03 | 2.06 |
+| 25% | 2.74 | 1.55 [0.41, 3.11] | 0.32 | 0.22 | 0.57 | 0.43 | 0.61 | 0.21 | 1.34 | 1.26 | 4.59 |
+| 50% | 1.64 | 0.48 [0.05, 1.44] | 0.32 | 0.24 | 0.68 | 0.51 | 0.72 | 0.17 | 0.65 | 0.70 | 2.78 |
+| 75% | 1.18 | 0.10 [0.00, 0.48] | 0.32 | 0.25 | 0.45 | 0.53 | 0.70 | 0.15 | 0.81 | 0.60 | 2.59 |
+
+- The independent sum understates the count's variance by a factor of 4.2 when 10% is revealed and 1.2 at 75%.
+- Neither error alone ranks positions (0.09 to 0.32, like the pair account's 0.21); together they reach 0.57 to 0.68
+  in the middle of a decode. Early (10% revealed) the account is still weak.
+- The mean shift alone is 23 times too large early: this is the overshoot of the lookahead estimate in section 36n,
+  and of the pair estimate inside a window.
+- The next pick under the closed form is 2 to 4 times cheaper than a random one at every fraction, and still 4 to 20
+  times dearer than the ideal.
+- Reading for the two mechanisms: on a sum constraint the dominant saving from revealing well-connected positions
+  early is that it lowers the spread ratio for every later reveal. That fits the order study (section 36i), where
+  `sum` and `separator` were the best orders on counting and lowest entropy the worst.
+- General form this points to: the cost of revealing i is KL(q_i || the tilt under a twist that is right to second
+  order, in mean and in spread, evaluated at the successor). The pair term is its mean part.
+- Not done: the same with kernel inputs; Dyck (a running-sum constraint); a general second-order twist for automata.
+
+## 36p. Order consistency of MDLM (cluster job `b1ffcca2`, one L40S on node3203, 2026-11-16) [measured; samples not inspected]
+
+`experiments/parallel_unmasking/mdlm_order_consistency.py` at `cc24eb5`,
+`results/parallel_unmasking/mdlm_order_consistency.json`. 32 sequences drawn from the model one token per step in a
+random order; each scored under 16 further random orders, left-to-right and right-to-left. p_sigma(x) is the product
+of the model's one-token conditionals along order sigma. All in nats per sequence, mean ± s.e. over sequences.
+
+| tokens | -log p per token, other orders | sd of log p over random orders | gap to the random-order mixture | own order minus other orders | left-to-right minus random | right-to-left minus random |
+|---|---|---|---|---|---|---|
+| 32 | 3.16 | 9.7 ± 1.0 | 13.3 ± 1.5 | +38.1 ± 4.1 | +4.1 ± 1.4 | +1.3 ± 1.8 |
+| 64 | 3.16 | 14.4 ± 1.4 | 19.3 ± 2.0 | +67.0 ± 6.8 | -0.1 ± 2.6 | -10.4 ± 3.1 |
+| 128 | 3.74 | 16.2 ± 1.3 | 23.2 ± 1.9 | +102.1 ± 6.9 | +0.7 ± 3.7 | -19.9 ± 4.3 |
+
+- Check of the script: on the exact hidden-chain model every quantity is zero (spread 1e-7 on the cluster).
+- A sequence is 38, 67 and 102 nats more probable under the order that generated it than under another random
+  order, about one nat per token. Averaged over samples, that difference is the KL divergence from the law of one
+  order to the law of another. It is two orders of magnitude above the errors optimised elsewhere in this document.
+- Among orders that did not generate the sequence, log p varies with a standard deviation of 10 to 16 nats.
+- Left-to-right is level with a random order at 64 and 128 tokens and 4 nats higher at 32; right-to-left is lower by
+  10 to 20 nats at 64 and 128 tokens.
+- Caveats that could change the size: the sequences are unconditional samples at 32 to 128 tokens from a checkpoint
+  trained at 1,024; they were not saved, so it is not known whether they are degenerate; the mean entropy along the
+  generating order (about 2.1 nats per token) is low. No real text was scored.
+- If it holds on realistic text, the choice of order matters far more on this model than any schedule error
+  measured so far, and a constraint-aware order samples a law far from the random-order reference (section 36m).
+- Next (needs a GPU): save the samples and per-step entropies, score real text and prompted samples, lengths to 1,024.
+
+## 36q. Where along a decode each order pays: counting and Dyck (local, 2026-11-16) [verified at N = 64, one hidden chain]
+
+Script `experiments/parallel_unmasking/counting_orders.py`; results `results/parallel_unmasking/order_study/{counting,dyck}_orders_N64.json`.
+`hidden_0.85`, 64 positions, 300 particles, one token per step. KL is the divergence of the sampler's law from the exact
+constrained law in nats (lower is better), as the sum over steps of the true error at the revealed position. The spread
+ratio is Var(number of class-0 tokens still to come) / (the same variance if the masked positions were independent);
+1 means the product twist's picture of the remaining count is right.
+
+**counting** (log p(C) = -3.24)
+
+| order | KL | paid in quarter 1 | 2 | 3 | 4 | spread ratio at step 0 | 8 | 16 | 32 | 48 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| random | 0.180 | 0.041 | 0.063 | 0.052 | 0.025 | 5.85 | 3.81 | 2.77 | 1.71 | 1.24 |
+| lex | 0.204 | 0.040 | 0.110 | 0.050 | 0.003 | 5.85 | 4.25 | 3.39 | 2.04 | 1.14 |
+| separator | 0.136 | 0.043 | 0.065 | 0.026 | 0.002 | 5.85 | 3.36 | 2.29 | 1.37 | 1.05 |
+| sum | 0.123 | 0.042 | 0.057 | 0.023 | 0.001 | 5.85 | 3.35 | 2.28 | 1.37 | 1.05 |
+| cheapest | 0.191 | 0.003 | 0.023 | 0.054 | 0.111 | 5.85 | 4.11 | 3.47 | 2.75 | 2.09 |
+| centred | 0.255 | 0.016 | 0.042 | 0.081 | 0.117 | 5.85 | 3.87 | 2.86 | 2.01 | 1.61 |
+
+**dyck** (log p(C) = -5.82)
+
+| order | KL | paid in quarter 1 | 2 | 3 | 4 | spread ratio at step 0 | 8 | 16 | 32 | 48 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| random | 0.642 | 0.342 | 0.181 | 0.085 | 0.033 | 5.97 | 4.12 | 2.93 | 1.82 | 1.28 |
+| lex | 0.586 | 0.218 | 0.146 | 0.129 | 0.094 | 5.97 | 5.52 | 5.17 | 4.04 | 2.12 |
+| separator | 0.594 | 0.399 | 0.151 | 0.040 | 0.003 | 5.97 | 3.68 | 2.47 | 1.45 | 1.07 |
+| sum | 0.599 | 0.403 | 0.152 | 0.040 | 0.004 | 5.97 | 3.74 | 2.56 | 1.55 | 1.12 |
+| cheapest | 0.262 | 0.018 | 0.034 | 0.081 | 0.129 | 5.97 | 4.68 | 4.18 | 3.40 | 2.42 |
+
+- `cheapest` is the ideal greedy order (lowest true error now, needs the exact twist); `centred` is greedy on the closed form of section 36o.
+- Counting: `sum` and `separator` pay as much as random early and almost nothing in the last quarter, and they bring the
+  spread ratio down fastest. The ideal greedy order pays almost nothing early and most of its error in the last quarter:
+  it never lowers the spread ratio. On this constraint the whole gain is investing early.
+- Dyck: the ideal greedy order has less than half the KL of every other order. `separator` and `sum` again shift the
+  error to the first quarter, but the total is no lower than left-to-right (`lex`).
+- So the two whole-sequence constraints disagree about greedy, and neither is explained by one fixed recipe.
+
+## 36r. One step of planning on the present cost estimates (local, 2026-11-16) [verified at N = 32; 64 particles, noisy]
+
+Script `experiments/parallel_unmasking/plan_check.py`; results `results/parallel_unmasking/order_study/plan_*_N32.json`.
+An estimate c_j(x) of the cost of revealing j is used greedily (lowest c_i now) or with one step of planning (lowest
+c_i(x) + E_a sum_j c_j(x with i = a)). Estimates: the closed form of section 36o on counting, the pair cost of section 36n
+elsewhere; both use the model's exact one-step update. KL in nats, lower is better; 64 particles, so differences under
+about 20% are not resolved.
+
+| constraint | random | lex | separator | sum | ideal greedy | greedy on estimate | plan on estimate |
+|---|---|---|---|---|---|---|---|
+| counting | 0.200 | 0.188 | 0.115 | 0.103 | 0.124 | 0.134 | 0.159 |
+| window | 0.410 | 0.078 | 0.373 | 0.095 | 0.044 | 0.675 | 0.077 |
+| two_window | 0.801 | 0.090 | 0.582 | 0.115 | 0.229 | 1.286 | 0.146 |
+| forbidden | 1.420 | 0.378 | 2.259 | 0.589 | 0.368 | 0.491 | 0.366 |
+
+- Windows and forbidden: greedy use of the pair estimate is poor on the windows (9 and 14 times `lex`). One step of
+  planning on the same estimate brings it level with `lex` on window and forbidden and to 1.6 times `lex` on two_window.
+- Counting: planning on the closed form is no better than its greedy use, and both lose to `sum`.
+
+## 36s. The ideal order, exactly (local, 2026-11-16) [verified against brute-force enumeration; 10 to 12 positions]
+
+Script `experiments/parallel_unmasking/best_plan_exact.py`; results `results/parallel_unmasking/order_study/best_plan_*.json`.
+At 10 positions with 3 symbols (12 with 2) every partially revealed state can be tabulated (about one million states).
+With the true error eps_i(x) at every state, the best state-dependent order solves
+V(x) = min_i [ eps_i(x) + sum_a q_i(a | x) V(x with i = a) ] in one backward pass, and the same pass gives the exact KL
+of any other rule: no sampling noise. Check: the pass reproduces the KL of the left-to-right sampler computed by
+enumerating all sequences, to six decimals, on counting, Dyck, window and forbidden at 6 to 8 positions.
+`window_small`: at least 3 of the 4 middle positions are class 0; `two_window_small`: the same over two pairs.
+
+Exact KL of the sampler from the constrained law, nats, lower is better.
+
+| rule | counting, hidden_0.85, N=10 | counting, chain_0.85, N=10 | dyck, hidden_0.85, N=12 | dyck, chain_0.85, N=12 | window_small, hidden_0.85, N=10 | two_window_small, hidden_0.85, N=10 | forbidden, hidden_0.85, N=10 |
+|---|---|---|---|---|---|---|---|
+| best state-dependent order | 0.0232 | 0.2572 | 0.0748 | 0.7932 | 0.0239 | 0.0261 | 0.1630 |
+| error now + exact cost of finishing greedily | 0.0299 | 0.2845 | 0.0844 | 0.9674 | 0.0240 | 0.0349 | 0.1691 |
+| error now + exact cost of finishing in random order | 0.0269 | 0.3045 | 0.0848 | 0.9554 | 0.0240 | 0.0609 | 0.1814 |
+| lookahead on true error, depth 1 | 0.0344 | 0.6946 | 0.0776 | 1.2104 | 0.0250 | 0.0305 | 0.1698 |
+| lookahead on true error, depth 4 | 0.0255 | 0.5659 | 0.0748 | 1.1008 | 0.0239 | 0.0261 | 0.1642 |
+| ideal greedy (lowest true error now) | 0.0422 | 0.9095 | 0.0996 | 1.2935 | 0.0301 | 0.0391 | 0.1800 |
+| lex | 0.0498 | 0.9262 | 0.1028 | 1.4388 | 0.0645 | 0.0502 | 0.1772 |
+| sum | 0.0417 | 0.8378 | 0.1362 | 1.0639 | 0.0589 | 0.0620 | 0.2039 |
+| separator | 0.0449 | 0.7671 | 0.1614 | 1.0405 | 0.1338 | 0.3890 | 0.4041 |
+| greedy on the estimate | 0.0403 | 0.8801 | 0.1759 | 1.8300 | 0.6368 | 0.0514 | 0.1992 |
+| one-step plan on the estimate | 0.0537 | 1.0622 | 0.1188 | 1.4208 | 0.0293 | 0.0682 | 0.1933 |
+| full-depth plan on the estimate | 0.0442 | 1.0237 | 0.1508 | 1.6320 | 0.0257 | 0.0306 | 0.1859 |
+| most tilted first | 0.0491 | 1.0157 | 0.1028 | 1.4388 | 0.0645 | 0.0502 | 0.1772 |
+| least tilted first | 0.0926 | 1.0606 | 0.5937 | 2.8824 | 0.9095 | 1.1655 | 0.6959 |
+| random | 0.0653 | 0.9423 | 0.3447 | 2.8171 | 0.4315 | 0.5776 | 0.3942 |
+| left to right | 0.1015 | 1.3631 | 0.4651 | 3.2454 | 0.4495 | 0.4890 | 0.1792 |
+| worst | 0.1834 | 2.2601 | 0.7837 | 6.4061 | 0.9681 | 1.1897 | 0.7713 |
+
+As a multiple of the optimal KL:
+
+| rule | counting, hidden_0.85, N=10 | counting, chain_0.85, N=10 | dyck, hidden_0.85, N=12 | dyck, chain_0.85, N=12 | window_small, hidden_0.85, N=10 | two_window_small, hidden_0.85, N=10 | forbidden, hidden_0.85, N=10 |
+|---|---|---|---|---|---|---|---|
+| error now + exact cost of finishing greedily | 1.29 | 1.11 | 1.13 | 1.22 | 1.00 | 1.34 | 1.04 |
+| error now + exact cost of finishing in random order | 1.16 | 1.18 | 1.13 | 1.20 | 1.00 | 2.33 | 1.11 |
+| lookahead on true error, depth 1 | 1.48 | 2.70 | 1.04 | 1.53 | 1.04 | 1.17 | 1.04 |
+| lookahead on true error, depth 4 | 1.10 | 2.20 | 1.00 | 1.39 | 1.00 | 1.00 | 1.01 |
+| ideal greedy (lowest true error now) | 1.82 | 3.54 | 1.33 | 1.63 | 1.26 | 1.50 | 1.10 |
+| lex | 2.15 | 3.60 | 1.37 | 1.81 | 2.70 | 1.92 | 1.09 |
+| sum | 1.80 | 3.26 | 1.82 | 1.34 | 2.46 | 2.38 | 1.25 |
+| separator | 1.93 | 2.98 | 2.16 | 1.31 | 5.59 | 14.90 | 2.48 |
+| greedy on the estimate | 1.73 | 3.42 | 2.35 | 2.31 | 26.60 | 1.97 | 1.22 |
+| one-step plan on the estimate | 2.31 | 4.13 | 1.59 | 1.79 | 1.22 | 2.61 | 1.19 |
+| full-depth plan on the estimate | 1.90 | 3.98 | 2.02 | 2.06 | 1.07 | 1.17 | 1.14 |
+| most tilted first | 2.11 | 3.95 | 1.37 | 1.81 | 2.70 | 1.92 | 1.09 |
+| least tilted first | 3.99 | 4.12 | 7.94 | 3.63 | 37.99 | 44.65 | 4.27 |
+| random | 2.81 | 3.66 | 4.61 | 3.55 | 18.02 | 22.13 | 2.42 |
+| left to right | 4.37 | 5.30 | 6.22 | 4.09 | 18.77 | 18.74 | 1.10 |
+| worst | 7.90 | 8.79 | 10.48 | 8.08 | 40.43 | 45.58 | 4.73 |
+
+The estimate is the closed form on counting and the pair cost elsewhere (exact one-step update).
+
+What the optimal order does, by step (expectation under its own sampler). First line: the share of steps where its pick is
+also the cheapest now. Second: error it pays at each step. Third: error the ideal greedy order pays at each step.
+
+```
+counting, hidden_0.85
+  cheapest now   1.00 0.00 0.30 0.34 0.33 0.46 0.77 0.91 1.00 1.00
+  optimal pays   0.0002 0.0026 0.0035 0.0046 0.0057 0.0030 0.0015 0.0016 0.0005 0.0000
+  greedy pays    0.0002 0.0008 0.0016 0.0033 0.0069 0.0053 0.0107 0.0121 0.0013 0.0000
+counting, chain_0.85
+  cheapest now   0.00 0.70 0.02 0.64 0.11 0.32 0.76 0.97 1.00 1.00
+  optimal pays   0.1016 0.0061 0.0230 0.0126 0.0955 0.0052 0.0129 0.0002 0.0000 0.0000
+  greedy pays    0.0214 0.0049 0.0174 0.0300 0.0462 0.0781 0.2021 0.1147 0.3949 0.0000
+dyck, hidden_0.85
+  cheapest now   1.00 1.00 0.00 0.00 0.59 0.55 0.21 0.62 0.26 0.89 1.00 1.00
+  optimal pays   0.0000 0.0000 0.0110 0.0180 0.0090 0.0101 0.0116 0.0068 0.0054 0.0018 0.0012 0.0000
+  greedy pays    0.0000 0.0000 0.0110 0.0087 0.0223 0.0118 0.0135 0.0116 0.0134 0.0064 0.0009 0.0000
+dyck, chain_0.85
+  cheapest now   1.00 0.00 0.56 0.56 0.75 0.26 0.08 0.11 0.38 1.00 1.00 1.00
+  optimal pays   0.0000 0.6200 0.0005 0.0288 0.0395 0.0647 0.0345 0.0038 0.0014 0.0000 0.0000 0.0000
+  greedy pays    0.0000 0.0000 0.1225 0.0864 0.1131 0.0712 0.1114 0.0738 0.2000 0.1041 0.4112 0.0000
+window_small, hidden_0.85
+  cheapest now   1.00 1.00 0.38 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+  optimal pays   0.0109 0.0096 0.0035 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
+  greedy pays    0.0109 0.0096 0.0002 0.0002 0.0004 0.0032 0.0030 0.0024 0.0002 0.0000
+two_window_small, hidden_0.85
+  cheapest now   1.00 1.00 0.35 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+  optimal pays   0.0087 0.0007 0.0166 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
+  greedy pays    0.0087 0.0007 0.0002 0.0049 0.0098 0.0068 0.0052 0.0028 0.0000 0.0000
+forbidden, hidden_0.85
+  cheapest now   0.00 0.26 0.42 0.22 0.35 0.33 0.35 0.54 1.00 1.00
+  optimal pays   0.0887 0.0139 0.0052 0.0226 0.0078 0.0108 0.0081 0.0041 0.0019 0.0000
+  greedy pays    0.0657 0.0181 0.0271 0.0144 0.0165 0.0128 0.0131 0.0080 0.0044 0.0000
+```
+
+- The room: random order is 2.8, 3.7, 4.6, 3.6, 18.0, 22.1, 2.4 times the optimal KL in the seven cells.
+- The optimal order is not greedy. It pays more than the cheapest available reveal in the early and middle steps and
+  less than the greedy order late. On counting with the Markov chain its first reveal is the dearest position on offer
+  (0.102 nats; the cheapest is 0.021), and the greedy order later pays 0.39 nats in a single step.
+- The horizon is long. Lookahead on the true error to depth 4 is still 2.2 and 1.4 times optimal on the two Markov-chain
+  cells. Scoring a reveal by its error now plus the exact cost of *finishing* from the state it leaves (greedily or in
+  random order) is within 1.34 times optimal in every cell when the continuation is greedy.
+- No fixed recipe is close everywhere: the best of `lex`, `sum`, `separator` is 1.80, 2.98, 1.37, 1.31, 2.46, 1.92, 1.09 times optimal.
+- Planning on the present estimates, even to full depth, is not reliably better than their greedy use: the estimates are
+  not accurate at the hypothetical states a plan visits. The exception is the small window, where the greedy use fails.
+
+## 36t. The order problem needs no exact twist: total tilt, fixed orders, planning in a surrogate (local, 2026-11-16) [identity proved and verified; planning verified at 10 to 12 positions only]
+
+Script `experiments/parallel_unmasking/surrogate_plan.py`; results `results/parallel_unmasking/order_study/surrogate_*.json`.
+
+**Identity.** One token per step; the order may depend on the revealed state; the model is order-consistent, so
+p(x) = prod_t m_{i_t}(a_t | x_t) along any such order; the proposal is the product twist's constrained marginal q_i, so
+every sample satisfies C. Then, with s the sampler's law,
+
+    KL(s || p(. | C)) = E_s[log s(x) - log p(x)] + log p(C) = log p(C) + E_s[ sum_t KL(q_{i_t} || m_{i_t}) ].
+
+- KL(q_i || m_i), the *tilt*, is how far the proposal moves the model's marginal at the revealed position. Both q_i and
+  m_i are in hand when the position is chosen, so the cost of the present step is known exactly, without the exact twist.
+- log p(C) does not depend on the order. The best order is the one with the least expected total tilt.
+- Relation to the true error: eps_i(x) = tilt_i(x) + log psi(x) - E_{a ~ q_i} log psi(x with i = a), with psi the exact
+  twist; the psi terms telescope to log p(C). The two costs have the same best plan and different greedy orders: greedy on
+  eps assumes the rest of the decode is exact, greedy on tilt assumes it is free. Least-tilted-first is 3.6 to 45 times optimal.
+- The expected total tilt is minus the expected log weight of a particle (the evidence lower bound read step by step).
+  What is new here is its use as the planning objective, and that it makes the order problem a statement about the
+  model's conditionals and the route alone.
+- Checked in all seven cells: total tilt + log p(C) equals the KL to six decimals for the optimal and the random order,
+  and the best plan for total tilt has the optimal KL.
+
+**Fixed orders and surrogates.** Exact KL as a multiple of the optimal KL (lower is better):
+
+| cell | random | ideal greedy | best fixed order | plan in 1st-order chain | plan in 2nd-order chain | fixed order found in 2nd-order chain | true tilt now + 2nd-order chain afterwards |
+|---|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=10 | 2.81 | 1.82 | 1.42 | 2.19 | 1.38 | 1.62 | 3.01 |
+| counting, chain_0.85, N=10 | 3.66 | 3.54 | 1.49 | 1.00 | 1.00 | 1.49 | 1.15 |
+| dyck, hidden_0.85, N=12 | 4.61 | 1.33 | 1.46 | 2.02 | 1.24 | 1.65 | 3.08 |
+| dyck, chain_0.85, N=12 | 3.55 | 1.63 | 1.12 | 1.00 | 1.00 | 1.12 | 1.00 |
+| window_small, hidden_0.85, N=10 | 18.02 | 1.26 | 1.00 | 3.88 | 1.22 | 1.00 | 9.05 |
+| two_window_small, hidden_0.85, N=10 | 22.13 | 1.50 | 1.00 | 2.62 | 1.34 | 1.34 | 2.64 |
+| forbidden, hidden_0.85, N=10 | 2.42 | 1.10 | 1.10 | 1.16 | 1.06 | 1.10 | 1.60 |
+
+- *Best fixed order*: the best state-independent permutation found by local search (swaps and insertions, 13 starts) with
+  exact evaluation. *Plan in a surrogate*: a first- or second-order Markov chain is fitted to 2,000 unconditional pilot
+  samples; the best plan is computed inside it (its own exact twist, no further calls to the model) and then scored
+  exactly on the true model.
+- The plan from the second-order surrogate is 1.00 to 1.38 times optimal and beats the ideal greedy order, which needs the
+  exact twist, in 7 of 7 cells. It also beats the best of `lex`, `sum`, `separator` in 7 of 7.
+  (their exact KL is in the table of section 36s, from `best_plan_*.json`; in cell order: 0.0321 against 0.0417, 0.2577 against 0.7671, 0.0924 against 0.1028, 0.7935 against 1.0405, 0.0291 against 0.0589, 0.0351 against 0.0502, 0.1734 against 0.1772).
+- A first-order surrogate is not enough on the hidden chain (2.0 to 3.9 times optimal on four of its five cells): the
+  surrogate must carry the dependence beyond neighbours. Where the family contains the truth (Markov chain) it is 1.00.
+- A fixed order recovers the whole gain on the windows, most of it on forbidden and Dyck with the Markov chain, and
+  part of it on counting and on Dyck with the hidden chain (1.4 to 1.5 times optimal). The best fixed orders found:
+  - counting, hidden_0.85: [7, 6, 0, 1, 2, 8, 3, 4, 5, 9]
+  - counting, chain_0.85: [2, 4, 6, 8, 0, 7, 9, 3, 1, 5]
+  - dyck, hidden_0.85: [11, 0, 5, 6, 10, 4, 9, 1, 2, 8, 7, 3]
+  - dyck, chain_0.85: [11, 5, 0, 7, 4, 8, 3, 9, 2, 6, 10, 1]
+  - window_small, hidden_0.85: [6, 5, 3, 4, 8, 2, 1, 0, 9, 7]
+  - two_window_small, hidden_0.85: [1, 2, 8, 7, 3, 9, 5, 0, 6, 4]
+  - forbidden, hidden_0.85: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  On the Markov chain under counting it is every second position first: after those the rest are independent and the
+  product twist is exact. On the hidden chain it is contiguous runs. The windows go first, then outwards. There is no
+  common pattern, which is the case for computing the order rather than prescribing it.
+- Mixing does not work: the true tilt now plus the surrogate's expected tilt afterwards is worse than the surrogate's own
+  plan in all seven cells (by 0.4% on Dyck with the Markov chain, by 1.15 to 7 times elsewhere). The tilt totals are several nats and the differences that matter are hundredths; an error in
+  the surrogate's log p(C | x) does not cancel unless both terms come from the same model.
+- Limits. 10 to 12 positions is under two correlation lengths. The backward pass over all states does not exist at 64
+  positions and beyond, so a planner that scales is still to be built (fixed order optimised inside the surrogate;
+  rollouts inside the surrogate; a fitted value). Alphabets of 2 and 3. The pilot is the same 2,000 samples the kernel uses.
+
+## 36u. Calibrated twists on the resampling pressure case (cluster job `4b0e67e1`, 2026-11-16) [verified; 50 runs at 16 particles, 12 at 64]
+
+Arm set `calibrate` of `compare.py`; results `results/parallel_unmasking/calibrate_K{16,64}.json`, summary `calibrate_N256_summary.json`.
+`hidden_0.85`, 256 positions, forbidden and Dyck. Calibration (`twist_temp` tau) flattens the marginals of the masked
+positions inside the intermediate twist; tau = 1 is no calibration. RMS of log(Z_hat / p(C)) in nats, lower is better,
+with its jackknife standard error; 16 particles | 64 particles. The uncalibrated rows reproduce section 36k (same seeds).
+
+**forbidden, one token per step (256 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 3.32 ± 0.26 \| 2.13 ± 0.24 | | |
+| product | defensive | 2.18 ± 0.22 \| 1.35 ± 0.18 | 1.39 ± 0.15 \| 0.56 ± 0.07 | 1.92 ± 0.21 \| 1.03 ± 0.18 |
+| product | plain | 2.68 ± 0.19 \| 1.00 ± 0.13 | 1.22 ± 0.17 \| 0.77 ± 0.17 | 1.97 ± 0.18 \| 0.96 ± 0.14 |
+| chain | defensive | 1.39 ± 0.12 \| 0.66 ± 0.10 | 1.51 ± 0.19 \| 0.65 ± 0.10 | 1.81 ± 0.20 \| 1.41 ± 0.20 |
+| chain | plain | 1.98 ± 0.17 \| 1.05 ± 0.21 | 1.32 ± 0.14 \| 0.83 ± 0.18 | 1.87 ± 0.18 \| 1.45 ± 0.31 |
+
+**forbidden, budgeted, lex, B = 0.03 (26 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 1.39 ± 0.10 \| 0.84 ± 0.12 | | |
+| product | defensive | 1.20 ± 0.11 \| 0.60 ± 0.10 | 0.96 ± 0.10 \| 0.47 ± 0.06 | 0.89 ± 0.08 \| 0.38 ± 0.06 |
+| product | plain | 1.34 ± 0.13 \| 0.79 ± 0.08 | 0.98 ± 0.11 \| 0.49 ± 0.14 | 1.06 ± 0.10 \| 0.55 ± 0.16 |
+| chain | defensive | 0.98 ± 0.09 \| 0.37 ± 0.06 | 0.87 ± 0.08 \| 0.38 ± 0.06 | 0.80 ± 0.10 \| 0.59 ± 0.12 |
+| chain | plain | 1.03 ± 0.10 \| 0.55 ± 0.08 | 1.02 ± 0.08 \| 0.57 ± 0.10 | 0.96 ± 0.07 \| 0.59 ± 0.14 |
+
+**dyck, one token per step (256 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 0.48 ± 0.06 \| 0.21 ± 0.05 | | |
+| product | defensive | 0.68 ± 0.09 \| 0.42 ± 0.05 | 0.44 ± 0.04 \| 0.16 ± 0.04 | 0.49 ± 0.05 \| 0.14 ± 0.03 |
+| product | plain | 0.88 ± 0.08 \| 0.95 ± 0.39 | 0.43 ± 0.04 \| 0.28 ± 0.04 | 0.44 ± 0.05 \| 0.26 ± 0.03 |
+| chain | defensive | 0.39 ± 0.03 \| 0.23 ± 0.06 | 0.37 ± 0.03 \| 0.18 ± 0.02 | 0.49 ± 0.05 \| 0.17 ± 0.05 |
+| chain | plain | 0.42 ± 0.06 \| 0.14 ± 0.02 | 0.38 ± 0.04 \| 0.28 ± 0.03 | 0.33 ± 0.03 \| 0.22 ± 0.05 |
+
+**dyck, budgeted, lex, B = 0.03 (16 steps)**
+
+| twist | resampling | tau = 1 | tau = 0.7 | tau = 0.5 |
+|---|---|---|---|---|
+| product | off | 0.39 ± 0.04 \| 0.20 ± 0.03 | | |
+| product | defensive | 0.38 ± 0.04 \| 0.23 ± 0.04 | 0.41 ± 0.04 \| 0.13 ± 0.03 | 0.33 ± 0.03 \| 0.18 ± 0.03 |
+| product | plain | 0.59 ± 0.05 \| 0.26 ± 0.05 | 0.37 ± 0.04 \| 0.23 ± 0.05 | 0.46 ± 0.04 \| 0.23 ± 0.06 |
+| chain | defensive | 0.39 ± 0.04 \| 0.18 ± 0.03 | 0.44 ± 0.04 \| 0.21 ± 0.05 | 0.36 ± 0.04 \| 0.15 ± 0.03 |
+| chain | plain | 0.33 ± 0.03 \| 0.23 ± 0.07 | 0.42 ± 0.06 \| 0.13 ± 0.03 | 0.47 ± 0.08 \| 0.16 ± 0.04 |
+
+- Forbidden, one token per step: calibrating the product twist at tau = 0.7 brings it level with the uncalibrated chain
+  twist under defensive resampling (1.39 against 1.39 at 16 particles, 0.56 against 0.66 at 64), from 2.18 and 1.35 uncalibrated.
+  tau = 0.5 flattens too far for both twists. The chain twist gains nothing from calibration under defensive resampling;
+  under plain resampling tau = 0.7 removes its loss.
+- Dyck, one token per step: calibration removes the harm that resampling does with the product twist (0.68 and 0.88
+  uncalibrated, 0.43 to 0.49 calibrated, 0.48 with resampling off).
+- Budgeted schedule: every calibrated arm and the chain twist are within about two standard errors of each other;
+  the uncalibrated product twist is the worst on forbidden.
+- Reading: on this case calibration and the chain twist are substitutes as intermediate twists. Neither changes the
+  proposal, so neither changes the per-particle KL (10.4 nats on forbidden here); section 36w is about the proposal.
+
+## 36v. Order consistency of MDLM, follow-up (cluster job `8fabd084`, one L40S on node3203, 2026-11-16) [measured; 6 to 32 sequences per length]
+
+`experiments/parallel_unmasking/mdlm_order_consistency.py`; results `results/parallel_unmasking/mdlm_consistency/`.
+As section 36p, with real prose (six public-domain passages cut into chunks), lengths to 1,024, and the samples saved.
+All quantities in nats. *sd over orders*: standard deviation of log p of one sequence across random reveal orders
+(0 for an order-consistent model). *Gap to mixture*: log of the average probability over orders minus the average log.
+*Own order*: log p under the order that generated a sample minus the average over other orders.
+
+| source | tokens | sequences | random orders | -log p per token | sd over orders | per token | gap to mixture | left-to-right | right-to-left | own order | distinct-token share |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| real text | 32 | 29 | 16 | 5.32 | 16.0 ± 1.1 | 0.500 | 21.1 ± 1.8 | +11.4 ± 2.6 | -2.1 ± 2.8 |  | 0.81 |
+| real text | 64 | 12 | 16 | 4.52 | 18.2 ± 2.0 | 0.284 | 29.6 ± 3.7 | +11.7 ± 4.9 | -5.8 ± 3.7 |  | 0.70 |
+| real text | 128 | 6 | 16 | 3.97 | 15.3 ± 0.7 | 0.120 | 25.2 ± 3.0 | +3.1 ± 8.8 | -13.2 ± 6.0 |  | 0.62 |
+| model samples | 32 | 32 | 16 | 3.16 | 9.7 ± 1.0 | 0.302 | 13.3 ± 1.5 | +4.1 ± 1.4 | +1.3 ± 1.8 | +38 ± 4 | 0.37 |
+| model samples | 64 | 32 | 16 | 3.16 | 14.4 ± 1.4 | 0.225 | 19.3 ± 2.0 | -0.1 ± 2.6 | -10.4 ± 3.1 | +67 ± 7 | 0.37 |
+| model samples | 128 | 32 | 16 | 3.74 | 16.2 ± 1.3 | 0.127 | 23.2 ± 1.9 | +0.7 ± 3.7 | -19.9 ± 4.3 | +102 ± 7 | 0.48 |
+| model samples | 256 | 32 | 16 | 4.44 | 19.3 ± 1.0 | 0.075 | 30.8 ± 2.0 | -1.8 ± 3.6 | -22.1 ± 4.0 | +169 ± 8 | 0.58 |
+| model samples | 512 | 8 | 8 | 5.34 | 16.9 ± 1.2 | 0.033 | 23.4 ± 2.1 | -12.9 ± 7.0 | -21.8 ± 6.3 | +270 ± 23 | 0.57 |
+| model samples | 1024 | 8 | 4 | 6.56 | 24.4 ± 2.2 | 0.024 | 22.7 ± 3.5 | -19.6 ± 5.0 | -41.9 ± 13.2 | +380 ± 19 | 0.59 |
+
+- The inconsistency is real: on prose that no order generated, log p varies across orders with a standard deviation of
+  15 to 18 nats at 32 to 128 tokens.
+- It does not grow with length. On model samples the standard deviation is 10 to 24 nats from 32 to 1,024 tokens, so
+  per token it falls from 0.30 to 0.024.
+- The short samples of section 36p were degenerate, as suspected: at 32 and 64 tokens many are one token repeated
+  (distinct-token share 0.37). From 128 tokens the samples read as text (0.48 to 0.59; prose is 0.62 to 0.81).
+- A sample is far more probable under its own order: 38 to 380 nats, 1.2 falling to 0.37 nats per token. Entropy along
+  the generating order falls through the decode at every length (6.7 to 5.7 nats per step at 1,024 tokens).
+- Left-to-right scores prose 11 nats higher than a random order at 32 and 64 tokens; right-to-left is lower at every
+  length for samples of 64 tokens and more.
+- Consequence for the target (random-order average, user decision of 2026-11-16): one order's law differs from the
+  average by tens of nats in log-probability on a typical sequence, at any length. Against that, the schedule errors
+  measured in this document are 0.01 to 1 nat. A constraint-aware order on this model changes the sampled law by
+  far more than any of the errors being optimised, so the order rule and the target have to be settled together.
+
+## 36w. The chain twist as the proposal (local, 2026-11-16) [exact at 10 to 12 positions; sampled at 64 with 300 particles, one hidden chain]
+
+Scripts `surrogate_plan.py --proposal chain` (exact) and `counting_orders.py --proposal chain` (sampled); results
+`results/parallel_unmasking/order_study/chainprop_*.json` and `prop_*_N64.json`.
+In the sampler the chain twist is an intermediate potential only: the revealed token is still drawn from the product
+twist's constrained marginal, so the per-particle KL is unchanged (section 36f). Here the token is drawn from the chain
+twist's constrained marginal instead (`ChainTwist.marginals`, pair table from 2,000 pilot samples). The identity of
+section 36t holds for any proposal that stays inside the constraint. Checks: the chain proposal puts at most 1e-15 on a
+value with no completion; the tables match brute-force enumeration of the left-to-right sampler to six decimals for both
+proposals in five cells; total tilt + log p(C) equals the KL to six decimals in all seven.
+
+**Exact, 10 to 12 positions.** KL of the sampler from the constrained law, nats, lower is better: product proposal -> chain proposal.
+
+| cell | random | ideal greedy | best fixed order | optimal | plan in 2nd-order surrogate | best fixed order under the chain proposal |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=10 | 0.0653 -> 0.0549 | 0.0422 -> 0.0161 | 0.0329 -> 0.0145 | 0.0232 -> 0.0067 | 0.0321 -> 0.0180 | [2, 1, 3, 4, 5, 6, 7, 8, 9, 0] |
+| counting, chain_0.85, N=10 | 0.9423 -> 0.3277 | 0.9095 -> 0.0273 | 0.3822 -> 0.0005 | 0.2572 -> 0.0005 | 0.2577 -> 0.0005 | [1, 2, 4, 5, 6, 7, 8, 0, 3, 9] |
+| dyck, hidden_0.85, N=12 | 0.3447 -> 0.0778 | 0.0996 -> 0.0052 | 0.1092 -> 0.0095 | 0.0748 -> 0.0015 | 0.0924 -> 0.0145 | [0, 11, 5, 6, 2, 3, 1, 7, 8, 10, 9, 4] |
+| dyck, chain_0.85, N=12 | 2.8171 -> 0.0891 | 1.2935 -> 0.0288 | 0.8856 -> 0.0000 | 0.7932 -> 0.0000 | 0.7935 -> 0.0000 | [0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 10, 8] |
+| window_small, hidden_0.85, N=10 | 0.4315 -> 0.1953 | 0.0301 -> 0.0098 | 0.0239 -> 0.0115 | 0.0239 -> 0.0098 | 0.0291 -> 0.0164 | [5, 3, 6, 4, 0, 1, 7, 8, 2, 9] |
+| two_window_small, hidden_0.85, N=10 | 0.5776 -> 0.1682 | 0.0391 -> 0.0008 | 0.0261 -> 0.0011 | 0.0261 -> 0.0007 | 0.0351 -> 0.0010 | [1, 7, 8, 2, 3, 4, 5, 0, 6, 9] |
+| forbidden, hidden_0.85, N=10 | 0.3942 -> 0.0561 | 0.1800 -> 0.0117 | 0.1792 -> 0.0223 | 0.1630 -> 0.0095 | 0.1734 -> 0.0168 | [6, 7, 9, 8, 5, 4, 3, 2, 1, 0] |
+
+- The chain proposal lowers the KL under every rule in every cell. Its ideal greedy order beats the *optimal* order of
+  the product proposal in all seven cells.
+- Under the chain proposal the best fixed orders are close to contiguous, and on the Markov chain the error is
+  essentially zero: the first-order chain twist is then exact for a contiguous masked stretch.
+- Order still matters: random order is 3 to 200 times the ideal greedy KL under the chain proposal.
+
+**Sampled, 64 positions, `hidden_0.85`, 300 particles.** KL as the sum over steps of the true error, nats, lower is better:
+product proposal -> chain proposal. The estimate from the weights agrees to within about two of its standard errors (0.01 to 0.17).
+
+| constraint | random | left to right | lex | sum | ideal greedy |
+|---|---|---|---|---|---|
+| counting | 0.180 -> 0.188 | 0.778 -> 0.208 | 0.204 -> 0.263 | 0.123 -> 0.146 | 0.191 -> 0.078 |
+| dyck | 0.642 -> 0.298 | 1.291 -> 0.314 | 0.586 -> 0.288 | 0.599 -> 0.246 | 0.262 -> 0.103 |
+| forbidden | 2.588 -> 0.419 | 0.586 -> 0.216 | 0.582 -> 0.216 | 1.171 -> 0.284 | 0.599 -> 0.096 |
+| window | 0.389 -> 0.256 | 0.421 -> 0.254 | 0.076 -> 0.080 | 0.091 -> 0.078 | 0.050 -> 0.017 |
+| two_window | 0.730 -> 0.450 | 0.733 -> 0.365 | 0.085 -> 0.102 | 0.115 -> 0.135 | 0.278 -> 0.032 |
+
+- Forbidden and Dyck: the chain proposal lowers the KL under every order, by 2.7 to 6 times on forbidden and 2 to 4 times on Dyck.
+- Counting and the windows: no gain under the fixed recipes (`lex`, `sum`), which already reveal the constrained positions
+  in a good order for the product proposal; a gain of 1.5 to 2 times under random and left-to-right on the windows; none under random on counting (left-to-right there improves 3.7 times, to the level of random).
+- With the ideal greedy order the chain proposal gives the lowest KL measured on every constraint: counting 0.078 against 0.123, dyck 0.103 against 0.262, forbidden 0.096 against 0.582, window 0.017 against 0.050, two_window 0.032 against 0.085 for the best product-proposal arm.
+- Without the exact twist the best chain-proposal arm is counting 0.146 (product 0.123), dyck 0.246 (product 0.586), forbidden 0.216 (product 0.582), window 0.078 (product 0.076), two_window 0.102 (product 0.085): the gain that is
+  reachable today is on forbidden and Dyck only. The rest needs an order rule that finds what the ideal greedy order finds.
+- The small-size picture overstates the gain. At 10 positions a near-contiguous order was almost ideal under the chain
+  proposal; at 64 positions left-to-right is level with random on counting, Dyck and the window. The hidden chain's
+  dependence (correlation length about 6) is longer than a first-order chain with one pooled table carries.
+- Not done: the chain proposal inside the sampler (a joint route sample under the chain law is needed when several
+  positions are revealed in one step); other hidden chains; 256 positions; cost per step.
+
+## 36x. The chain proposal in the sampler (local, 2026-11-16) [verified: 15 tests; end measure at N = 64, 100 runs of 16 particles, one hidden chain]
+
+Code: `ChainTwist.sample` (a joint draw from the chain law given the constraint: one backward pass, one forward sweep),
+`ChainTwist.log_clamped`, `_propose(..., chain=)`, `twisted_smc(..., proposal_twist=)`; arm set `chainprop`.
+The classes at the reveal set are drawn from the chain law given C; the weight uses the proposal's exact density,
+log(M / kappa) = log P_chain(classes at the set, C) - log P_chain(C) - the model's class log-probabilities at the set.
+The reveal set is chosen without seeing the draw, as before. Works for any number of positions per step.
+
+Checks (tests/test_chain_twist.py, 15 pass; the other test files pass unchanged):
+- the draw: its normaliser equals `log_chain`, every draw satisfies the constraint, class frequencies over 20,000 draws
+  match `marginals` within 4.5 standard errors, and the clamped masses sum to the normaliser to 1e-9;
+- in the sampler: Z_hat is unbiased for p(C) with one token per step, without and with resampling, with the chain twist
+  as the intermediate twist, and with the native mixture; with several positions per step it estimates the same value
+  as the product proposal (the parallel process's probability of C, which is not p(C));
+- per-particle KL at 64 positions agrees with the trace script of section 36w in all eight cells compared
+  (for example forbidden under lex 0.214 ± 0.017 against 0.216; Dyck in random order 0.298 ± 0.022 against 0.298).
+
+A correction to the label `random` in sections 36q and 36w: those traces use the policy's random priority, which reveals
+positions forced by the constraint first. On Dyck that matters: a uniformly random order (the sampler's `fixed`
+schedule) has KL 0.84 ± 0.03 with the product proposal, against 0.66 ± 0.03 for the policy's random order
+(3,000 particles each). The other constraints have no forced positions at the start and agree.
+
+**End measure at 64 positions.** `hidden_0.85`, 16 particles, 100 runs. RMS of log(Z_hat / p(C)) in nats, lower is
+better, ± jackknife standard error; resampling off | defensive.
+
+**counting**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.146 ± 0.011 \| 0.178 ± 0.012 | 0.155 ± 0.012 \| 0.141 ± 0.010 | 0.158 ± 0.013 \| 0.170 ± 0.014 |
+| lex, one token per step | 64 | 0.192 ± 0.021 \| 0.188 ± 0.020 | 0.149 ± 0.009 \| 0.184 ± 0.014 | 0.194 ± 0.014 \| 0.203 ± 0.020 |
+| lex, budget B = 0.03 | 13 | 0.200 ± 0.014 \| 0.203 ± 0.017 | 0.178 ± 0.012 \| 0.185 ± 0.013 | 0.200 ± 0.016 \| 0.191 ± 0.015 |
+
+**dyck**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.308 ± 0.023 \| 0.431 ± 0.022 | 0.361 ± 0.025 \| 0.332 ± 0.028 | 0.206 ± 0.013 \| 0.198 ± 0.011 |
+| lex, one token per step | 64 | 0.273 ± 0.026 \| 0.237 ± 0.019 | 0.222 ± 0.017 \| 0.240 ± 0.017 | 0.179 ± 0.011 \| 0.172 ± 0.012 |
+| lex, budget B = 0.03 | 13 | 0.277 ± 0.020 \| 0.277 ± 0.021 | 0.314 ± 0.023 \| 0.330 ± 0.023 | 0.240 ± 0.018 \| 0.207 ± 0.014 |
+
+**forbidden**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.686 ± 0.057 \| 0.597 ± 0.059 | 0.558 ± 0.056 \| 0.527 ± 0.029 | 0.280 ± 0.021 \| 0.301 ± 0.021 |
+| lex, one token per step | 64 | 0.273 ± 0.018 \| 0.287 ± 0.021 | 0.291 ± 0.021 \| 0.291 ± 0.021 | 0.179 ± 0.013 \| 0.208 ± 0.014 |
+| lex, budget B = 0.03 | 24 | 0.394 ± 0.024 \| 0.394 ± 0.038 | 0.435 ± 0.028 \| 0.411 ± 0.030 | 0.189 ± 0.015 \| 0.198 ± 0.014 |
+
+**window**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.206 ± 0.014 \| 0.463 ± 0.037 | 0.212 ± 0.014 \| 0.227 ± 0.017 | 0.208 ± 0.017 \| 0.196 ± 0.014 |
+| lex, one token per step | 64 | 0.076 ± 0.005 \| 0.079 ± 0.005 | 0.079 ± 0.006 \| 0.099 ± 0.007 | 0.098 ± 0.007 \| 0.103 ± 0.008 |
+| lex, budget B = 0.03 | 12 | 0.092 ± 0.007 \| 0.102 ± 0.006 | 0.097 ± 0.008 \| 0.108 ± 0.010 | 0.121 ± 0.010 \| 0.116 ± 0.007 |
+
+**two_window**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.384 ± 0.033 \| 0.367 ± 0.021 | 0.355 ± 0.033 \| 0.344 ± 0.025 | 0.281 ± 0.020 \| 0.276 ± 0.023 |
+| lex, one token per step | 64 | 0.090 ± 0.007 \| 0.090 ± 0.006 | 0.112 ± 0.009 \| 0.109 ± 0.008 | 0.117 ± 0.009 \| 0.119 ± 0.007 |
+| lex, budget B = 0.03 | 12 | 0.100 ± 0.006 \| 0.079 ± 0.005 | 0.077 ± 0.005 \| 0.079 ± 0.005 | 0.100 ± 0.007 \| 0.112 ± 0.008 |
+
+- Forbidden: the chain proposal lowers the error on every schedule, by 2.0 to 2.5, 1.4 to 1.5, 2.0 to 2.1 times (random order, lex, budgeted lex).
+- Dyck: by 1.5 to 2.2, 1.4 to 1.5, 1.2 to 1.3 times on the same three schedules.
+- Counting: no change on any schedule (within one to two standard errors).
+- Windows: under lex (one token per step, and budgeted) the chain proposal is slightly worse; one token per step it is 1.29 to 1.30 times the product proposal's error on window and 1.30 to 1.32 on two_window (2 to 3 standard errors); in random order it is level or better.
+- The gain carries to the budgeted schedule, where several positions are drawn jointly from the chain law per step.
+- Cost on the oracle (where the model is free): the chain-proposal arms take 0.6 to 3.4 times the wall time of the
+  product arms (median 1.6). Not yet measured in denoiser calls on MDLM.
+- This matches the per-particle picture of section 36w: gains where the first-order chain carries the dependence the
+  constraint reads (forbidden, Dyck), none on counting, where the error is in the long-range spread of the count.
+
+## 36y. Parallel reveals, exactly: steps against error at 8 to 10 positions (local, 2026-11-16) [exact; small size; the particle rule is a quoted large-K expansion]
+
+Script `experiments/parallel_unmasking/parallel_exact.py`; results `results/parallel_unmasking/parallel_exact/`.
+Objective agreed 2026-11-16: least compute (steps x particles) for a tolerance on the KL of a returned sample from the
+exact constrained law. A step reveals a set of positions drawn jointly from the proposal; the dependence between them
+under the model is ignored. Three laws over finished sequences follow from a rule (state -> set), all tabulated exactly:
+
+- *one particle*: the sampler's own law. Its KL from the target is additive over steps, as in section 36t, with the
+  step error KL(proposal's joint of the set || exact conditional of the set given C).
+- *bias*: the law the weights converge to is the parallel process given C, where the parallel process draws each set
+  from a *reference* law with no constraint (the product of the model's marginals, as in the sampler now). Its KL from
+  the target is the bias. No number of particles removes it. One token per step has none.
+- *spread*: chi-square of that limit against the sampler: the noise particles do remove.
+
+Particles for a tolerance eps: 1 if one particle already meets it; otherwise spread / (2 (eps - bias)); impossible if
+bias >= eps. The middle expression is a standard large-K expansion quoted from memory and not verified here.
+
+Rules: *sequential* (best one-token order, section 36s); *plan* (backward pass over states and sets minimising
+steps x mu + one-particle KL + lam x ignored dependence, with mu and lam swept; the ignored dependence of a step is
+KL(model's joint of the set || reference law of the set)); *greedy* (largest set whose step error is under a threshold,
+threshold swept); *repository* (`lex` and `sum`, sequential and at budgets 0.03 to 3). For each tolerance the best
+member of each family is reported. Checks: the one-particle KL from the backward pass equals the KL computed from the
+enumerated law of finished sequences to 1e-7 for every rule; the sequential rule has zero bias.
+
+**Everything in one step.** One-particle KL from the target, nats, lower is better. With the product reference the bias
+equals the product proposal's value; with the chain law as the reference it equals the chain proposal's value.
+
+| cell | product proposal | chain proposal |
+|---|---|---|
+| counting, hidden_0.85, N=8 | 0.6689 | 0.3411 |
+| counting, chain_0.85, N=8 | 1.7706 (in 2 steps; one step is not reachable with this proposal's support) | 0.0052 |
+| forbidden, hidden_0.85, N=8 | 1.4685 | 0.2431 |
+| window_small, hidden_0.85, N=8 | 1.1673 | 0.3901 |
+| dyck, hidden_0.85, N=10 | 0.6402 | 0.1212 |
+| dyck, chain_0.85, N=10 | 1.4938 (in 2 steps; one step is not reachable with this proposal's support) | 0.0001 |
+
+**Compute for a tolerance** (expected steps x particles, lower is better). Columns: best sequential order and best plan
+with the product proposal; the same with the chain proposal (chain law as reference); greedy and repository rules with
+the product proposal.
+
+*eps = 0.003 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 19.0 (8.0 x 2.4) | 18.0 (7.5 x 2.4) | 18.9 (8.0 x 2.4) | 17.5 (7.3 x 2.4) | 36.1 (7.8 x 4.6) | 47.8 (8.0 x 6.0) |
+| counting, chain_0.85, N=8 | 436 (8.0 x 54.5) | 280 (5.1 x 54.8) | 8.0 (8.0 x 1.0) | 2.0 (2.0 x 1.0) | not reachable | 520 (5.2 x 100.0) |
+| forbidden, hidden_0.85, N=8 | 285 (8.0 x 35.6) | 240 (5.8 x 41.0) | 18.0 (8.0 x 2.2) | 16.5 (7.1 x 2.3) | 360 (8.0 x 45.0) | 377 (8.0 x 47.2) |
+| window_small, hidden_0.85, N=8 | 60.4 (8.0 x 7.6) | 45.4 (5.7 x 7.9) | 35.6 (8.0 x 4.4) | 28.3 (6.1 x 4.6) | not reachable | 128 (8.0 x 16.0) |
+| dyck, hidden_0.85, N=10 | 213 (10.0 x 21.3) | 212 (9.9 x 21.4) | 10.0 (10.0 x 1.0) | 5.0 (5.0 x 1.0) | not reachable | 260 (10.0 x 26.0) |
+| dyck, chain_0.85, N=10 | 1177 (10.0 x 117.7) | 632 (4.5 x 138.9) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 886 (5.7 x 154.8) |
+
+*eps = 0.01 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 6.4 (6.4 x 1.0) | 8.0 (8.0 x 1.0) | 6.3 (6.3 x 1.0) | 10.1 (7.8 x 1.3) | 14.4 (8.0 x 1.8) |
+| counting, chain_0.85, N=8 | 131 (8.0 x 16.4) | 84.0 (5.1 x 16.4) | 8.0 (8.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 156 (5.2 x 30.0) |
+| forbidden, hidden_0.85, N=8 | 85.5 (8.0 x 10.7) | 68.4 (5.7 x 12.0) | 8.0 (8.0 x 1.0) | 5.4 (5.4 x 1.0) | 107 (7.8 x 13.6) | 113 (8.0 x 14.2) |
+| window_small, hidden_0.85, N=8 | 18.1 (8.0 x 2.3) | 13.1 (5.7 x 2.3) | 10.7 (8.0 x 1.3) | 7.9 (5.4 x 1.5) | not reachable | 35.7 (5.6 x 6.3) |
+| dyck, hidden_0.85, N=10 | 64.0 (10.0 x 6.4) | 61.3 (8.3 x 7.3) | 10.0 (10.0 x 1.0) | 3.6 (3.6 x 1.0) | not reachable | 77.9 (10.0 x 7.8) |
+| dyck, chain_0.85, N=10 | 353 (10.0 x 35.3) | 190 (4.5 x 41.7) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 266 (5.7 x 46.4) |
+
+*eps = 0.03 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 4.8 (4.8 x 1.0) | 8.0 (8.0 x 1.0) | 5.2 (4.1 x 1.3) | 5.8 (5.8 x 1.0) | 7.4 (7.4 x 1.0) |
+| counting, chain_0.85, N=8 | 43.6 (8.0 x 5.5) | 28.0 (5.1 x 5.5) | 8.0 (8.0 x 1.0) | 1.0 (1.0 x 1.0) | not reachable | 52.0 (5.2 x 10.0) |
+| forbidden, hidden_0.85, N=8 | 28.5 (8.0 x 3.6) | 22.0 (5.5 x 4.0) | 8.0 (8.0 x 1.0) | 4.3 (4.3 x 1.0) | 35.3 (7.8 x 4.5) | 33.9 (5.7 x 5.9) |
+| window_small, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 3.5 (3.5 x 1.0) | 8.0 (8.0 x 1.0) | 3.4 (3.4 x 1.0) | 3.5 (3.5 x 1.0) | 9.8 (5.6 x 1.7) |
+| dyck, hidden_0.85, N=10 | 21.3 (10.0 x 2.1) | 19.9 (7.2 x 2.8) | 10.0 (10.0 x 1.0) | 2.9 (2.9 x 1.0) | 11506 (8.3 x 1394.5) | 26.0 (10.0 x 2.6) |
+| dyck, chain_0.85, N=10 | 118 (10.0 x 11.8) | 63.2 (4.5 x 13.9) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | 383 (8.9 x 43.3) | 88.6 (5.7 x 15.5) |
+
+*eps = 0.1 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | greedy, product | repository, product |
+|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 2.8 (2.8 x 1.0) | 8.0 (8.0 x 1.0) | 3.0 (3.0 x 1.0) | 3.9 (3.9 x 1.0) | 6.4 (6.4 x 1.0) |
+| counting, chain_0.85, N=8 | 13.1 (8.0 x 1.6) | 7.7 (4.6 x 1.7) | 8.0 (8.0 x 1.0) | 1.0 (1.0 x 1.0) | 47.8 (7.9 x 6.0) | 15.6 (5.2 x 3.0) |
+| forbidden, hidden_0.85, N=8 | 8.6 (8.0 x 1.1) | 6.0 (4.4 x 1.4) | 8.0 (8.0 x 1.0) | 2.0 (2.0 x 1.0) | 9.9 (6.8 x 1.5) | 8.8 (5.7 x 1.5) |
+| window_small, hidden_0.85, N=8 | 8.0 (8.0 x 1.0) | 2.9 (2.9 x 1.0) | 8.0 (8.0 x 1.0) | 2.0 (2.0 x 1.0) | 3.5 (3.5 x 1.0) | 5.6 (5.6 x 1.0) |
+| dyck, hidden_0.85, N=10 | 10.0 (10.0 x 1.0) | 3.1 (3.1 x 1.0) | 10.0 (10.0 x 1.0) | 2.0 (2.0 x 1.0) | 4.5 (4.5 x 1.0) | 9.3 (8.5 x 1.1) |
+| dyck, chain_0.85, N=10 | 35.3 (10.0 x 3.5) | 14.9 (3.0 x 5.0) | 10.0 (10.0 x 1.0) | 1.0 (1.0 x 1.0) | 54.1 (7.8 x 6.9) | 26.6 (5.7 x 4.6) |
+
+Reading, at eps = 0.01:
+- Proposal: with one token per step the chain proposal needs 1.0, 16.4, 10.7, 1.7, 6.4, 35.3 times less compute than the product proposal (cells in table order).
+- Parallel plan on top of it: a further 1.3, 8.0, 1.5, 1.4, 2.8, 10.0 times. With the product proposal the plan gains 1.3, 1.6, 1.3, 1.4, 1.0, 1.9 times over its best sequential order.
+- Planning against greedy: with the product proposal the greedy family cannot reach eps = 0.01 in four of six cells
+  (its co-reveals accumulate bias) and costs 1.6 times the plan in the other two.
+- The repository's rules cost 1.3 to 2.7 times the plan with the product proposal at eps = 0.01.
+- The penalty on ignored dependence (lam > 0) matters at tight tolerance with the product proposal: at eps = 0.003 the best
+  plan uses lam >= 1 in every cell, and the plan without it is 1.05 to 1.8 times dearer. At loose tolerance lam = 0 is chosen.
+
+Two structural points that do not depend on the size:
+- The weights pull a co-revealed set towards the reference law of that set. With the product reference and the chain
+  proposal that is the wrong direction: on the Markov-chain model one joint draw from the chain law has KL 0.005
+  (counting) and 0.0001 (Dyck) from the target, and the law its weights converge to is 5.5 and 6.4 nats away. So when the
+  chain twist is the proposal for several positions at once, the reference has to change with it (or those steps go
+  unweighted). With the chain law as the reference the bias of everything-in-one-step falls from the product column to the chain column of the first table.
+- (Not confirmed at 64 positions: see section 36z.) This would make the chain twist a second lever on the co-reveal bias itself, besides the choice of sets: it supplies the
+  dependence between co-revealed positions that the denoiser's marginals lack (the role a copula model plays in
+  Discrete Copula Diffusion, arXiv:2410.01949; to be checked against that paper before it is claimed).
+
+Limits: 8 to 10 positions, where one particle often already meets the tolerance, so the particle rule is exercised
+mainly with the product proposal; the plan family is a two-parameter sweep, not the exact optimum of the compute
+objective; the repository rules were designed for longer sequences; no hidden-chain cell beyond `hidden_0.85`.
+
+## 36z. The chain law as the reference for co-revealed sets: checked, not adopted (local, 2026-11-16/17) [verified implementation; negative result at N = 64, one hidden chain]
+
+Question (user, 2026-11-16): the weights take the product of the model's marginals as the model's law of positions
+revealed together; with the chain proposal, should that reference be the chain law's joint instead? The evaluation does
+not depend on the answer: every arm is scored against the exact p(C) and the exact constrained law.
+
+Code: `twisted_smc(..., reference_twist=)` (default off), `ChainTwist.log_reference` (one position: the model's marginal;
+two or more: the chain law's joint with no constraint); arm set `chainref`; `parallel_exact_check.py`.
+
+Checks of the implementation:
+- one token per step: identical results with and without the option;
+- several positions per step: the product and the chain proposal estimate the same value under the same reference;
+- end to end at 8 positions: the sampler's average Z_hat / p(C) agrees with the exact tables of section 36y in all 16 cases
+  (two constraints, two proposals, two references, two budgets), largest deviation 1.5 standard errors.
+
+**At 8 positions (exact)** the chain reference brings the many-particle limit closer to the target when co-reveals are
+aggressive, and is neutral otherwise. KL of the limit from the target, product -> chain reference, `lex` schedule:
+- counting: B = 0.3: 0.144 -> 0.109; B = 1: 0.443 -> 0.140
+- forbidden: B = 0.3: 0.032 -> 0.037; B = 1: 0.446 -> 0.084
+
+**At 64 positions it does not hold.** `hidden_0.85`, 16 particles, 200 runs, no resampling. First number: mean of
+Z_hat / p(C), where 1 means no bias (± standard error). Second: RMS of log(Z_hat / p(C)), lower is better.
+
+**forbidden**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 24 | 0.97 ± 0.03; 0.404 | 0.97 ± 0.01; 0.188 | 0.43 ± 0.01; 0.900 |
+| lex, B = 0.3 | 13 | 0.74 ± 0.03; 0.665 | 0.73 ± 0.01; 0.414 | 0.36 ± 0.01; 1.086 |
+| lex, B = 1 | 9 | 0.40 ± 0.02; 1.291 | 0.38 ± 0.01; 1.061 | 0.24 ± 0.01; 1.498 |
+| 4 random positions per step | 16 | 0.57 ± 0.03; 0.982 | 0.59 ± 0.02; 0.717 | 0.42 ± 0.01; 0.970 |
+
+**dyck**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 13 | 0.96 ± 0.02; 0.283 | 0.98 ± 0.01; 0.190 | 0.94 ± 0.01; 0.185 |
+| lex, B = 0.3 | 8 | 0.86 ± 0.02; 0.370 | 0.85 ± 0.01; 0.266 | 0.90 ± 0.01; 0.217 |
+| lex, B = 1 | 5 | 0.73 ± 0.01; 0.466 | 0.77 ± 0.02; 0.461 | 0.81 ± 0.01; 0.282 |
+| 4 random positions per step | 16 | 1.03 ± 0.02; 0.319 | 1.01 ± 0.02; 0.323 | 0.99 ± 0.01; 0.179 |
+
+**counting**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 13 | 1.02 ± 0.01; 0.202 | 1.03 ± 0.01; 0.187 | 1.06 ± 0.01; 0.140 |
+| lex, B = 0.3 | 8 | 1.06 ± 0.02; 0.206 | 1.09 ± 0.01; 0.187 | 1.11 ± 0.01; 0.169 |
+| lex, B = 1 | 6 | 1.16 ± 0.02; 0.252 | 1.17 ± 0.02; 0.256 | 1.15 ± 0.01; 0.186 |
+| 4 random positions per step | 16 | 1.06 ± 0.01; 0.182 | 1.00 ± 0.03; 0.343 | 1.10 ± 0.01; 0.136 |
+
+**window**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 12 | 0.99 ± 0.01; 0.099 | 0.98 ± 0.01; 0.120 | 0.92 ± 0.01; 0.119 |
+| lex, B = 0.3 | 7 | 0.91 ± 0.01; 0.161 | 0.92 ± 0.01; 0.161 | 0.85 ± 0.01; 0.194 |
+| lex, B = 1 | 5 | 0.81 ± 0.01; 0.297 | 0.82 ± 0.01; 0.292 | 0.78 ± 0.01; 0.282 |
+| 4 random positions per step | 16 | 0.93 ± 0.01; 0.225 | 0.94 ± 0.03; 0.400 | 0.89 ± 0.01; 0.191 |
+
+**two_window**
+
+| schedule | steps | product proposal, product reference | chain proposal, product reference | chain proposal, chain reference |
+|---|---|---|---|---|
+| lex, B = 0.03 | 12 | 0.99 ± 0.01; 0.096 | 0.99 ± 0.01; 0.110 | 0.93 ± 0.00; 0.099 |
+| lex, B = 0.3 | 7 | 0.98 ± 0.01; 0.125 | 0.97 ± 0.01; 0.147 | 0.91 ± 0.01; 0.145 |
+| lex, B = 1 | 6 | 0.94 ± 0.01; 0.139 | 0.96 ± 0.01; 0.203 | 0.90 ± 0.01; 0.166 |
+| 4 random positions per step | 16 | 0.91 ± 0.02; 0.360 | 0.93 ± 0.03; 0.472 | 0.92 ± 0.01; 0.225 |
+
+- Forbidden: the chain reference raises the bias on every schedule, by 1.2 to 18 times (0.97 -> 0.43 at B = 0.03), and
+  the RMS error is 1.4 to 4.8 times that of the chain proposal with the product reference.
+- Windows: a larger bias with the chain reference on all three `lex` budgets.
+- Counting: slightly more bias at B = 0.03 and 0.3, the same at B = 1; the RMS error is lower (0.14 to 0.19 against 0.19 to 0.26)
+  because the weights are much less noisy when proposal and reference agree, and at 16 particles noise dominates.
+- Dyck: the bias is slightly smaller at B = 0.3 and 1 and slightly larger at B = 0.03; the RMS error is the lowest of the three on every schedule, clearly so at B = 1 and with 4 random positions per step.
+- So the chain reference lowers the noise everywhere and the bias almost nowhere; on forbidden and the windows it raises the bias.
+
+**Why.** How far each reference is from the model's true joint on the sets the schedule actually co-reveals:
+E[log model's joint of the set - log reference], summed over a decode, along sequences from the exact constrained law
+(300 sequences, `lex` with pull-in; 0 would be a perfect reference).
+
+| constraint | budget | steps | positions per step | product of marginals | chain law |
+|---|---|---|---|---|---|
+| forbidden | 0.03 | 27 | 2.4 | +0.017 ± 0.003 | +1.038 ± 0.037 |
+| forbidden | 0.3 | 16 | 4.0 | +0.239 ± 0.015 | +1.099 ± 0.034 |
+| forbidden | 1 | 15 | 4.3 | +0.759 ± 0.032 | +1.484 ± 0.040 |
+| counting | 0.03 | 28 | 2.3 | +0.002 ± 0.007 | +0.047 ± 0.020 |
+| counting | 0.3 | 12 | 5.3 | +0.139 ± 0.036 | +0.229 ± 0.039 |
+| counting | 1 | 8 | 8.0 | +0.601 ± 0.073 | +0.586 ± 0.068 |
+| dyck | 0.03 | 24 | 2.7 | +0.041 ± 0.007 | +0.072 ± 0.015 |
+| dyck | 0.3 | 11 | 5.8 | +0.323 ± 0.037 | +0.348 ± 0.038 |
+| dyck | 1 | 6 | 10.7 | +0.795 ± 0.065 | +0.588 ± 0.058 |
+
+- At small budgets the schedule co-reveals positions that are nearly independent under the model, and the product of
+  marginals is then nearly exact (0.002 to 0.04 nats over a decode). The chain law is further from the model on those
+  sets (0.05 to 1.0 nats): one pooled neighbour table applied to marginals that already condition on the revealed
+  tokens does not reproduce the model's joint of scattered positions on the hidden chain.
+- Only where sets are large and the product is poor does the chain law come level or ahead (counting at B = 1; Dyck at B = 1, 0.59 against 0.80).
+- The 8-position result was the favourable case: every position in one contiguous set, on a short sequence.
+
+Decision: `reference_twist` stays in the code, off by default. Lowest RMS error by constraint over the four schedules
+above (P = product proposal and reference, CP = chain proposal with product reference, CC = chain proposal and reference): forbidden CP, CP, CP, CP; dyck CC, CC, CC, CC; counting CC, CC, CC, CC; window P, P, CC, CC; two_window P, P, P, CC.
+So the chain proposal with the product reference is the arm to carry forward on forbidden only; on the windows under `lex` the product proposal has the lowest error at B = 0.03 and 0.3 on both and at B = 1 on two_window; on window at B = 1 the chain proposal with the chain reference is lowest (0.282 ± 0.007 against 0.297 ± 0.013
+for the product proposal, within one standard error) (see also section 36x); on counting and Dyck the chain reference has the lowest
+RMS error at 16 particles through lower noise, without a lower bias. A reference that keeps the model's marginals exactly and adds dependence only between
+co-revealed neighbours is the natural next candidate; not built. Deferred by the user on 2026-11-17: it matters only
+when neighbours must be revealed together (very few steps), and the order rule and the stress oracle come first.
+
+## 36aa. A second oracle: a sequence-wide latent variable (local, 2026-11-16/17) [exact at 10 to 12 positions; sampled at 64 with 300 decodes]
+
+Purpose: check that the order and proposal results of sections 36s to 36x are not artefacts of a short-range hidden chain.
+
+- Model `latent_0.6_w0.5`: a latent symbol is drawn once per sequence; the hidden chain stays with probability 0.6 and otherwise
+  redraws from an equal mix of the base distribution and the latent symbol; emission noise 0.3.
+- Dependence does not decay: mutual information between positions is 0.109 at distance 1 and levels off at 0.0146 from distance 16.
+
+**Exact, 10 to 12 positions.** KL of the sampler from the exact constrained law, as a multiple of the optimal order (lower is better).
+
+| constraint | proposal | optimal (nats) | random | ideal greedy | best fixed order | plan in fitted second-order chain |
+|---|---|---|---|---|---|---|
+| counting | product | 0.0088 | 3.71 | 2.11 | 1.52 | 1.29 |
+| counting | chain | 0.0024 | 7.83 | 2.21 | 1.83 | 2.65 |
+| dyck | product | 0.0402 | 4.33 | 1.29 | 1.52 | 1.19 |
+| dyck | chain | 0.0009 | 31.73 | 3.45 | 4.12 | 5.23 |
+| forbidden | product | 0.1379 | 2.26 | 1.06 | 1.08 | 1.05 |
+| forbidden | chain | 0.0077 | 4.87 | 1.08 | 2.05 | 3.28 |
+| window_small | product | 0.0122 | 19.65 | 1.40 | 1.00 | 1.16 |
+| window_small | chain | 0.0049 | 20.89 | 1.32 | 1.29 | 2.28 |
+| two_window_small | product | 0.0200 | 17.24 | 1.60 | 1.00 | 1.30 |
+| two_window_small | chain | 0.0010 | 94.26 | 1.13 | 1.18 | 1.72 |
+
+- With the product proposal the plan in the fitted surrogate beats ideal greedy in all five cells, as on the first oracle.
+- With the chain proposal it is worse than ideal greedy in 5 of 5 cells. Likely reason (not tested): the surrogate is in the same
+  model class as the proposal, so it cannot see the proposal's remaining error.
+- With the chain proposal the optimal order and ideal greedy differ by at most 0.01 nats at this size.
+
+**64 positions.** Per-particle KL in nats (lower is better), product proposal -> chain proposal. Ideal greedy is not honest.
+
+| constraint | random | left to right | lex | sum | ideal greedy |
+|---|---|---|---|---|---|
+| counting | 0.185 -> 0.153 | 0.497 -> 0.142 | 0.278 -> 0.212 | 0.157 -> 0.136 | 0.158 -> 0.085 |
+| dyck | 0.317 -> 0.080 | 0.966 -> 0.057 | 0.364 -> 0.093 | 0.324 -> 0.059 | 0.114 -> 0.023 |
+| forbidden | 1.960 -> 0.350 | 0.503 -> 0.183 | 0.497 -> 0.189 | 0.642 -> 0.174 | 0.490 -> 0.073 |
+| window | 0.609 -> 0.472 | 0.727 -> 0.606 | 0.027 -> 0.064 | 0.066 -> 0.098 | 0.026 -> 0.008 |
+| two_window | 0.900 -> 0.676 | 0.908 -> 0.685 | 0.031 -> 0.056 | 0.043 -> 0.077 | 0.088 -> 0.005 |
+
+- Same pattern as on the hidden chain (section 36w): the chain proposal is better under every order on counting, Dyck and forbidden;
+  on the windows it is worse under lex and sum and better under ideal greedy.
+
+## 36ab. Honest order rules at 64 positions, both proposals (local, 2026-11-16) [sampled, 300 decodes, hidden chain 0.85]
+
+An honest rule uses only what a real denoiser provides. Per-particle KL in nats, lower is better. Figure: [honest_orders_N64_heatmap.png]({{artifact:882570db-a514-4c54-9bed-4174e32b23da}}).
+
+| constraint | proposal | random | ltr | lex | sum | estimate | confident | confident_proposal | ideal greedy (not honest) |
+|---|---|---|---|---|---|---|---|---|---|
+| counting | product | 0.180 | 0.778 | 0.204 | 0.123 | 0.204 | 0.503 | 0.503 | 0.191 |
+| counting | chain | 0.188 | 0.208 | 0.263 | 0.146 | 0.170 | 0.359 | 0.467 | 0.078 |
+| dyck | product | 0.642 | 1.291 | 0.586 | 0.599 | 0.426 | 0.791 | 0.791 | 0.262 |
+| dyck | chain | 0.298 | 0.314 | 0.288 | 0.246 | 0.341 | 0.368 | 0.286 | 0.103 |
+| forbidden | product | 2.588 | 0.586 | 0.582 | 1.171 | 0.620 | 0.586 | 0.586 | 0.599 |
+| forbidden | chain | 0.419 | 0.216 | 0.216 | 0.284 | 0.197 | 0.216 | 0.218 | 0.096 |
+| window | product | 0.389 | 0.421 | 0.076 | 0.091 | 0.455 | 0.053 | 0.053 | 0.050 |
+| window | chain | 0.256 | 0.254 | 0.080 | 0.078 | 0.377 | 0.195 | 0.172 | 0.017 |
+| two_window | product | 0.730 | 0.733 | 0.085 | 0.115 | 0.835 | 0.176 | 0.176 | 0.278 |
+| two_window | chain | 0.450 | 0.365 | 0.102 | 0.135 | 0.728 | 0.200 | 0.170 | 0.032 |
+
+- `estimate`: least disagreement between the product and chain proposals first. `confident`: largest model probability first;
+  `confident_proposal`: largest proposal probability first.
+- No honest rule tracks ideal greedy. The best honest arm per constraint is 1.6 to 3.1 times above ideal greedy with the chain proposal.
+- `estimate` fails on the windows; `confident` fails on counting and Dyck.
+- Under the chain proposal, ideal greedy grows contiguously from the sequence ends, takes constraint positions early and pays evenly
+  across the decode; with the product proposal it defers and pays late.
+
+## 36ac. Marginal-matched chain law (local, 2026-11-17) [verified on a Markov chain; exact at 10 to 12 positions; sampled at 64 with 300 decodes]
+
+**Problem.** The chain law builds each transition from the pilot kernel and the two neighbouring marginals by a ratio formula.
+When the marginals of masked neighbours already condition on revealed tokens elsewhere, the resulting chain no longer has those marginals.
+
+**Fix.** `ChainTwist(match=k)`: each transition is rescaled on both sides (k sweeps) so that the pair table has exactly the two
+denoiser marginals, keeping the kernel's interaction. `match=0` is the old formula and stays the default.
+
+**Direct check** (200 random partly revealed states, 8 positions): on a Markov chain KL(model joint || chain law) falls from 0.093 to
+0.00000 and the largest marginal error from 0.41 to 6e-6 (30 sweeps). On the hidden chain the KL goes from 0.131 to 0.127 and the
+marginal error from 0.064 to 4e-16: the marginals become exact and the remaining error is the model's order.
+
+**Exact, 10 to 12 positions** (KL in nats, lower is better; ratio formula -> matched).
+
+| constraint, model, N | random | ideal greedy | best fixed order | optimal |
+|---|---|---|---|---|
+| counting, chain_0.85, 10 | 0.3277 -> 0.0007 | 0.0273 -> 0.0003 | 0.0005 -> 0.0002 | 0.0005 -> 0.0002 |
+| dyck, chain_0.85, 12 | 0.0891 -> 0.0001 | 0.0288 -> 0.0001 | 0.0000 -> 0.0001 | 0.0000 -> 0.0001 |
+| counting, hidden_0.85, 10 | 0.0549 -> 0.0452 | 0.0161 -> 0.0130 | 0.0145 -> 0.0132 | 0.0067 -> 0.0063 |
+| dyck, hidden_0.85, 12 | 0.0778 -> 0.0723 | 0.0052 -> 0.0107 | 0.0095 -> 0.0105 | 0.0015 -> 0.0015 |
+| forbidden, hidden_0.85, 10 | 0.0561 -> 0.0504 | 0.0117 -> 0.0167 | 0.0223 -> 0.0231 | 0.0095 -> 0.0135 |
+| window_small, hidden_0.85, 10 | 0.1953 -> 0.1917 | 0.0098 -> 0.0112 | 0.0115 -> 0.0110 | 0.0098 -> 0.0110 |
+| two_window_small, hidden_0.85, 10 | 0.1682 -> 0.1605 | 0.0008 -> 0.0009 | 0.0011 -> 0.0009 | 0.0007 -> 0.0008 |
+| counting, latent_0.6_w0.5, 10 | 0.0185 -> 0.0148 | 0.0052 -> 0.0049 | 0.0043 -> 0.0041 | 0.0024 -> 0.0023 |
+| dyck, latent_0.6_w0.5, 12 | 0.0276 -> 0.0256 | 0.0030 -> 0.0027 | 0.0036 -> 0.0039 | 0.0009 -> 0.0007 |
+| forbidden, latent_0.6_w0.5, 10 | 0.0377 -> 0.0329 | 0.0084 -> 0.0081 | 0.0159 -> 0.0137 | 0.0077 -> 0.0066 |
+| window_small, latent_0.6_w0.5, 10 | 0.1022 -> 0.1001 | 0.0065 -> 0.0056 | 0.0063 -> 0.0056 | 0.0049 -> 0.0055 |
+| two_window_small, latent_0.6_w0.5, 10 | 0.0900 -> 0.0868 | 0.0011 -> 0.0012 | 0.0011 -> 0.0012 | 0.0010 -> 0.0011 |
+
+- On the Markov chain the chain proposal becomes essentially exact in any order.
+- On the hidden chain and the stress oracle random order improves by 2 to 20%; good orders change little, and two hidden-chain cells get worse.
+
+**64 positions** (per-particle KL in nats, lower is better; ratio formula -> matched). Figure: [matched_chain_N64_heatmap.png]({{artifact:95dafc5e-4dc8-47a2-9ec2-b58b14bcc981}}).
+
+| model | constraint | random | left to right | lex | sum | estimate | ideal greedy (not honest) |
+|---|---|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.188 -> 0.097 | 0.208 -> 0.237 | 0.263 -> 0.137 | 0.146 -> 0.075 | 0.170 -> 0.133 | 0.078 -> 0.082 |
+| hidden_0.85 | dyck | 0.298 -> 0.244 | 0.314 -> 0.326 | 0.288 -> 0.189 | 0.246 -> 0.202 | 0.341 -> 0.248 | 0.103 -> 0.108 |
+| hidden_0.85 | forbidden | 0.419 -> 0.374 | 0.216 -> 0.206 | 0.216 -> 0.206 | 0.284 -> 0.285 | 0.197 -> 0.235 | 0.096 -> 0.142 |
+| hidden_0.85 | window | 0.256 -> 0.195 | 0.254 -> 0.247 | 0.080 -> 0.024 | 0.078 -> 0.031 | 0.377 -> 0.399 | 0.017 -> 0.024 |
+| hidden_0.85 | two_window | 0.450 -> 0.393 | 0.365 -> 0.360 | 0.102 -> 0.048 | 0.135 -> 0.077 | 0.728 -> 0.751 | 0.032 -> 0.041 |
+| latent_0.6_w0.5 | counting | 0.153 -> 0.106 | 0.142 -> 0.158 | 0.212 -> 0.157 | 0.136 -> 0.099 | n.d. -> 0.110 | 0.085 -> 0.077 |
+| latent_0.6_w0.5 | dyck | 0.080 -> 0.062 | 0.057 -> 0.087 | 0.093 -> 0.063 | 0.059 -> 0.048 | n.d. -> 0.071 | 0.023 -> 0.024 |
+| latent_0.6_w0.5 | forbidden | 0.350 -> 0.322 | 0.183 -> 0.153 | 0.189 -> 0.166 | 0.174 -> 0.195 | n.d. -> 0.253 | 0.073 -> 0.111 |
+| latent_0.6_w0.5 | window | 0.472 -> 0.460 | 0.606 -> 0.602 | 0.064 -> 0.034 | 0.098 -> 0.057 | n.d. -> 0.743 | 0.008 -> 0.010 |
+| latent_0.6_w0.5 | two_window | 0.676 -> 0.671 | 0.685 -> 0.681 | 0.056 -> 0.021 | 0.077 -> 0.033 | n.d. -> 1.160 | 0.005 -> 0.010 |
+
+- Cells where matching lowers the error: random 10 of 10; ltr 6 of 10; lex 10 of 10; sum 8 of 10; estimate 2 of 5; ideal greedy 1 of 10.
+- The gain is largest under lex and sum on counting and the windows (a factor 1.3 to 3.3).
+- It removes the chain proposal's weakness on the windows under lex and sum (section 36w).
+- Ideal greedy does not improve and is clearly worse on forbidden; left to right is worse on counting and Dyck. Not yet explained.
+- Only the weight-based estimate has a recorded standard error (0.02 to 0.09 here), so differences below about 0.03 are not resolved.
+- Unit tests (5 new, 20 in `tests/test_chain_twist.py`): exact joint on a Markov model for four reveal patterns; marginals kept for arbitrary inputs.
+- Not yet done: the end measure in the sampler with `match`; the cost of the sweeps on a language model.
+
+## 36ad. Can the order be learned from observed twist revisions? Ceiling check (local, 2026-11-17) [exact at 8 to 10 positions, hidden chain 0.85]
+
+After each reveal the sampler re-runs the denoiser and its incremental weight is G(a) = psi(x + a) / psi~(x, a).
+
+- Identity (holds to 1e-12 in every cell): eps_i(x) = E_q[-log G] + e(x) - E_q e(x + a), with e = log(psi* / psi) the twist's log error.
+- So the mean revision sums to the order-dependent error over a decode, but per position it includes the correction the twist receives anyway.
+- To second order eps_i(x) is half the variance of log G over the revealed value, if e(x + a) does not depend on a.
+
+Ceiling: greedy on the true half-variance for every candidate (one look-ahead denoiser call per candidate; more than a learned predictor could know).
+Exact KL in nats, lower is better; rank = median rank correlation with the true error within a state.
+
+| constraint | proposal | random | optimal | ideal greedy | greedy on revision spread | greedy on mean revision | least tilted | rank of spread |
+|---|---|---|---|---|---|---|---|---|
+| counting (N=8) | product | 0.0264 | 0.0070 | 0.0118 | 0.0293 | 0.0304 | 0.0362 | 0.09 |
+| dyck (N=10) | product | 0.2761 | 0.0632 | 0.0759 | 0.1926 | 0.0738 | 0.4036 | 0.70 |
+| forbidden (N=8) | product | 0.3041 | 0.1401 | 0.1559 | 0.1608 | 0.1702 | 0.5127 | 1.00 |
+| window_small (N=8) | product | 0.3716 | 0.0239 | 0.0249 | 0.0843 | 0.0804 | 0.8390 | 0.90 |
+| two_window_small (N=8) | product | 0.5063 | 0.0217 | 0.0333 | 0.0575 | 0.0857 | 1.1693 | 1.00 |
+| counting (N=8) | chain | 0.0391 | 0.0069 | 0.0092 | 0.0724 | 0.0475 | 0.0286 | 0.40 |
+| dyck (N=10) | chain | 0.0519 | 0.0009 | 0.0067 | 0.0274 | 0.0132 | 0.0240 | 0.80 |
+| forbidden (N=8) | chain | 0.0439 | 0.0067 | 0.0078 | 0.0087 | 0.0187 | 0.0579 | 0.90 |
+| window_small (N=8) | chain | 0.1450 | 0.0101 | 0.0122 | 0.0155 | 0.1128 | 0.3074 | 1.00 |
+| two_window_small (N=8) | chain | 0.0850 | 0.0025 | 0.0030 | 0.0033 | 0.0249 | 0.1607 | 0.90 |
+
+- Chain proposal: within 1.1 to 1.3 times ideal greedy on forbidden and the two windows; 4 times on Dyck; worse than random on counting.
+- On counting the twist's error depends on the revealed value (it ignores that zeros cluster), so the revision measures the twist
+  correcting itself. The signal has the same blind spot on global constraints as the cheaper estimates.
+- Conclusion: not a general order rule. Script `revision_check.py`.
+
+## 36ae. Decision: greedy for the sequential order (2026-11-17)
+
+- Agreed with the user: sequential decoding uses a well-implemented greedy rule with the chain proposal. The exact ideal-order results
+  (sections 36s, 36t, 36aa) are kept as understanding; further sequential planning is dropped. Planning effort goes to the parallel schedule.
+- Condition: an honest estimate of the per-position error that tracks ideal greedy. Not yet met (section 36ab).
+- Candidates under discussion: disagreement between first- and second-order chain twists; kernel pair cost; their sum; the collective
+  term for sum constraints; a monotone calibration of any score. Learning from twist revisions is ruled out as a general rule (section 36ad).
+- Best honest arms so far at 64 positions on the hidden chain, with the matched chain proposal (section 36ac): sum on counting 0.075,
+  lex on Dyck 0.189, lex on forbidden 0.206, lex on window 0.024, lex on two windows 0.048; ideal greedy is 0.078, 0.103, 0.096, 0.017, 0.032.
+
+## 36af. How far the simple rules are from ideal greedy, and what that is worth (local, 2026-11-17) [sampled at 64 positions, 300 decodes; the particle count is a rule of thumb]
+
+Question from the user: how close is the sequential order to the best one already, and does the difference matter?
+
+Per-particle KL to the exact constrained law in nats (lower is better), matched chain proposal. Start = product proposal with the
+policy's random order (section 36w). Particles = (exp(2 KL) - 1) / (2 x 0.01): the count for a tolerance of 0.01 on the returned
+sample's KL if log-weights are normal and the large-particle formula holds. Neither assumption is verified.
+**Correction (section 36ai): this formula is wrong. The error falls as 1/K^2, the counts below are too large, and the corrected counts are in section 36ai.**
+
+| model | constraint | start | random | lex | sum | ideal greedy | sum / ideal | particles: sum, lex, ideal |
+|---|---|---|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.180 | 0.097 | 0.137 | 0.075 | 0.078 | 0.96 | 8.1, 15.7, 8.5 |
+| hidden_0.85 | dyck | 0.642 | 0.244 | 0.189 | 0.202 | 0.103 | 1.96 | 24.9, 22.9, 11.5 |
+| hidden_0.85 | forbidden | 2.588 | 0.374 | 0.206 | 0.285 | 0.096 | 2.97 | 38.4, 25.6, 10.6 |
+| hidden_0.85 | window | 0.389 | 0.195 | 0.024 | 0.031 | 0.017 | 1.76 | 3.1, 2.4, 1.8 |
+| hidden_0.85 | two_window | 0.730 | 0.393 | 0.048 | 0.077 | 0.032 | 2.43 | 8.3, 5.0, 3.3 |
+| latent_0.6_w0.5 | counting | 0.185 | 0.106 | 0.157 | 0.099 | 0.077 | 1.28 | 10.9, 18.5, 8.3 |
+| latent_0.6_w0.5 | dyck | 0.317 | 0.062 | 0.063 | 0.048 | 0.023 | 2.12 | 5.0, 6.7, 2.3 |
+| latent_0.6_w0.5 | forbidden | 1.960 | 0.322 | 0.166 | 0.195 | 0.073 | 2.68 | 23.8, 19.8, 7.8 |
+| latent_0.6_w0.5 | window | 0.609 | 0.460 | 0.034 | 0.057 | 0.008 | 7.46 | 6.1, 3.5, 0.8 |
+| latent_0.6_w0.5 | two_window | 0.900 | 0.671 | 0.021 | 0.033 | 0.005 | 6.21 | 3.4, 2.2, 0.5 |
+
+- Ideal greedy here is the lower of its two values (ratio formula, matched). It uses the exact twist and is not the best order;
+  at 10 to 12 positions it was within 0.01 nats of the optimum with the chain proposal, at 64 the optimum is unknown.
+- With the best simple rule per constraint the gap to ideal greedy is at most a factor 2.4 in particles on the hidden chain.
+  With one rule everywhere it is larger: `sum` 3.6 times on forbidden (38 against 11 particles), `lex` 2.4 times on forbidden and
+  1.9 times on counting. On the windows the ratios are larger on the stress oracle but the counts are 6 particles or fewer.
+- `sum` and `lex` are close as a single rule: summed over the five constraints, 83 against 72 particles on the hidden chain and
+  49 against 51 on the stress oracle; the worst single case is 38 for `sum` and 26 for `lex`.
+- Compute is steps times particles; the order touches only particles. The parallel schedule touches steps (section 36y: 1.3 to 10
+  times at 8 to 10 positions with the chain proposal), untested at scale.
+- Differences below about 0.03 nats are not resolved. One length only.
+
+**Reversed tie-break** (stake first, then the position least coupled to what is still masked; `lex_near`, `sum_near`; `near` alone
+reduces to left to right on the hidden chain). Motivation: with the chain proposal ideal greedy grows outward from revealed tokens.
+
+| model | constraint | lex -> lex_near | sum -> sum_near |
+|---|---|---|---|
+| hidden_0.85 | counting | 0.137 -> 0.144 | 0.075 -> 0.197 |
+| hidden_0.85 | dyck | 0.189 -> 0.188 | 0.202 -> 0.139 |
+| hidden_0.85 | forbidden | 0.206 -> 0.206 | 0.285 -> 0.206 |
+| hidden_0.85 | window | 0.024 -> 0.056 | 0.031 -> 0.040 |
+| hidden_0.85 | two_window | 0.048 -> 0.047 | 0.077 -> 0.099 |
+| latent_0.6_w0.5 | counting | 0.157 -> 0.155 | 0.099 -> 0.157 |
+| latent_0.6_w0.5 | dyck | 0.063 -> 0.063 | 0.048 -> 0.047 |
+| latent_0.6_w0.5 | forbidden | 0.166 -> 0.166 | 0.195 -> 0.167 |
+| latent_0.6_w0.5 | window | 0.034 -> 0.014 | 0.057 -> 0.019 |
+| latent_0.6_w0.5 | two_window | 0.021 -> 0.021 | 0.033 -> 0.056 |
+
+- No consistent gain; clearly worse on counting under sum. Not adopted.
+
+**Decision (user, 2026-11-17).** The sequential rule is `sum` with the matched chain proposal (`lex` is similar and equally acceptable).
+No fitted second-order model, no learned estimator, no look-ahead calls: each costs more than the gap it could partly recover.
+Work on the sequential order stops here; effort goes to the parallel schedule.
+
+## 36ag. Relation to Discrete Copula Diffusion (read 2026-11-17) [paper read: sections 1 to 5; numerical check of the equivalence below]
+
+Liu, Broadrick, Niepert and Van den Broeck, *Discrete Copula Diffusion*, ICLR 2025, arXiv:2410.01949.
+
+**What the paper does.**
+
+- Problem: a denoiser predicts each masked position separately, so revealing many positions in one step ignores their dependence.
+  Their Proposition 1 bounds the loss from below by the total correlation of the true denoising distribution at each step.
+- Remedy: take the univariate marginals from the diffusion model and the dependence (the copula) from a second model, by
+  I-projecting the second model's joint onto the set of joints with the diffusion model's marginals. The result has the form
+  second-model joint times one factor per position (their Proposition 3), keeps the second model's copula (Proposition 4), and is
+  closer in KL to the target than the second model alone whenever the marginals differ (Proposition 2).
+- Instance: an autoregressive language model as the copula model, with an approximate projection; unconstrained and conditional
+  text generation in 8 to 32 times fewer steps. In the sections read (1 to 5) there is no hard constraint on the output and no
+  importance weighting; the experiments and appendices were not read.
+
+**Relation to this work.**
+
+- The marginal-matched chain law of section 36ac is this construction with a first-order Markov copula: it is the I-projection of the
+  chain with the pilot pair table onto the joints with the denoiser's marginals. For a chain the projection is exact and has a closed
+  form by row and column scaling of each adjacent pair. Checked numerically: the matched chain equals iterative proportional fitting
+  on the full joint to 3e-15 (5 positions, 3 classes).
+- So the idea of combining the denoiser's marginals with a separate dependence model is theirs and must be cited as such. Their
+  Proposition 2 also gives the matched law a guarantee against the raw table chain (not against our earlier ratio formula).
+- Their Proposition 1 is the same statement as our co-reveal bias: the error of revealing a set at once is the dependence among its members.
+- What is different here: (i) the copula model is chosen to be a chain over constraint classes so that the constraint can be
+  marginalised exactly through it (automaton forward-backward), which an autoregressive copula does not allow; (ii) it is used as the
+  twist and proposal of a sequential Monte Carlo sampler whose weights correct the remaining error, so the target stays the exact
+  constrained law; (iii) the dependence table is fitted from the denoiser's own samples, with no second model.
+
+**For the paper.** Cite it for the marginals-plus-copula construction and for the total-correlation bound. Claim only the constrained,
+class-level, weight-corrected use. The earlier copula remark of this document can be restated in exactly these terms.
+
+**Idea, untested.** A richer copula model for co-revealed sets (their autoregressive instance) could serve as a proposal in the
+parallel schedule; the weights would need its joint density, which an autoregressive model provides. Not planned.
+
+## 36ah. The matched chain law in the sampler: end measure at 64 positions (local, 2026-11-17) [sampled: 200 runs of 16 particles per arm, two oracles]
+
+Arm set `matched` (`pulib/arms.py`). RMS of log(Z_hat / p(C)), lower is better; default resampling. Cells: product | chain | matched chain.
+Figure: [matched_arms_N64_heatmap.png]({{artifact:ec965b89-b733-4e14-b459-1cfb1fb05fc0}}).
+
+| model | constraint | sum, one token per step | lex, one token per step | sum, budget 0.03 with pull-in | steps of the budgeted arm | Z_hat / p(C), budgeted matched |
+|---|---|---|---|---|---|---|
+| hidden_0.85 | counting | 0.101 \| 0.135 \| 0.094 | 0.161 \| 0.202 \| 0.114 | 0.182 \| 0.178 \| 0.120 | 11 | 1.02 +- 0.01 |
+| hidden_0.85 | dyck | 0.258 \| 0.170 \| 0.154 | 0.291 \| 0.181 \| 0.136 | 0.303 \| 0.190 \| 0.185 | 11 | 0.97 +- 0.01 |
+| hidden_0.85 | forbidden | 0.487 \| 0.208 \| 0.238 | 0.274 \| 0.195 \| 0.179 | 0.512 \| 0.240 \| 0.278 | 12 | 0.92 +- 0.02 |
+| hidden_0.85 | window | 0.089 \| 0.115 \| 0.068 | 0.080 \| 0.100 \| 0.053 | 0.121 \| 0.134 \| 0.083 | 11 | 1.00 +- 0.01 |
+| hidden_0.85 | two_window | 0.117 \| 0.148 \| 0.093 | 0.095 \| 0.123 \| 0.073 | 0.105 \| 0.148 \| 0.103 | 12 | 0.99 +- 0.01 |
+| latent_0.6_w0.5 | counting | 0.343 \| 0.143 \| 0.107 | 0.504 \| 0.205 \| 0.175 | 0.373 \| 0.138 \| 0.122 | 25 | 1.02 +- 0.01 |
+| latent_0.6_w0.5 | dyck | 0.267 \| 0.094 \| 0.084 | 0.218 \| 0.106 \| 0.086 | 0.272 \| 0.126 \| 0.131 | 24 | 1.06 +- 0.01 |
+| latent_0.6_w0.5 | forbidden | 0.346 \| 0.221 \| 0.235 | 0.262 \| 0.198 \| 0.153 | 0.376 \| 0.220 \| 0.261 | 49 | 0.95 +- 0.02 |
+| latent_0.6_w0.5 | window | 0.074 \| 0.112 \| 0.084 | 0.051 \| 0.098 \| 0.057 | 0.087 \| 0.129 \| 0.087 | 24 | 1.01 +- 0.01 |
+| latent_0.6_w0.5 | two_window | 0.074 \| 0.100 \| 0.063 | 0.057 \| 0.092 \| 0.049 | 0.073 \| 0.094 \| 0.072 | 24 | 1.00 +- 0.01 |
+
+- The matched chain is the best of the three proposals in 22 of 30 cells, at or below the product proposal in 27 and at or below
+  the ratio-formula chain in 25. The standard error of an entry is about 5% of its value, so several of the exceptions are ties.
+- It removes the chain proposal's weakness on the windows. The clearest exceptions are forbidden under `sum`, where the ratio-formula
+  chain is lower; on the stress oracle's single window the product proposal is level or slightly lower.
+- `lex` against `sum` with the matched chain, one token per step: `lex` lower in 7 of 10 cells, `sum` lower in 3 (counting on both oracles; Dyck on the stress oracle by 0.002).
+  This leans the other way from the per-particle traces of section 36af; the two rules remain close.
+- Budgeted parallel schedule with the matched chain: 1.03 to 1.56 times the sequential error, in 11 to 12 steps on the hidden chain
+  and 24 to 49 on the stress oracle instead of 64.
+- Wall time per arm (median, laptop, shared with other runs): product 49 s, chain 65 s, matched chain 123 s.
+  The 30 matching sweeps are the extra cost; fewer sweeps are untested in the sampler.
+
+## 36ai. The particle rule was wrong: the error of the returned sample falls as 1/K^2 (local, 2026-11-17) [exact at 8 to 10 positions, no resampling; 15 cases]
+
+The rule used so far for the number of particles K at a tolerance on the KL of the returned sample's law was chi2 / (2K)
+(sections 36y and 36af). It was quoted, not derived, and it is wrong for this quantity.
+
+- Correct large-K expansion (importance sampling, one output drawn in proportion to the weights, no resampling): the output law is
+  q_K(x) = pi(x) [1 + (E_pi w - w(x)) / K + O(1/K^2)], and KL is second order in the deviation, so
+  **KL(q_K || pi) = Var_pi(w) / (2 K^2) + o(1/K^2)**, with w = pi / q and Var_pi(w) = E_q[w^3] - (E_q[w^2])^2.
+- chi2 / K is the relative variance of Z_hat, a different quantity.
+- Check (`particle_rule_check.py`): the sampler's law over complete sequences and the target are both known exactly, and the output
+  law for K particles is computed with 8,000 draws of the other particles' weights.
+
+| constraint | proposal | order | KL, one particle | Var_pi(w) | exact KL at K = 16 | Var_pi(w) / (2 K^2) | old rule chi2 / (2K) |
+|---|---|---|---|---|---|---|---|
+| counting (N=8) | product | left to right | 0.0326 | 0.1050 | 0.00020 | 0.00021 | 0.00242 |
+| counting (N=8) | product | random order A | 0.0260 | 0.0509 | 0.00010 | 0.00010 | 0.00157 |
+| counting (N=8) | product | random order B | 0.0359 | 0.0957 | 0.00018 | 0.00019 | 0.00246 |
+| dyck (N=10) | chain | left to right | 0.0395 | 0.1423 | 0.00027 | 0.00028 | 0.00305 |
+| dyck (N=10) | chain | random order A | 0.0717 | 0.0880 | 0.00018 | 0.00017 | 0.00356 |
+| dyck (N=10) | chain | random order B | 0.0366 | 0.0461 | 0.00009 | 0.00009 | 0.00186 |
+| dyck (N=10) | product | left to right | 0.3503 | 2.1522 | 0.00410 | 0.00420 | 0.03035 |
+| dyck (N=10) | product | random order A | 0.3156 | 0.6495 | 0.00135 | 0.00127 | 0.01816 |
+| dyck (N=10) | product | random order B | 0.2083 | 0.3996 | 0.00082 | 0.00078 | 0.01197 |
+| forbidden (N=8) | chain | left to right | 0.0453 | 0.1081 | 0.00021 | 0.00021 | 0.00295 |
+| forbidden (N=8) | chain | random order A | 0.0352 | 0.0989 | 0.00019 | 0.00019 | 0.00242 |
+| forbidden (N=8) | chain | random order B | 0.0503 | 0.1486 | 0.00028 | 0.00029 | 0.00336 |
+| forbidden (N=8) | product | left to right | 0.1568 | 0.4011 | 0.00075 | 0.00078 | 0.00905 |
+| forbidden (N=8) | product | random order A | 0.3766 | 0.2208 | 0.00045 | 0.00043 | 0.01081 |
+| forbidden (N=8) | product | random order B | 0.3604 | 0.1738 | 0.00036 | 0.00034 | 0.01006 |
+
+- At 16 particles the expansion is within 7% of the exact value in all 15 cases; the old rule is 7 to 28 times too large.
+- With normal log-weights Var_pi(w) = exp(4 kl) (exp(2 kl) - 1), kl the one-particle KL. At these sizes that proxy is off by up to
+  a factor 20 in either direction is not seen: it overestimates in 11 of 15 cases (weights are bounded on short sequences). Use it as a rough guide only.
+
+**Consequences.**
+
+- Particles for a tolerance: K = sqrt(Var_pi(w) / (2 tol)). The count grows with the square root of 1 / tol, and a gap between two
+  orders costs about the square root of the gap in Var_pi(w).
+- The particle counts of section 36af are superseded. With the normal proxy at 64 positions and tolerance 0.01 (matched chain proposal, both oracles):
+
+| model | constraint | sum | lex | ideal greedy |
+|---|---|---|---|---|
+| hidden_0.85 | counting | 3.3 | 5.2 | 3.4 |
+| hidden_0.85 | dyck | 7.5 | 7.0 | 4.2 |
+| hidden_0.85 | forbidden | 10.9 | 7.6 | 3.9 |
+| hidden_0.85 | window | 1.9 | 1.6 | 1.4 |
+| hidden_0.85 | two_window | 3.4 | 2.5 | 1.9 |
+| latent_0.6_w0.5 | counting | 4.0 | 5.9 | 3.4 |
+| latent_0.6_w0.5 | dyck | 2.5 | 2.9 | 1.6 |
+| latent_0.6_w0.5 | forbidden | 7.2 | 6.2 | 3.2 |
+| latent_0.6_w0.5 | window | 2.8 | 2.0 | 0.9 |
+| latent_0.6_w0.5 | two_window | 2.0 | 1.5 | 0.7 |
+
+- So the sequential order matters less than section 36af said: every arm needs about 2 to 11 particles by this proxy, and the gap to
+  ideal greedy is at most 7 particles (forbidden under `sum`). The decision of section 36af stands, with more room.
+- For the parallel schedule: proposal noise is cheap to remove with particles (1/K^2), co-reveal bias is not removed at all. The bias
+  must fit under the tolerance by itself, and with a bias present the expansion has a cross term of order 1/K (not checked).
+- Not checked: the sampler with resampling; 64 positions (Var_pi(w) needs the third moment of the weights, which 300 decodes do not give reliably).
 
 ## 36. Next steps (2026-11-16; replaces section 34)
 

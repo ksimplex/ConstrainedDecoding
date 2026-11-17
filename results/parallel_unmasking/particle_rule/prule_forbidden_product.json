@@ -1,0 +1,231 @@
+{
+ "args": {
+  "N": 8,
+  "model": "hidden_0.85",
+  "constraint": "forbidden",
+  "proposal": "product",
+  "match": 0,
+  "R": 8000,
+  "Ks": [
+   1,
+   2,
+   4,
+   8,
+   16,
+   32,
+   64
+  ],
+  "out": "../../overnight/prule/prule_forbidden_product.json"
+ },
+ "provenance": {
+  "commit": "84b5c34",
+  "dirty": false,
+  "torch": "2.14.1",
+  "platform": "Darwin-arm64",
+  "started": "2026-11-17 05:32"
+ },
+ "log_pC": -1.3093754841219079,
+ "orders": {
+  "left to right": {
+   "perm": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "kl_one_particle": 0.15682417962006498,
+   "chi2": 0.28971385310795505,
+   "var_pi_w": 0.4010846747422303,
+   "var_pi_w_if_lognormal": 0.6898602197014837,
+   "rows": [
+    {
+     "K": 1,
+     "kl_output": 0.15682417962006498,
+     "chi2_rule": 0.14485692655397753,
+     "second_order": 0.20054233737111515,
+     "second_order_lognormal": 0.34493010985074185
+    },
+    {
+     "K": 2,
+     "kl_output": 0.03915253199103718,
+     "chi2_rule": 0.07242846327698876,
+     "second_order": 0.05013558434277879,
+     "second_order_lognormal": 0.08623252746268546
+    },
+    {
+     "K": 4,
+     "kl_output": 0.01056805077411637,
+     "chi2_rule": 0.03621423163849438,
+     "second_order": 0.012533896085694697,
+     "second_order_lognormal": 0.021558131865671366
+    },
+    {
+     "K": 8,
+     "kl_output": 0.0028815376893531267,
+     "chi2_rule": 0.01810711581924719,
+     "second_order": 0.0031334740214236743,
+     "second_order_lognormal": 0.005389532966417841
+    },
+    {
+     "K": 16,
+     "kl_output": 0.0007481399348597791,
+     "chi2_rule": 0.009053557909623595,
+     "second_order": 0.0007833685053559186,
+     "second_order_lognormal": 0.0013473832416044604
+    },
+    {
+     "K": 32,
+     "kl_output": 0.0001907736725510643,
+     "chi2_rule": 0.004526778954811798,
+     "second_order": 0.00019584212633897964,
+     "second_order_lognormal": 0.0003368458104011151
+    },
+    {
+     "K": 64,
+     "kl_output": 4.8354749583268304e-05,
+     "chi2_rule": 0.002263389477405899,
+     "second_order": 4.896053158474491e-05,
+     "second_order_lognormal": 8.421145260027877e-05
+    }
+   ]
+  },
+  "random order A": {
+   "perm": [
+    2,
+    4,
+    3,
+    6,
+    5,
+    0,
+    1,
+    7
+   ],
+   "kl_one_particle": 0.3766106582834748,
+   "chi2": 0.3457609494710998,
+   "var_pi_w": 0.22078026635871262,
+   "var_pi_w_if_lognormal": 5.0692131470197195,
+   "rows": [
+    {
+     "K": 1,
+     "kl_output": 0.3766106582834748,
+     "chi2_rule": 0.1728804747355499,
+     "second_order": 0.11039013317935631,
+     "second_order_lognormal": 2.5346065735098597
+    },
+    {
+     "K": 2,
+     "kl_output": 0.05688626947397939,
+     "chi2_rule": 0.08644023736777495,
+     "second_order": 0.027597533294839077,
+     "second_order_lognormal": 0.6336516433774649
+    },
+    {
+     "K": 4,
+     "kl_output": 0.008853985381732491,
+     "chi2_rule": 0.043220118683887476,
+     "second_order": 0.006899383323709769,
+     "second_order_lognormal": 0.15841291084436623
+    },
+    {
+     "K": 8,
+     "kl_output": 0.0018664703481518887,
+     "chi2_rule": 0.021610059341943738,
+     "second_order": 0.0017248458309274423,
+     "second_order_lognormal": 0.03960322771109156
+    },
+    {
+     "K": 16,
+     "kl_output": 0.0004516295237203651,
+     "chi2_rule": 0.010805029670971869,
+     "second_order": 0.0004312114577318606,
+     "second_order_lognormal": 0.00990080692777289
+    },
+    {
+     "K": 32,
+     "kl_output": 0.0001099143879463452,
+     "chi2_rule": 0.0054025148354859345,
+     "second_order": 0.00010780286443296515,
+     "second_order_lognormal": 0.0024752017319432224
+    },
+    {
+     "K": 64,
+     "kl_output": 2.7235330107672337e-05,
+     "chi2_rule": 0.0027012574177429673,
+     "second_order": 2.6950716108241286e-05,
+     "second_order_lognormal": 0.0006188004329858056
+    }
+   ]
+  },
+  "random order B": {
+   "perm": [
+    6,
+    2,
+    7,
+    4,
+    5,
+    1,
+    0,
+    3
+   ],
+   "kl_one_particle": 0.3604354393613621,
+   "chi2": 0.322024771240363,
+   "var_pi_w": 0.17379824594352544,
+   "var_pi_w_if_lognormal": 4.465768154856271,
+   "rows": [
+    {
+     "K": 1,
+     "kl_output": 0.3604354393613621,
+     "chi2_rule": 0.1610123856201815,
+     "second_order": 0.08689912297176272,
+     "second_order_lognormal": 2.2328840774281353
+    },
+    {
+     "K": 2,
+     "kl_output": 0.05352123870948752,
+     "chi2_rule": 0.08050619281009075,
+     "second_order": 0.02172478074294068,
+     "second_order_lognormal": 0.5582210193570338
+    },
+    {
+     "K": 4,
+     "kl_output": 0.00765759998056571,
+     "chi2_rule": 0.040253096405045374,
+     "second_order": 0.00543119518573517,
+     "second_order_lognormal": 0.13955525483925846
+    },
+    {
+     "K": 8,
+     "kl_output": 0.0015428936178278406,
+     "chi2_rule": 0.020126548202522687,
+     "second_order": 0.0013577987964337925,
+     "second_order_lognormal": 0.034888813709814614
+    },
+    {
+     "K": 16,
+     "kl_output": 0.000362768255414073,
+     "chi2_rule": 0.010063274101261344,
+     "second_order": 0.00033944969910844813,
+     "second_order_lognormal": 0.008722203427453654
+    },
+    {
+     "K": 32,
+     "kl_output": 8.739925098071694e-05,
+     "chi2_rule": 0.005031637050630672,
+     "second_order": 8.486242477711203e-05,
+     "second_order_lognormal": 0.0021805508568634134
+    },
+    {
+     "K": 64,
+     "kl_output": 2.1526912369766987e-05,
+     "chi2_rule": 0.002515818525315336,
+     "second_order": 2.1215606194278008e-05,
+     "second_order_lognormal": 0.0005451377142158534
+    }
+   ]
+  }
+ }
+}
