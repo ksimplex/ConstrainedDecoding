@@ -19,8 +19,9 @@ pair_ratio_table(samples, token_class, A, lam)   the dependence table of the cha
         for classes a, b at neighbouring positions, n_ab pairs were seen and e_ab = n_a. n_.b / n are expected under
         independence. With a Gamma(lam, lam) prior on the ratio r_ab (mean 1: independence, worth lam observations)
         and n_ab ~ Poisson(r_ab e_ab), the posterior mean is (n_ab + lam) / (e_ab + lam): unchanged where nothing was
-        expected, well below 1 where many were expected and none seen, never zero. lam = None picks the value that
-        maximises the marginal likelihood of the table (negative binomial), on a grid. The table is collapsed from
+        expected, well below 1 where many were expected and none seen, never zero. lam = 1 by default (the prior is
+        worth one observation); lam = None picks the value that maximises the marginal likelihood of the table
+        (negative binomial) on a grid. The table is collapsed from
         token sequences, so one pilot corpus serves every constraint. Rows are normalised (the matched chain law
         does not depend on row or column scalings of the table).
 """
@@ -81,7 +82,7 @@ def _counts(samples, token_class, A):
     return n
 
 
-def pair_ratio_table(samples, token_class, A, lam=None, grid=(0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0)):
+def pair_ratio_table(samples, token_class, A, lam=1.0, grid=(0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0)):
     n = _counts(samples, token_class, A); tot = n.sum()
     e = np.outer(n.sum(1), n.sum(0)) / max(tot, 1.0)
     def loglik(l):                                                       # negative binomial marginal of n_ab given e_ab, up to terms free of l

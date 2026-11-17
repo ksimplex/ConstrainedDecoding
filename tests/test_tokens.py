@@ -40,7 +40,8 @@ def test_pair_table_is_a_bayesian_update_of_independence():
         for _ in range(39):
             x.append(int(rng.choice(A, p=T[x[-1]])))
         xs.append(x)
-    K, info = pair_ratio_table(xs, cls, A)
+    K, info = pair_ratio_table(xs, cls, A, lam=None)
+    assert pair_ratio_table(xs, cls, A)[1]["lam"] == 1.0
     assert (K > 0).all() and abs(K.sum(1) - 1).max() < 1e-12
     r = K / K[:, [0]]                                                     # ratios within a row: K(a, b) / K(a, 0)
     assert r[2, 3] < 0.05                                                 # expected often, never seen: strongly suppressed, not zero
