@@ -284,6 +284,16 @@ class CouplingPolicy:
                exactly one step, so the loads of a whole trajectory sum to at most rate * N: rate = B / N is a
                budget B for the whole sequence that needs no state carried between steps. Overrides budget, theta.
     mixed      include the term sum_j M(a, j) rho(j, b). False drops it (and its N * A clamped route passes).
+    forced_batch   None (off) or a tolerance in nats. When a particle has forced positions (class determined by the
+               constraint, single token), its step reveals forced positions only, as many as the tolerance allows
+               and at least one; free positions wait for a later step, so every free draw is conditioned on the
+               forced values. The tokens are determined either way. What a batch changes is the particle's weight:
+               one at a time, the weight picks up the model's joint probability of the forced block; in one step it
+               picks up the product of the single-position probabilities p_j read from the current call. Both lie
+               in [1 - eps, min_j p_j] with eps = sum_j (1 - p_j) (union bound and Weierstrass product inequality;
+               the first assumes the model's conditionals come from one joint law), so the log weight is off by at
+               most -log(1 - eps). Positions are taken in increasing 1 - p_j while that bound stays within the
+               tolerance. With one particle the output law is unchanged whatever the tolerance.
     forced_first   consider positions whose class is determined (single token) before all others; they still
                pass through the coupling test
 
@@ -292,13 +302,16 @@ class CouplingPolicy:
     `route_passes` counts batched logZ evaluations per particle requested by the policy (for cost accounting).
     """
 
-    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None, pull_forced=0, guard=False):
+    def __init__(self, kernel, theta, priority="bound", mixed=True, forced_first=True, budget=None, rate=None, max_set=None, pull_forced=0, guard=False,
+                 forced_batch=None):
         if not callable(priority) and priority not in PRIORITIES:
             raise ValueError(f"priority must be one of {PRIORITIES} or a function of the step context")
         if theta < 0:
             raise ValueError("theta must be >= 0")
         self.max_set = None if max_set is None else int(max_set)
         self.pull_forced = int(pull_forced)
+        self.forced_batch = None if forced_batch is None else float(forced_batch)
+        self.forced_steps, self.forced_reveals = 0, 0
         self.guard = bool(guard)
         self.kernel, self.theta, self.priority, self.mixed = kernel, float(theta), priority, mixed
         self.forced_first = forced_first
@@ -409,6 +422,22 @@ class CouplingPolicy:
             score = torch.where(forced, torch.full_like(score, float("inf")), score)
         return torch.where(cand, score, torch.full_like(score, NEG_INF))
 
+    def forced_set(self, s):
+        """Forced-only reveal set (P, N) under `forced_batch`: the forced positions in increasing order of
+        1 - p_j (p_j the model's probability of the forced token), while -log(1 - sum (1 - p_j)) stays within the
+        tolerance; at least one. Empty for particles with no forced position."""
+        sizes = (s.st.classes.onehot > 0).sum(0).to(s.dev)
+        top = s.mu.argmax(-1)
+        forced = s.masked & (s.ent < 1e-9) & (sizes[top] == 1)
+        miss = 1.0 - torch.exp(s.st.lw.double()).gather(-1, top[..., None]).squeeze(-1).clamp(0.0, 1.0)
+        miss = torch.where(forced, miss, torch.full_like(miss, float("inf")))
+        val, idx = torch.sort(miss, dim=-1, stable=True)
+        eps = torch.cumsum(torch.where(torch.isfinite(val), val, torch.zeros_like(val)), -1)
+        bound = torch.where(eps < 1.0, -torch.log1p(-eps.clamp(max=1.0 - 1e-300)), torch.full_like(eps, float("inf")))
+        take = torch.isfinite(val) & (bound <= self.forced_batch)
+        take[:, 0] = torch.isfinite(val[:, 0])
+        return torch.zeros_like(forced).scatter(-1, idx, take)
+
     def _guard_load(self, s, load):
         """Starting loads under `guard`: a position without a constraint stake carries its model coupling to the
         still-masked positions that have one."""
@@ -504,6 +533,10 @@ class CouplingPolicy:
             s = self.step_context(st, masked)
             chosen, spent = self.admit(s, self.score(s, gen), gen)
             self.load_sum += float(spent.sum())
+            if self.forced_batch is not None:
+                fset = self.forced_set(s); has = fset.any(-1)
+                chosen = torch.where(has[:, None], fset, chosen)
+                self.forced_steps += int(has.sum()); self.forced_reveals += int(fset.sum())
         self.calls += 1
         self.particle_calls += P
         cnt = chosen.sum(-1)
