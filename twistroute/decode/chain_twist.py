@@ -47,6 +47,48 @@ def fit_pair_kernel(den, classes, n, gen=None, smooth=1e-3, N=None):
     return J / J.sum(-1, keepdim=True)
 
 
+@torch.no_grad()
+def probe_pair_kernel(den, classes, N, gen=None, stride=1, top=4, min_mass=0.01, tokens_per_class=2, floor=1e-4, rows=16):
+    """K (A, A) from the denoiser's own conditionals instead of sample frequencies, and a dict of what it cost.
+
+    From the fully masked state (with whatever prompt the denoiser carries), for every `stride`-th position i and each
+    of its `top` most probable classes a with mass >= min_mass: put a token of class a at i (drawn from the model
+    within the class, `tokens_per_class` of them unless the class is a single token there), call the denoiser, and read
+    the class probabilities at i + 1. Pooled over positions with the marginal of a at i as weight,
+        J(a, b) = sum_i p_i(a) P(b at i + 1 | a at i),     E(a, b) = sum_i p_i(a) p_{i+1}(b),
+    and the table is the ratio (J + floor) / (E + floor): the model's pairwise dependence where it was probed, neutral
+    (1) where the expected mass is below `floor`, never zero. Rows are normalised. These are exact probabilities of
+    the model in this prompt, so there is no counting noise; they describe the start state only, in one direction."""
+    dev = classes.onehot.device; A = classes.A
+    x0 = torch.full((1, N), den.mask_id, dtype=torch.long, device=dev); lp0 = den.logits(x0)[0]
+    p0 = torch.exp(classes.class_logw(lp0[None])[0].double())                                   # (N, A)
+    probes = []                                                                                 # (position, class, token)
+    for i in range(0, N - 1, stride):
+        mass, idx = torch.sort(p0[i], descending=True)
+        for a in idx[:top][mass[:top] >= min_mass].tolist():
+            w = torch.where(classes.token_class == a, torch.exp(lp0[i].double()), torch.zeros(lp0.shape[-1], dtype=torch.float64, device=dev))
+            if hasattr(classes, "excluded"):
+                w[list(classes.excluded)] = 0.0
+            if float(w.sum()) <= 0:
+                continue
+            k = 1 if float(w.max() / w.sum()) > 0.999 else tokens_per_class
+            for v in torch.multinomial(w / w.sum(), k, replacement=True, generator=gen).tolist():
+                probes.append((i, a, v, 1.0 / k))
+    J = torch.zeros(A, A, dtype=torch.float64, device=dev); E = torch.zeros_like(J); calls = 0
+    for lo in range(0, len(probes), rows):
+        chunk = probes[lo:lo + rows]; x = x0.repeat(len(chunk), 1)
+        for r, (i, a, v, wt) in enumerate(chunk):
+            x[r, i] = v
+        lp = den.logits(x); calls += 1
+        for r, (i, a, v, wt) in enumerate(chunk):
+            cond = torch.exp(classes.class_logw(lp[r:r + 1, i + 1:i + 2])[0, 0].double())
+            J[a] += wt * p0[i, a] * cond; E[a] += wt * p0[i, a] * p0[i + 1]
+    Kr = (J + floor) / (E + floor)
+    info = dict(probes=len(probes), denoiser_batches=calls + 1, positions=len(range(0, N - 1, stride)), classes_probed=int((J.sum(1) > 0).sum()),
+                min_ratio=float(Kr.min()), max_ratio=float(Kr.max()))
+    return Kr / Kr.sum(-1, keepdim=True), info
+
+
 class ChainTwist:
     def __init__(self, wdfa, kernel, eps=0.05, active=None, device="cpu", temp=1.0, match=0):
         """wdfa: compile.WDFA; kernel: (A, A) row-stochastic with positive entries; eps in (0, 1]: share of the

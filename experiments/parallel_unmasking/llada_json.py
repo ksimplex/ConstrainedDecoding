@@ -7,8 +7,9 @@ Routes come from json_mode_compile.py (.npz + .json). Stages, each resumable and
   pilot    unconstrained samples of the model for every selected prompt, one token per step in uniformly random order
            (the reference process): the corpus the pair tables are collapsed from. Saved as token ids.
   compare  per datapoint, one token per step in uniformly random order, K particles, nrun runs: product proposal and
-           twist; chain proposal and twist with matched marginals, the pair table collapsed from the pilot corpus of
-           the OTHER prompts (lam = 1) and a defensive share of the product proposal. Reported: mean and spread of
+           twist; chain proposal and twist with matched marginals and a defensive share of the product proposal, with
+           the pair table (a) collapsed from the pilot corpus of the OTHER prompts (lam = 1) and (b) probed from the
+           denoiser's own conditionals in this prompt (decode.chain_twist.probe_pair_kernel; its cost is recorded). Reported: mean and spread of
            log Z_hat over runs, relative standard deviation of Z_hat, validity of the returned sample, seconds.
            There is no exact p(C) here; arms of one datapoint estimate the same quantity.
            The table check printed with every datapoint compares the pooled table with the one collapsed from the
@@ -22,7 +23,7 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from twistroute.compile.automata import WDFA                                                       # noqa: E402
 from twistroute.compile.tokens import pair_ratio_table                                             # noqa: E402
-from twistroute.decode import twisted_smc, ChainTwist                                              # noqa: E402
+from twistroute.decode import twisted_smc, ChainTwist, probe_pair_kernel                           # noqa: E402
 from twistroute.decode.native import native_sample                                                 # noqa: E402
 from twistroute.models.classes import TokenClasses                                                 # noqa: E402
 from twistroute.torch_routes import torch_route                                                    # noqa: E402
@@ -69,6 +70,8 @@ def main():
     ap.add_argument("--max-n", dest="max_n", type=int, default=160); ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--pilot-n", dest="pilot_n", type=int, default=8); ap.add_argument("--pilot", default="llada_pilot.npz")
     ap.add_argument("--nrun", type=int, default=16); ap.add_argument("--K", type=int, default=4); ap.add_argument("--runs-per-batch", dest="rpb", type=int, default=4)
+    ap.add_argument("--probe-stride", dest="probe_stride", type=int, default=1); ap.add_argument("--probe-top", dest="probe_top", type=int, default=4)
+    ap.add_argument("--tables", nargs="+", default=["counted", "probed"], choices=("counted", "probed"))
     ap.add_argument("--match", type=int, default=5); ap.add_argument("--mix", type=float, default=0.1); ap.add_argument("--lam", type=float, default=1.0)
     ap.add_argument("--max-rows", dest="max_rows", type=int, default=16); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", default="llada_json.json")
     a = ap.parse_args(); man, arr = load_routes(a.routes); t00 = time.time()
@@ -156,8 +159,17 @@ def main():
             agree = float(np.corrcoef(lr.ravel(), lg.ravel())[0, 1]) if big.sum() >= 2 else float("nan")
             res["compare"][key]["table"] = dict(pilot_sequences=len(others), pairs=tinfo["pairs"], seen_entries=tinfo["seen_entries"], classes=r["classes"], frequent_classes=int(big.sum()),
                                                 agreement_with_reference_answers=agree, min_entry=float(Kt.min()), max_over_min_in_row=float((Kt.max(1) / Kt.min(1)).max()))
-            tw = ChainTwist(d, torch.as_tensor(Kt), device=dev, match=a.match)
-            for name, kw in (("product", dict()), ("matched chain", dict(twist=tw, proposal_twist=tw, proposal_mix=a.mix))):
+            arms = [("product", dict())]
+            if "counted" in a.tables:
+                tw = ChainTwist(d, torch.as_tensor(Kt), device=dev, match=a.match)
+                arms.append(("matched chain, counted table", dict(twist=tw, proposal_twist=tw, proposal_mix=a.mix)))
+            if "probed" in a.tables:
+                t0 = time.time(); c0 = den.calls
+                Kp, pinfo = probe_pair_kernel(den, cl, N, G(5), stride=a.probe_stride, top=a.probe_top, rows=a.max_rows)
+                pinfo.update(seconds=round(time.time() - t0, 1), denoiser_calls=den.calls - c0); res["compare"][key]["probe"] = pinfo
+                tp = ChainTwist(d, Kp, device=dev, match=a.match)
+                arms.append(("matched chain, probed table", dict(twist=tp, proposal_twist=tp, proposal_mix=a.mix)))
+            for name, kw in arms:
                 if name in res["compare"][key]:
                     continue
                 t0 = time.time(); lz, toks, lws = [], [], []; c0 = den.calls
@@ -175,7 +187,7 @@ def main():
                                                  parses=float(np.mean([bool(c[2]) for c in chk])) if tokfile is not None else None, exact_reference=float(np.mean([c[0].strip() == r["completion"].strip() for c in chk])) if tokfile is not None else None,
                                                  seconds=round(time.time() - t0, 1), denoiser_batches=den.calls - c0, example=chk[0][0][:300] if chk else "")
                 save(); s = res["compare"][key][name]
-                print(f"[{time.time() - t00:6.0f}s] {key:>3s} N {N:3d} A {r['classes']:3d} {name:14s} log Z {s['log_mean_Z']:8.2f}  mean log Z {s['mean_logZ']:8.2f}  sd log Z {s['sd_logZ']:.2f}  spread {s['spread']:.2f}  "
+                print(f"[{time.time() - t00:6.0f}s] {key:>3s} N {N:3d} A {r['classes']:3d} {name:28s} log Z {s['log_mean_Z']:8.2f}  mean log Z {s['mean_logZ']:8.2f}  sd log Z {s['sd_logZ']:.2f}  spread {s['spread']:.2f}  "
                       f"matches {s['matches']}  equals reference {s['exact_reference']}  {s['seconds']:.0f} s  (table agreement {agree:.2f})", flush=True)
     print(f"done in {time.time() - t00:.0f}s")
 

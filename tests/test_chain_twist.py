@@ -300,3 +300,26 @@ def test_defensive_share_of_the_product_proposal(T):
     assert spread["bad"] < 0.75 * spread["bad_pure"], spread
     with pytest.raises(ValueError):
         twisted_smc(den, cl, route, N, T, nrun=2, K=2, proposal_mix=0.2)
+
+
+def test_pair_table_from_the_denoisers_conditionals():
+    """probe_pair_kernel reads the dependence off the model: on a first-order Markov model its ratios are the true
+    pointwise ratios P(b | a) / P(b), so the matched chain built from it is the exact joint; and it agrees with the
+    table counted from many samples."""
+    from twistroute.decode import probe_pair_kernel
+    N, A = 10, 3
+    den = lazy_chain(N, A, 0.85, seed=1, concentration=2.0); cl = den.classes()
+    Kp, info = probe_pair_kernel(den, cl, N, torch.Generator().manual_seed(0), top=A, min_mass=0.0, floor=1e-9)
+    Kf = fit_pair_kernel(den, cl, 40000, torch.Generator().manual_seed(1))
+    col = torch.exp(cl.class_logw(den.logits(torch.full((1, N), den.mask_id)))[0].double()).mean(0)
+    want = Kf / col[None]; want = want / want.sum(-1, keepdim=True)
+    assert float((Kp - want).abs().max()) < 0.02 and info["probes"] == (N - 1) * A and info["denoiser_batches"] >= 2
+    d = C.dfa_exactly_k(0, 3, A); x = torch.full((1, N), den.mask_id)
+    lwc = cl.class_logw(den.logits(x)).double(); mu = torch.exp(lwc); mu = mu / mu.sum(-1, keepdim=True)
+    Q = ChainTwist(d, Kp, match=60).transitions(mu)[0]
+    ys = torch.tensor(list(itertools.product(range(A), repeat=N)))
+    q = mu[0, 0, ys[:, 0]]
+    for i in range(N - 1):
+        q = q * Q[i, ys[:, i], ys[:, i + 1]]
+    exact = torch.exp(den.log_joint(ys))
+    assert float((q - exact).abs().max()) < 2e-3 * float(exact.max())
