@@ -2230,6 +2230,81 @@ product proposal -> chain proposal. The estimate from the weights agrees to with
 - Not done: the chain proposal inside the sampler (a joint route sample under the chain law is needed when several
   positions are revealed in one step); other hidden chains; 256 positions; cost per step.
 
+## 36x. The chain proposal in the sampler (local, 2026-11-16) [verified: 15 tests; end measure at N = 64, 100 runs of 16 particles, one hidden chain]
+
+Code: `ChainTwist.sample` (a joint draw from the chain law given the constraint: one backward pass, one forward sweep),
+`ChainTwist.log_clamped`, `_propose(..., chain=)`, `twisted_smc(..., proposal_twist=)`; arm set `chainprop`.
+The classes at the reveal set are drawn from the chain law given C; the weight uses the proposal's exact density,
+log(M / kappa) = log P_chain(classes at the set, C) - log P_chain(C) - the model's class log-probabilities at the set.
+The reveal set is chosen without seeing the draw, as before. Works for any number of positions per step.
+
+Checks (tests/test_chain_twist.py, 15 pass; the other test files pass unchanged):
+- the draw: its normaliser equals `log_chain`, every draw satisfies the constraint, class frequencies over 20,000 draws
+  match `marginals` within 4.5 standard errors, and the clamped masses sum to the normaliser to 1e-9;
+- in the sampler: Z_hat is unbiased for p(C) with one token per step, without and with resampling, with the chain twist
+  as the intermediate twist, and with the native mixture; with several positions per step it estimates the same value
+  as the product proposal (the parallel process's probability of C, which is not p(C));
+- per-particle KL at 64 positions agrees with the trace script of section 36w in all eight cells compared
+  (for example forbidden under lex 0.214 ± 0.017 against 0.216; Dyck in random order 0.298 ± 0.022 against 0.298).
+
+A correction to the label `random` in sections 36q and 36w: those traces use the policy's random priority, which reveals
+positions forced by the constraint first. On Dyck that matters: a uniformly random order (the sampler's `fixed`
+schedule) has KL 0.84 ± 0.03 with the product proposal, against 0.66 ± 0.03 for the policy's random order
+(3,000 particles each). The other constraints have no forced positions at the start and agree.
+
+**End measure at 64 positions.** `hidden_0.85`, 16 particles, 100 runs. RMS of log(Z_hat / p(C)) in nats, lower is
+better, ± jackknife standard error; resampling off | defensive.
+
+**counting**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.146 ± 0.011 \| 0.178 ± 0.012 | 0.155 ± 0.012 \| 0.141 ± 0.010 | 0.158 ± 0.013 \| 0.170 ± 0.014 |
+| lex, one token per step | 64 | 0.192 ± 0.021 \| 0.188 ± 0.020 | 0.149 ± 0.009 \| 0.184 ± 0.014 | 0.194 ± 0.014 \| 0.203 ± 0.020 |
+| lex, budget B = 0.03 | 13 | 0.200 ± 0.014 \| 0.203 ± 0.017 | 0.178 ± 0.012 \| 0.185 ± 0.013 | 0.200 ± 0.016 \| 0.191 ± 0.015 |
+
+**dyck**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.308 ± 0.023 \| 0.431 ± 0.022 | 0.361 ± 0.025 \| 0.332 ± 0.028 | 0.206 ± 0.013 \| 0.198 ± 0.011 |
+| lex, one token per step | 64 | 0.273 ± 0.026 \| 0.237 ± 0.019 | 0.222 ± 0.017 \| 0.240 ± 0.017 | 0.179 ± 0.011 \| 0.172 ± 0.012 |
+| lex, budget B = 0.03 | 13 | 0.277 ± 0.020 \| 0.277 ± 0.021 | 0.314 ± 0.023 \| 0.330 ± 0.023 | 0.240 ± 0.018 \| 0.207 ± 0.014 |
+
+**forbidden**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.686 ± 0.057 \| 0.597 ± 0.059 | 0.558 ± 0.056 \| 0.527 ± 0.029 | 0.280 ± 0.021 \| 0.301 ± 0.021 |
+| lex, one token per step | 64 | 0.273 ± 0.018 \| 0.287 ± 0.021 | 0.291 ± 0.021 \| 0.291 ± 0.021 | 0.179 ± 0.013 \| 0.208 ± 0.014 |
+| lex, budget B = 0.03 | 24 | 0.394 ± 0.024 \| 0.394 ± 0.038 | 0.435 ± 0.028 \| 0.411 ± 0.030 | 0.189 ± 0.015 \| 0.198 ± 0.014 |
+
+**window**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.206 ± 0.014 \| 0.463 ± 0.037 | 0.212 ± 0.014 \| 0.227 ± 0.017 | 0.208 ± 0.017 \| 0.196 ± 0.014 |
+| lex, one token per step | 64 | 0.076 ± 0.005 \| 0.079 ± 0.005 | 0.079 ± 0.006 \| 0.099 ± 0.007 | 0.098 ± 0.007 \| 0.103 ± 0.008 |
+| lex, budget B = 0.03 | 12 | 0.092 ± 0.007 \| 0.102 ± 0.006 | 0.097 ± 0.008 \| 0.108 ± 0.010 | 0.121 ± 0.010 \| 0.116 ± 0.007 |
+
+**two_window**
+
+| schedule | steps | product proposal, product twist | product proposal, chain twist | chain proposal, chain twist |
+|---|---|---|---|---|
+| uniformly random order, one token per step | 64 | 0.384 ± 0.033 \| 0.367 ± 0.021 | 0.355 ± 0.033 \| 0.344 ± 0.025 | 0.281 ± 0.020 \| 0.276 ± 0.023 |
+| lex, one token per step | 64 | 0.090 ± 0.007 \| 0.090 ± 0.006 | 0.112 ± 0.009 \| 0.109 ± 0.008 | 0.117 ± 0.009 \| 0.119 ± 0.007 |
+| lex, budget B = 0.03 | 12 | 0.100 ± 0.006 \| 0.079 ± 0.005 | 0.077 ± 0.005 \| 0.079 ± 0.005 | 0.100 ± 0.007 \| 0.112 ± 0.008 |
+
+- Forbidden: the chain proposal lowers the error on every schedule, by 2.0 to 2.5, 1.4 to 1.5, 2.0 to 2.1 times (random order, lex, budgeted lex).
+- Dyck: by 1.5 to 2.2, 1.4 to 1.5, 1.2 to 1.3 times on the same three schedules.
+- Counting: no change on any schedule (within one to two standard errors).
+- Windows: under lex the chain proposal is slightly worse, 1.29 to 1.30 times the product proposal's error on window and 1.30 to 1.32 on two_window (2 to 3 standard errors); in random order it is level or better.
+- The gain carries to the budgeted schedule, where several positions are drawn jointly from the chain law per step.
+- Cost on the oracle (where the model is free): the chain-proposal arms take 0.6 to 3.4 times the wall time of the
+  product arms (median 1.6). Not yet measured in denoiser calls on MDLM.
+- This matches the per-particle picture of section 36w: gains where the first-order chain carries the dependence the
+  constraint reads (forbidden, Dyck), none on counting, where the error is in the long-range spread of the count.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
