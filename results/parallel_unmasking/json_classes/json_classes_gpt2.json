@@ -1,0 +1,57 @@
+{
+ "tokenizer": "GPT-2",
+ "vocab": 50257,
+ "patterns": {
+  "flat_schema": {
+   "char_states": 63,
+   "states_at_token_boundaries": 63,
+   "classes": 126,
+   "dead_tokens": 45,
+   "dead_share": 0.0008953976560479137,
+   "largest_classes": [
+    42097,
+    3433,
+    1132,
+    719,
+    697,
+    681
+   ],
+   "singleton_classes": 83,
+   "seconds": 1.4
+  },
+  "nested_schema": {
+   "char_states": 114,
+   "states_at_token_boundaries": 114,
+   "classes": 190,
+   "dead_tokens": 45,
+   "dead_share": 0.0008953976560479137,
+   "largest_classes": [
+    42059,
+    3425,
+    1122,
+    719,
+    694,
+    681
+   ],
+   "singleton_classes": 142,
+   "seconds": 2.2
+  },
+  "any_flat_object": {
+   "char_states": 62,
+   "states_at_token_boundaries": 62,
+   "classes": 122,
+   "dead_tokens": 45,
+   "dead_share": 0.0008953976560479137,
+   "largest_classes": [
+    42090,
+    3445,
+    1133,
+    719,
+    697,
+    681
+   ],
+   "singleton_classes": 74,
+   "seconds": 1.5
+  }
+ }
+}

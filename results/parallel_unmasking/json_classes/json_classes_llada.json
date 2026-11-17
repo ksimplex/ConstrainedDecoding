@@ -1,0 +1,57 @@
+{
+ "tokenizer": "LLaDA",
+ "vocab": 126080,
+ "patterns": {
+  "flat_schema": {
+   "char_states": 63,
+   "states_at_token_boundaries": 63,
+   "classes": 133,
+   "dead_tokens": 209,
+   "dead_share": 0.0016576776649746192,
+   "largest_classes": [
+    114660,
+    5718,
+    2179,
+    1149,
+    496,
+    264
+   ],
+   "singleton_classes": 90,
+   "seconds": 3.6
+  },
+  "nested_schema": {
+   "char_states": 114,
+   "states_at_token_boundaries": 114,
+   "classes": 199,
+   "dead_tokens": 207,
+   "dead_share": 0.0016418147208121828,
+   "largest_classes": [
+    114621,
+    5711,
+    2168,
+    1146,
+    496,
+    264
+   ],
+   "singleton_classes": 150,
+   "seconds": 5.9
+  },
+  "any_flat_object": {
+   "char_states": 62,
+   "states_at_token_boundaries": 62,
+   "classes": 137,
+   "dead_tokens": 206,
+   "dead_share": 0.0016338832487309645,
+   "largest_classes": [
+    114644,
+    5730,
+    2180,
+    1149,
+    496,
+    264
+   ],
+   "singleton_classes": 86,
+   "seconds": 3.8
+  }
+ }
+}
