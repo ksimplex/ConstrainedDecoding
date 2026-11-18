@@ -3226,8 +3226,8 @@ Unconstrained LLaDA in its shipped setting (blocks of 32, two tokens per step, m
 - The matched chain does not help under left to right (same reference match, wider weights): with the left context revealed the product proposal is close to exact.
 - Our version of Dang & Ermon's order is not validated against their numbers (their automata are unspecified, the sequences here are one or two blocks long, temperature 1 only). The BFCL run is the check.
 
-**Why: gap filling.** Skimming non-equal outputs (`llada_k1_nonmatching_outputs.txt` and the stored outputs of the later jobs): under random order and both confidence rules the model's preferred layout (fenced,
-pretty-printed) leaks into string values, e.g. `"ssid": "  <ssid>_OfficeNetSecure"`, `"lesseeName": "--lesseeName\n*Harper & Associates"`. The confident content tokens are placed where the model's own layout would put them, and the
+**Why: gap filling** [reading of a few dozen examples; not quantified]**.** Skimming non-equal outputs (`llada_k1_nonmatching_outputs.txt` and the stored outputs of the later jobs): under random order and both confidence rules the model's preferred layout (fenced,
+pretty-printed) leaks into string values, e.g. `"ssid": "  <ssid>_OfficeNetSecure"`, `"lesseeName": "--lesseeName\n*Harper & Associates"`. The likely mechanism: confident content tokens are placed where the model's own layout would put them, and the
 constraint has to fill the gap in front of them. Under `sum` the misses are mostly one wrong value (numbers that run on, paraphrases). Under left to right they are semantic near misses (`"vegetarian"` for `"vegetarian meal"`,
 `0.085` for `8.5`). Breakdown for random and `sum` (768 outputs each): equal 105 / 414, same fields with some values different 535 / 274, different fields 74 / 68, does not parse 43 / 4.
 All non-parsing outputs inspected come from datapoint 24, whose schema carries a pattern that allows quote characters inside a string.
