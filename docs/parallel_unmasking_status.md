@@ -3291,7 +3291,9 @@ Ratio to the exact KL of the output law, median [min, max] over the 18 cases (1 
 - The estimates from 200 runs track their targets (relative sd of the estimated upper bound: median 0.10, max 0.17). At 8 positions the weights are light-tailed; the plug-in
   leading term uses third moments and will be the fragile one at scale.
 - What to report at scale: the bracket [pair lower bound, upper bound], with the estimated leading term as the central value when K >= 4, and the exact KL wherever enumeration is possible.
-- Open: the case with resampling; the same check on the stress oracle; how the plug-in leading term behaves at 64 positions (no exact value there; compare across independent halves).
+- Stress oracle (`kl_bounds_check_stress.json`, same 18 cases): the same picture. Upper bound 3.7 [2.7, 5.4] times the exact KL at K = 4 and 15.6 [10.4, 26.1] at K = 16; leading term 1.03 [0.77, 1.12] and 1.01 [0.94, 1.03];
+  pair lower bound 0.52 [0.22, 0.95] at both.
+- Open: the case with resampling; how the plug-in leading term behaves at 64 positions (no exact value there; compare across independent halves).
 
 ## 36at. BFCL references the constraint or the scorer rejects, and the xLAM rule (2026-11-18) [counted]
 
