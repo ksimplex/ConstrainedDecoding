@@ -25,7 +25,7 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from twistroute.compile.automata import WDFA                                                       # noqa: E402
 from twistroute.compile.tokens import pair_ratio_table                                             # noqa: E402
-from twistroute.decode import twisted_smc, ChainTwist, probe_pair_kernel, CouplingPolicy, fit_distance_kernel, COUNT_EDGES   # noqa: E402
+from twistroute.decode import twisted_smc, ChainTwist, probe_pair_kernel, CouplingPolicy, ConfidenceSchedule, fit_distance_kernel, COUNT_EDGES   # noqa: E402
 from twistroute.decode.native import native_sample                                                 # noqa: E402
 from twistroute.models.classes import TokenClasses                                                 # noqa: E402
 from twistroute.torch_routes import torch_route                                                    # noqa: E402
@@ -67,16 +67,18 @@ def decode_text(den, tokfile, ids, end_ids):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--routes", required=True); ap.add_argument("--tokenizer", default=None, help="tokenizer.json for decoding text (optional)")
-    ap.add_argument("--stage", choices=("smoke", "pilot", "compare"), required=True); ap.add_argument("--synthetic", action="store_true")
+    ap.add_argument("--stage", choices=("smoke", "pilot", "baseline", "compare"), required=True); ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--datapoints", type=int, nargs="*", default=None, help="dataset indices; default: all with N <= --max-n")
     ap.add_argument("--max-n", dest="max_n", type=int, default=160); ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--pilot-n", dest="pilot_n", type=int, default=8); ap.add_argument("--pilot", default="llada_pilot.npz")
     ap.add_argument("--nrun", type=int, default=16); ap.add_argument("--K", type=int, default=4); ap.add_argument("--runs-per-batch", dest="rpb", type=int, default=4)
     ap.add_argument("--probe-stride", dest="probe_stride", type=int, default=1); ap.add_argument("--probe-top", dest="probe_top", type=int, default=4)
     ap.add_argument("--tables", nargs="+", default=["counted", "probed"], choices=("counted", "probed"))
-    ap.add_argument("--orders", nargs="+", default=["random", "sum"], choices=("random", "sum", "lex", "bound", "confident", "ltr"),
+    ap.add_argument("--orders", nargs="+", default=["random", "sum"], choices=("random", "sum", "lex", "bound", "confident", "ltr", "token_confident", "block_confident"),
                     help="random = uniformly random, one token per step; the others are CouplingPolicy priorities, one token per step (confident = lowest entropy of the constrained class marginals first, "
-                         "the confidence rule of Dang & Ermon at class level; ltr = left-most masked position first, after any forced positions)")
+                         "the confidence rule of Dang & Ermon at class level; ltr = left-most masked position first, after any forced positions; token_confident = highest top-token probability under the constrained marginals, "
+                         "LLaDA's rule as in Dang & Ermon; block_confident = the same inside blocks of --block from the left, --per-step tokens per step: their decoding setting)")
+    ap.add_argument("--block", type=int, default=32); ap.add_argument("--per-step", dest="per_step", type=int, default=2)
     ap.add_argument("--traces", type=int, default=8, help="unconstrained traces for the schedule's distance kernel (one decode of this batch per prompt)")
     ap.add_argument("--match", type=int, default=5); ap.add_argument("--mix", type=float, default=0.1); ap.add_argument("--lam", type=float, default=1.0)
     ap.add_argument("--max-rows", dest="max_rows", type=int, default=16); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", default="llada_json.json")
@@ -149,24 +151,41 @@ def main():
             res["pilot"][str(r["index"])] = dict(N=r["N"], n=a.pilot_n, seconds=round(time.time() - t0, 1), matches=float(np.mean([bool(t[1]) for t in texts])) if tokfile is not None else None, example=texts[0][0][:300])
             save(); print(f"[{time.time() - t00:6.0f}s] pilot {r['index']}: {a.pilot_n} samples of {r['N']} tokens in {time.time() - t0:.0f} s; unconstrained samples matching the schema: {res['pilot'][str(r['index'])]['matches']}", flush=True)
 
+    if a.stage == "baseline":
+        for r in rows:
+            key = str(r["index"])
+            if key in res.setdefault("baseline", {}):
+                continue
+            cl, d, route = prepare(r); N = r["N"]; t0 = time.time(); c0 = den.calls
+            _, toks = native_sample(den, cl, N, -(-N // a.per_step), a.pilot_n, G(20 + r["index"]), return_tokens=True, schedule=ConfidenceSchedule(a.per_step, a.block, "model"), route=route)
+            chk = [check(r, t.tolist()) for t in toks]
+            res["baseline"][key] = dict(N=N, n=len(chk), matches=float(np.mean([bool(c[1]) for c in chk])), outputs=[c[0] for c in chk], seconds=round(time.time() - t0, 1), denoiser_batches=den.calls - c0,
+                                        setting=dict(block=a.block, per_step=a.per_step, rule="model's top-token probability", temperature=1))
+            save(); print(f"[{time.time() - t00:6.0f}s] baseline {key}: {len(chk)} unconstrained samples of {N} tokens, blocks of {a.block}, {a.per_step} per step; matching the constraint {res['baseline'][key]['matches']:.2f}; "
+                          f"{res['baseline'][key]['seconds']:.0f} s\n    {chk[0][0][:200]!r}", flush=True)
+
     if a.stage == "compare":
-        store = dict(np.load(a.pilot)); pilot_rows = {int(k.split("_")[1]): v for k, v in store.items()}
-        gold_rows = {x["index"]: np.asarray(arr[f"gold_{x['index']}"].tolist() + [end_ids[0]] + [end_ids[-1]] * (x["N"] - x["gold_tokens"] - 1)) for x in man["rows"]}
+        counted = "counted" in a.tables
+        if counted:
+            store = dict(np.load(a.pilot)); pilot_rows = {int(k.split("_")[1]): v for k, v in store.items()}
+            gold_rows = {x["index"]: np.asarray(arr[f"gold_{x['index']}"].tolist() + [end_ids[0]] + [end_ids[-1]] * (x["N"] - x["gold_tokens"] - 1)) for x in man["rows"] if x["gold_tokens"] < x["N"]}
         for r in rows:
             key = str(r["index"]); N = r["N"]; res["compare"].setdefault(key, {})
             cl, d, route = prepare(r); tc = cl.token_class.cpu().numpy()
-            others = [s for i, v in pilot_rows.items() if i != r["index"] for s in v]
-            Kt, tinfo = pair_ratio_table(others, tc, r["classes"], lam=a.lam)
-            Kg, _ = pair_ratio_table([v for i, v in gold_rows.items() if i != r["index"]], tc, r["classes"], lam=a.lam)
-            seen = np.array([tc[np.asarray(s)] for s in others[:1]]).size; rowsum = np.zeros(r["classes"])
-            for s in others:
-                np.add.at(rowsum, tc[np.asarray(s)], 1.0)
-            big = rowsum >= 50; lr = np.log(Kt[np.ix_(big, big)] / Kt[np.ix_(big, big)].mean(1, keepdims=True)); lg = np.log(Kg[np.ix_(big, big)] / Kg[np.ix_(big, big)].mean(1, keepdims=True))
-            agree = float(np.corrcoef(lr.ravel(), lg.ravel())[0, 1]) if big.sum() >= 2 else float("nan")
-            res["compare"][key]["table"] = dict(pilot_sequences=len(others), pairs=tinfo["pairs"], seen_entries=tinfo["seen_entries"], classes=r["classes"], frequent_classes=int(big.sum()),
-                                                agreement_with_reference_answers=agree, log10_min_entry=float(np.log10(Kt.min())), max_over_min_in_row=float((Kt.max(1) / Kt.min(1)).max()))
+            agree = float("nan")
+            if counted:
+                others = [s for i, v in pilot_rows.items() if i != r["index"] for s in v]
+                Kt, tinfo = pair_ratio_table(others, tc, r["classes"], lam=a.lam)
+                Kg, _ = pair_ratio_table([v for i, v in gold_rows.items() if i != r["index"]], tc, r["classes"], lam=a.lam)
+                seen = np.array([tc[np.asarray(s)] for s in others[:1]]).size; rowsum = np.zeros(r["classes"])
+                for s in others:
+                    np.add.at(rowsum, tc[np.asarray(s)], 1.0)
+                big = rowsum >= 50; lr = np.log(Kt[np.ix_(big, big)] / Kt[np.ix_(big, big)].mean(1, keepdims=True)); lg = np.log(Kg[np.ix_(big, big)] / Kg[np.ix_(big, big)].mean(1, keepdims=True))
+                agree = float(np.corrcoef(lr.ravel(), lg.ravel())[0, 1]) if big.sum() >= 2 else float("nan")
+                res["compare"][key]["table"] = dict(pilot_sequences=len(others), pairs=tinfo["pairs"], seen_entries=tinfo["seen_entries"], classes=r["classes"], frequent_classes=int(big.sum()),
+                                                    agreement_with_reference_answers=agree, log10_min_entry=float(np.log10(Kt.min())), max_over_min_in_row=float((Kt.max(1) / Kt.min(1)).max()))
             arms = [("product", dict())]
-            if "counted" in a.tables:
+            if counted:
                 tw = ChainTwist(d, torch.as_tensor(Kt), device=dev, match=a.match)
                 arms.append(("matched chain, counted table", dict(twist=tw, proposal_twist=tw, proposal_mix=a.mix)))
             if "probed" in a.tables:
@@ -176,15 +195,17 @@ def main():
                 tp = ChainTwist(d, Kp, device=dev, match=a.match)
                 arms.append(("matched chain, probed table", dict(twist=tp, proposal_twist=tp, proposal_mix=a.mix)))
             kern = None
-            if any(o != "random" for o in a.orders):
+            if any(o in ("sum", "lex", "bound") for o in a.orders):
                 t0 = time.time(); c0 = den.calls
                 kern, _ = fit_distance_kernel(den, N, a.traces, G(7), device=dev, count_edges=COUNT_EDGES)
                 res["compare"][key]["distance_kernel"] = dict(traces=a.traces, seconds=round(time.time() - t0, 1), denoiser_calls=den.calls - c0)
-            sched = {"random": lambda: "fixed"}
+            sched = {"random": lambda: "fixed", "ltr": lambda: ConfidenceSchedule(1, None, "left", forced_first=True),
+                     "confident": lambda: ConfidenceSchedule(1, None, "entropy", forced_first=True), "token_confident": lambda: ConfidenceSchedule(1, None, "token"),
+                     "block_confident": lambda: ConfidenceSchedule(a.per_step, a.block, "token")}
+            steps = {"block_confident": -(-N // a.per_step)}                    # every other order: one token per step
             for o in a.orders:
-                if o != "random":
-                    pr = (lambda st: -torch.arange(st.N, device=st.dev).double().expand(st.P, st.N)) if o == "ltr" else o
-                    sched[o] = lambda pr=pr: CouplingPolicy(kern, 0.0, priority=pr, mixed=False, max_set=1)
+                if o in ("sum", "lex", "bound"):
+                    sched[o] = lambda o=o: CouplingPolicy(kern, 0.0, priority=o, mixed=False, max_set=1)
             arms = [(f"{o} | {pn}", dict(kw, schedule=sched[o]())) for o in a.orders for pn, kw in arms]
             for name, kw in arms:
                 if name in res["compare"][key]:
@@ -194,7 +215,7 @@ def main():
                     for b in range(0, a.nrun, a.rpb):
                         if "schedule" in kw and not isinstance(kw["schedule"], str):
                             kw = dict(kw, schedule=sched[name.split(" | ")[0]]())           # a fresh policy object per batch
-                        o = twisted_smc(den, cl, route, N, N, nrun=min(a.rpb, a.nrun - b), K=a.K, gen=G(1000 + b), return_particles=True, **kw)
+                        o = twisted_smc(den, cl, route, N, steps.get(name.split(" | ")[0], N), nrun=min(a.rpb, a.nrun - b), K=a.K, gen=G(1000 + b), return_particles=True, **kw)
                         nres.append(float(np.mean(o["n_res"])) if "n_res" in o else float("nan"))
                         lz.append(np.asarray(o["logZ"], dtype=np.float64)); toks.append(o["tokens"]); lws.append(o["logw"])
                 except Exception as e:
