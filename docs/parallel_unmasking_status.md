@@ -3369,7 +3369,7 @@ Best plan against best one-token order, ratio of compute (below 1 = the plan is 
 - Particles are far fewer than section 36y said at tight tolerances (forbidden on the hidden chain at eps = 0.003: 6 instead of 36; Dyck on the Markov chain: 8 instead of 118), so compute is dominated by steps sooner.
 - The best plan is cheaper than the best one-token order in every cell and at every tolerance: by a fifth to a half at eps = 0.003 with the product proposal, by a half to two thirds at eps = 0.1.
 - With the chain proposal one particle is enough in most cells and the plan cuts steps by up to ten times on the Markov chains.
-- The repository rules (`lex`, `sum`, sequential or budgeted) are at or above the best one-token order in most cells: the gap between them and the plan is what a scalable planner has to close.
+- The repository rules (`lex`, `sum`, sequential or budgeted; product proposal) cost more than the best plan in every cell at every tolerance, by 1.4 to 1.9 times at eps = 0.003 and 1.4 to 3.1 times at eps = 0.1: that gap is what a scalable planner has to close. Against the best one-token order they cost more in 4 of 6 cells at eps = 0.003 and in 0 of 6 at eps = 0.1.
 - Not covered: resampling; rules that randomise; the matched chain as the reference for co-revealed sets (the chain reference here is the ratio formula).
 
 ## 36. Next steps (2026-11-16; replaces section 34)
