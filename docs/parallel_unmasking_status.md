@@ -3268,6 +3268,40 @@ conditionals are not consistent each order has its own unconstrained law, so p(C
   (MDLM-style models, the oracles), where the order is a free computational choice. Contribution (c) to be worded accordingly.
 - The stress-oracle exception of section 36ao (unmatched chain better on counting and Dyck at 256 positions) is tabled. The evaluation fix stays on the queue.
 
+## 36as. Evaluation: bounds on the error of the returned sample's law, checked against the exact value at 8 positions (2026-11-18) [exact up to the Monte Carlo over particle draws; no resampling; hidden chain only]
+
+Design agreed in section 36ai: report the exact KL where it can be enumerated; at scale report an upper bound, lower bounds, and the leading term. `kl_bounds_check.py`, 18 cases
+(counting, Dyck, forbidden; product and matched-chain proposal; left to right and two random orders), K = 1, 4, 16.
+
+- **Upper bound**: -E log(Z_hat_K / p(C)), the KL on the extended space of all K particles and the returned index (data processing). Without p(C): log(mean Z_hat) - mean(log Z_hat) over runs.
+- **Leading term**: Var_pi(w) / (2 K^2); plug-in estimate from the weights of 200 runs.
+- **Lower bounds**: the largest KL between marginals of the output law and of the target, over single positions and over pairs (data processing). Need reference marginals of the target: exact on the oracles.
+
+Ratio to the exact KL of the output law, median [min, max] over the 18 cases (1 = tight; above 1 overstates the error, below 1 understates it):
+
+| K | upper bound | upper bound, estimated from 200 runs | leading term | leading term, estimated | lower bound, single positions | lower bound, pairs |
+|---|---|---|---|---|---|---|
+| 1 | 1.01 [0.88, 1.11] | 0.99 [0.98, 1.02] | 1.19 [0.33, 2.10] | 1.17 [0.33, 2.13] | 0.30 [0.02, 0.75] | 0.59 [0.22, 0.91] |
+| 4 | 3.61 [2.52, 6.26] | 3.49 [2.61, 5.70] | 1.05 [0.78, 1.36] | 1.05 [0.76, 1.33] | 0.29 [0.03, 0.84] | 0.56 [0.24, 0.93] |
+| 16 | 13.33 [7.90, 26.24] | 13.71 [9.69, 25.05] | 1.01 [0.96, 1.09] | 1.01 [0.96, 1.10] | 0.25 [0.04, 0.85] | 0.54 [0.25, 0.93] |
+
+- The upper bound is the KL itself for one particle (the spread around 1 in that row is Monte Carlo noise) and overstates it by a factor of about K with more: 3.6 times at K = 4, 13 times at K = 16.
+- The leading term is within about a third at K = 4 and within 10% at K = 16; it is not meaningful for one particle.
+- The pair lower bound recovers about half of the KL (a quarter to nine tenths); single positions about a quarter.
+- The estimates from 200 runs track their targets (relative sd of the estimated upper bound: median 0.10, max 0.17). At 8 positions the weights are light-tailed; the plug-in
+  leading term uses third moments and will be the fragile one at scale.
+- What to report at scale: the bracket [pair lower bound, upper bound], with the estimated leading term as the central value when K >= 4, and the exact KL wherever enumeration is possible.
+- Open: the case with resampling; the same check on the stress oracle; how the plug-in leading term behaves at 64 positions (no exact value there; compare across independent halves).
+
+## 36at. BFCL references the constraint or the scorer rejects, and the xLAM rule (2026-11-18) [counted]
+
+Of 2,351 BFCL references (first acceptable value of each argument), the call-format pattern rejects 35: value not in the declared enumeration 15; a required argument left out 6; a container nested deeper than
+the one level the pattern allows 8 (dict 5, array 3); an argument not in the schema 3; a null value for a typed argument 2; a function not in the offered list 1. So 27 are inconsistencies of the data and 8 are the depth limit.
+The official checker rejects 10 of our reference texts (simple 2, parallel-multiple 1, live simple 2, live multiple 5).
+
+xLAM, fixed-seed subset of 1,000 (`xlam_constraints.py`): with every argument not marked optional mandatory, the pattern accepts 941 references; with every argument optional, 972.
+The difference is 31 references that leave out an unmarked argument; 28 are rejected under either rule (type mismatches, nested containers, nulls). Rule to be chosen by the user.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2
