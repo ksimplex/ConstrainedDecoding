@@ -3202,6 +3202,72 @@ Dang & Ermon's 1,000-example subset is unspecified; ours will be drawn with a fi
 - Parked: the precomputed token-level probed table, the temperature-0 decode, forced batching in sequential runs.
 - Target venue: ICML.
 
+## 36ar. LLaDA-8B-Instruct on JSON-Mode-Eval: the order decides, left to right is best, and what the target is on a real model (cluster jobs `9b0801fb`, `a98bd7f5`, `79175463`, `9459264d`, `47896f25`, `6388a8f9`; one L40S each; 2026-11-17 and 18) [measured; 12 datapoints; no exact truth]
+
+**Setting.** 12 datapoints with generation length 27 to 60 (1.5 times the reference, as TWISTER), temperature 1, one token per step unless stated. Constrained outputs match their schema's pattern in every arm.
+Counted table: pooled from unconstrained pilot samples of the other prompts (lambda = 1). Probed table: from the model's conditionals for the prompt at hand (9 batches, about 5 s). Matching 5 sweeps, product share 0.1.
+
+**Orders, one particle, 64 runs per datapoint** (`llada_orders_k1_summary.json`). Reference match = share of returned outputs equal to the reference object (higher is better). sd of log weight: spread of the single-particle
+weight, median over datapoints (lower is better; comparable across orders, unlike the mean, see the correction below).
+
+| order | reference match, product / matched chain | sd of log weight, product / matched chain | model calls per run |
+|---|---|---|---|
+| uniformly random | 0.14 / 0.11 | 22.9 / 17.0 | 48 |
+| confidence, entropy of the constrained class marginal | 0.14 / 0.22 | 15.3 / 16.5 | 48 |
+| confidence, top-token probability under the constrained marginals (LLaDA's rule as in Dang & Ermon) | 0.37 / 0.34 | 7.9 / 12.1 | 48 |
+| the same in blocks of 32, two tokens per step (their decoding setting) | 0.27 / 0.26 | 5.1 / 8.3 | 24 |
+| `sum` | 0.54 / 0.58 | 5.3 / 6.0 | 48 |
+| left to right (forced positions first) | 0.78 / 0.78 | 1.1 / 5.5 | 48 |
+
+Unconstrained LLaDA in its shipped setting (blocks of 32, two tokens per step, model confidence; 16 samples per datapoint): matches the pattern 0.00; equals the reference after stripping fences 0.53.
+
+- Left to right is best on both measures; `sum` second. Random order and both confidence rules are below the unconstrained model on content.
+- No repetition under left to right (repeated-word share of the outputs 0.000), unlike the small MDLM model (section 36am).
+- The matched chain does not help under left to right (same reference match, wider weights): with the left context revealed the product proposal is close to exact.
+- Our version of Dang & Ermon's order is not validated against their numbers (their automata are unspecified, the sequences here are one or two blocks long, temperature 1 only). The BFCL run is the check.
+
+**Why: gap filling.** Skimming non-equal outputs (`llada_k1_nonmatching_outputs.txt` and the stored outputs of the later jobs): under random order and both confidence rules the model's preferred layout (fenced,
+pretty-printed) leaks into string values, e.g. `"ssid": "  <ssid>_OfficeNetSecure"`, `"lesseeName": "--lesseeName\n*Harper & Associates"`. The confident content tokens are placed where the model's own layout would put them, and the
+constraint has to fill the gap in front of them. Under `sum` the misses are mostly one wrong value (numbers that run on, paraphrases). Under left to right they are semantic near misses (`"vegetarian"` for `"vegetarian meal"`,
+`0.085` for `8.5`). Breakdown for random and `sum` (768 outputs each): equal 105 / 414, same fields with some values different 535 / 274, different fields 74 / 68, does not parse 43 / 4.
+All non-parsing outputs inspected come from datapoint 24, whose schema carries a pattern that allows quote characters inside a string.
+
+**Proposals within one order** (exact comparison: with one particle the mean log weight is log p(C) minus the KL from the sampler's path law to the target, and p(C) is common to the arms of one order).
+
+| order | particles | arm against product | mean log estimate, difference in nats (higher is better) |
+|---|---|---|---|
+| random | 1 | matched chain, counted table | +9.7 (s.e. 1.8), higher in 11 of 12 |
+| `sum` | 1 | matched chain, counted table | +2.6 (s.e. 1.4), higher in 9 of 12 |
+| random | 4 | matched chain, counted table | +8.0 (s.e. 1.6), higher in 11 of 12 |
+| random | 4 | matched chain, probed table | +12.7 (s.e. 2.2), higher in 11 of 12 |
+| `sum` | 4 | matched chain, counted table | +3.1 (s.e. 1.6), higher in 8 of 12 |
+| `sum` | 4 | matched chain, probed table | +4.3 (s.e. 1.7), higher in 11 of 12 |
+
+**Four particles, 16 runs per arm** (`llada_orders.json`).
+
+| arm | sd of log Z_hat, median (lower is better) | resamplings per run | reference match (string) | seconds per arm |
+|---|---|---|---|---|
+| random | product | 19.6 | 11.3 | 0.17 | 102 |
+| random | matched chain, counted table | 11.0 | 7.7 | 0.17 | 109 |
+| random | matched chain, probed table | 5.7 | 5.7 | 0.27 | 109 |
+| sum | product | 2.2 | 1.0 | 0.34 | 105 |
+| sum | matched chain, counted table | 1.7 | 1.0 | 0.32 | 112 |
+| sum | matched chain, probed table | 1.4 | 0.7 | 0.34 | 112 |
+
+- The probed table is the best proposal and costs 9 model batches per prompt, so the precomputed token-level table (section 36an) is not needed.
+- The chain twist adds about 7% wall time on LLaDA.
+- Particles and accuracy: under `sum`, reference match (string) is 0.34 with four particles (192 outputs) and 0.34 with one (768 outputs); under random order 0.17 against 0.06. Particles help when the proposal is poor.
+
+**Correction.** An earlier message described differences in mean log weight between orders as KL differences (20.6 nats for `sum` against random). That holds only between proposals under one order. On a model whose
+conditionals are not consistent each order has its own unconstrained law, so p(C) and the target change with the order. Across orders, use the reference match and the weight spread.
+
+**Decisions (user, 2026-11-18).**
+
+- On a real model the target is the law of the model's shipped decoder conditioned on the constraint (TWISTER's definition), not the average over random orders.
+- The order contribution applies (i) when parallelising, where departing from the shipped step-by-step law to save calls is the bias that is budgeted, and (ii) when the shipped law is random-order
+  (MDLM-style models, the oracles), where the order is a free computational choice. Contribution (c) to be worded accordingly.
+- The stress-oracle exception of section 36ao (unmatched chain better on counting and Dyck at 256 positions) is tabled. The evaluation fix stays on the queue.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2

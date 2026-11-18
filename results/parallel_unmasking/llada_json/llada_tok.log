@@ -1,0 +1,74 @@
+[    44s] baseline 0: 16 unconstrained samples of 47 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 15 s
+    '```json\n{\n  "ssid": "OfficeNetSecure",\n  "securityProtocol": "WPA2-Enterprise",\n  "bandwidth": "1300 Mbps"\n}\n```'
+[    50s] baseline 7: 16 unconstrained samples of 41 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 7 s
+    '```json\n{\n  "seatNumber": "12A",\n  "serviceType": "meal",\n  "specialInstructions": "gluten-free"\n}\n```'
+[    68s] baseline 10: 16 unconstrained samples of 59 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 17 s
+    '```json\n{\n  "capitalGains": 1,250,000.00,\n  "interestIncome": 375,000.00,\n  "totalReturn": 8.5\n}\n```'
+[    73s] baseline 17: 16 unconstrained samples of 27 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 5 s
+    '{\n  "data": [1, 2, 3, 4, 5]\n}\n```'
+[    90s] baseline 24: 16 unconstrained samples of 48 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 17 s
+    '```json\n{\n  "storage": "/dev/sda1",\n  "fstype": "ext4",\n  "options": "rw,noatime",\n  "readonly": false\n}\n```'
+[   100s] baseline 37: 16 unconstrained samples of 35 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 10 s
+    '```json\n\\]\n  "isMember": true,\n  "membershipNumber": "1234567890"\n}'
+[   115s] baseline 40: 16 unconstrained samples of 56 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 15 s
+    '```json\n{\n  "wireLength": 200.0,\n  "insulationType": "",\n  "voltageRating": 600.0,\n  "manufacturer": "CopperWire Inc."\n}\n```'
+[   132s] baseline 44: 16 unconstrained samples of 60 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 17 s
+    '```json\n{\n  "siteName": "Olympic Dam",\n  "location": "South Australia",\n  "mineralType": "Uranium, Copper, Gold, Silver",\n  "operationalStatus": "Active"\n}\n```'
+[   144s] baseline 46: 16 unconstrained samples of 45 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 12 s
+    '```json\n{\n  "chest": 38,\n  "waist": 32,\n  "hips": 40,\n  "inseam": 30\n}'
+[   159s] baseline 56: 16 unconstrained samples of 56 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 15 s
+    '<?json\n{\n  "airlineCode": "SKW",\n  "companyName": "Skyward Airlines",\n  "allianceMembership": "Global Sky Alliance",\n  "fleetSize": 150\n}\n```'
+[   168s] baseline 68: 16 unconstrained samples of 41 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 9 s
+    '```json\n{\n  "baseCurrency": "JPY",\n  "targetCurrency": "AUD",\n  "exchangeRate": 0.0123\n}\n```'
+[   184s] baseline 69: 16 unconstrained samples of 57 tokens, blocks of 32, 2 per step; matching the constraint 0.00; 16 s
+    '```json\n{\n  "lesseeName": "Harper & Associates",\n  "assetType": "Office Computers",\n  "leaseTerm": 24,\n  "monthlyPayment": 1200\n}\n```'
+done in 184s
+[   106s]   0 N  47 A 115 token_confident | product              log Z   -65.53  mean log Z   -82.70  sd log Z 10.86  spread 2.47  matches 1.0  equals reference 0.0 (as object 0.0)  100 s  (table agreement 0.51)
+[   211s]   0 N  47 A 115 token_confident | matched chain, counted table log Z   -28.15  mean log Z   -36.77  sd log Z 13.17  spread 2.44  matches 1.0  equals reference 0.0 (as object 0.0)  105 s  (table agreement 0.51)
+[   262s]   0 N  47 A 115 block_confident | product              log Z   -38.32  mean log Z   -68.55  sd log Z 10.94  spread 8.00  matches 1.0  equals reference 0.0 (as object 0.0)  51 s  (table agreement 0.51)
+[   315s]   0 N  47 A 115 block_confident | matched chain, counted table log Z   -31.73  mean log Z   -39.56  sd log Z 7.54  spread 7.02  matches 1.0  equals reference 0.0 (as object 0.0)  54 s  (table agreement 0.51)
+[   371s]   7 N  41 A 144 token_confident | product              log Z   -30.31  mean log Z   -44.90  sd log Z 6.65  spread 7.93  matches 1.0  equals reference 0.0 (as object 0.0)  56 s  (table agreement 0.51)
+[   432s]   7 N  41 A 144 token_confident | matched chain, counted table log Z    -5.70  mean log Z   -39.85  sd log Z 13.62  spread 7.33  matches 1.0  equals reference 0.0 (as object 0.03125)  61 s  (table agreement 0.51)
+[   461s]   7 N  41 A 144 block_confident | product              log Z   -30.22  mean log Z   -30.67  sd log Z 2.12  spread 0.30  matches 1.0  equals reference 0.0 (as object 0.0)  28 s  (table agreement 0.51)
+[   492s]   7 N  41 A 144 block_confident | matched chain, counted table log Z    -8.74  mean log Z   -24.82  sd log Z 7.03  spread 5.80  matches 1.0  equals reference 0.0 (as object 0.0)  31 s  (table agreement 0.51)
+[   636s]  10 N  59 A 108 token_confident | product              log Z   -40.62  mean log Z   -40.64  sd log Z 0.20  spread 0.17  matches 1.0  equals reference 0.0 (as object 0.578125)  144 s  (table agreement 0.77)
+[   787s]  10 N  59 A 108 token_confident | matched chain, counted table log Z   -16.33  mean log Z   -39.91  sd log Z 4.98  spread 5.81  matches 1.0  equals reference 0.0 (as object 0.5625)  151 s  (table agreement 0.77)
+[   860s]  10 N  59 A 108 block_confident | product              log Z   -30.62  mean log Z   -38.67  sd log Z 4.80  spread 4.31  matches 1.0  equals reference 0.0 (as object 0.0)  73 s  (table agreement 0.77)
+[   937s]  10 N  59 A 108 block_confident | matched chain, counted table log Z   -32.19  mean log Z   -39.53  sd log Z 3.90  spread 3.65  matches 1.0  equals reference 0.0 (as object 0.015625)  77 s  (table agreement 0.77)
+[   981s]  17 N  27 A  74 token_confident | product              log Z    -3.77  mean log Z    -3.77  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 1.0)  44 s  (table agreement 0.59)
+[  1026s]  17 N  27 A  74 token_confident | matched chain, counted table log Z    -3.77  mean log Z    -3.77  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 1.0)  45 s  (table agreement 0.59)
+[  1049s]  17 N  27 A  74 block_confident | product              log Z    -4.37  mean log Z    -4.47  sd log Z 0.90  spread 0.13  matches 1.0  equals reference 0.984375 (as object 0.984375)  23 s  (table agreement 0.59)
+[  1072s]  17 N  27 A  74 block_confident | matched chain, counted table log Z    -4.36  mean log Z    -4.36  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 1.0)  23 s  (table agreement 0.59)
+[  1214s]  24 N  48 A 142 token_confident | product              log Z   -66.44  mean log Z   -87.97  sd log Z 12.19  spread 3.40  matches 1.0  equals reference 0.0 (as object 0.125)  141 s  (table agreement 0.73)
+[  1363s]  24 N  48 A 142 token_confident | matched chain, counted table log Z   -42.13  mean log Z   -82.31  sd log Z 12.81  spread 8.00  matches 1.0  equals reference 0.0 (as object 0.109375)  149 s  (table agreement 0.73)
+[  1433s]  24 N  48 A 142 block_confident | product              log Z   -72.02  mean log Z   -78.56  sd log Z 7.68  spread 2.64  matches 1.0  equals reference 0.0 (as object 0.1875)  70 s  (table agreement 0.73)
+[  1508s]  24 N  48 A 142 block_confident | matched chain, counted table log Z   -44.05  mean log Z   -86.41  sd log Z 15.96  spread 8.00  matches 1.0  equals reference 0.0 (as object 0.015625)  74 s  (table agreement 0.73)
+[  1590s]  37 N  35 A 107 token_confident | product              log Z    -3.86  mean log Z    -3.86  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 1.0)  82 s  (table agreement 0.53)
+[  1674s]  37 N  35 A 107 token_confident | matched chain, counted table log Z    -3.86  mean log Z    -3.86  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 1.0)  84 s  (table agreement 0.53)
+[  1716s]  37 N  35 A 107 block_confident | product              log Z    -8.02  mean log Z    -8.02  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 1.0)  42 s  (table agreement 0.53)
+[  1759s]  37 N  35 A 107 block_confident | matched chain, counted table log Z    -8.02  mean log Z    -8.02  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 1.0)  43 s  (table agreement 0.53)
+[  1886s]  40 N  56 A 159 token_confident | product              log Z   -50.26  mean log Z   -68.72  sd log Z 9.58  spread 7.77  matches 1.0  equals reference 0.0 (as object 0.0)  126 s  (table agreement 0.59)
+[  2023s]  40 N  56 A 159 token_confident | matched chain, counted table log Z   -54.97  mean log Z   -57.16  sd log Z 5.02  spread 2.40  matches 1.0  equals reference 0.0 (as object 0.0)  138 s  (table agreement 0.59)
+[  2086s]  40 N  56 A 159 block_confident | product              log Z   -43.21  mean log Z   -43.22  sd log Z 0.13  spread 0.22  matches 1.0  equals reference 0.0 (as object 0.984375)  63 s  (table agreement 0.59)
+[  2155s]  40 N  56 A 159 block_confident | matched chain, counted table log Z   -12.42  mean log Z   -32.08  sd log Z 15.12  spread 1.39  matches 1.0  equals reference 0.0 (as object 1.0)  69 s  (table agreement 0.59)
+[  2297s]  44 N  60 A 191 token_confident | product              log Z   -57.33  mean log Z   -63.49  sd log Z 9.19  spread 1.51  matches 1.0  equals reference 0.0 (as object 0.0)  142 s  (table agreement 0.50)
+[  2455s]  44 N  60 A 191 token_confident | matched chain, counted table log Z   -17.14  mean log Z   -59.50  sd log Z 17.46  spread 4.18  matches 1.0  equals reference 0.0 (as object 0.0)  158 s  (table agreement 0.50)
+[  2526s]  44 N  60 A 191 block_confident | product              log Z   -49.08  mean log Z   -56.38  sd log Z 4.55  spread 4.19  matches 1.0  equals reference 0.0 (as object 0.0)  71 s  (table agreement 0.50)
+[  2604s]  44 N  60 A 191 block_confident | matched chain, counted table log Z   -23.63  mean log Z   -53.19  sd log Z 9.01  spread 6.82  matches 1.0  equals reference 0.0 (as object 0.0)  78 s  (table agreement 0.50)
+[  2702s]  46 N  45 A  66 token_confident | product              log Z   -44.07  mean log Z   -44.07  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 1.0)  98 s  (table agreement 0.77)
+[  2804s]  46 N  45 A  66 token_confident | matched chain, counted table log Z    -6.53  mean log Z   -42.12  sd log Z 8.64  spread 4.54  matches 1.0  equals reference 0.046875 (as object 1.0)  102 s  (table agreement 0.77)
+[  2854s]  46 N  45 A  66 block_confident | product              log Z   -23.15  mean log Z   -33.99  sd log Z 5.74  spread 5.72  matches 1.0  equals reference 0.0 (as object 0.03125)  50 s  (table agreement 0.77)
+[  2906s]  46 N  45 A  66 block_confident | matched chain, counted table log Z   -20.16  mean log Z   -27.66  sd log Z 7.34  spread 3.99  matches 1.0  equals reference 0.0 (as object 0.015625)  52 s  (table agreement 0.77)
+[  3034s]  56 N  56 A 160 token_confident | product              log Z   -40.31  mean log Z   -66.64  sd log Z 10.69  spread 7.99  matches 1.0  equals reference 0.0 (as object 0.0)  127 s  (table agreement 0.58)
+[  3172s]  56 N  56 A 160 token_confident | matched chain, counted table log Z   -14.02  mean log Z   -43.80  sd log Z 11.39  spread 4.98  matches 1.0  equals reference 0.0 (as object 0.0)  138 s  (table agreement 0.58)
+[  3236s]  56 N  56 A 160 block_confident | product              log Z   -33.28  mean log Z   -47.54  sd log Z 9.45  spread 5.01  matches 1.0  equals reference 0.0 (as object 0.0)  64 s  (table agreement 0.58)
+[  3305s]  56 N  56 A 160 block_confident | matched chain, counted table log Z   -15.18  mean log Z   -50.30  sd log Z 14.56  spread 7.41  matches 1.0  equals reference 0.0 (as object 0.0)  69 s  (table agreement 0.58)
+[  3379s]  68 N  41 A 124 token_confident | product              log Z   -49.35  mean log Z   -66.01  sd log Z 3.97  spread 8.00  matches 1.0  equals reference 0.0 (as object 0.75)  74 s  (table agreement 0.58)
+[  3457s]  68 N  41 A 124 token_confident | matched chain, counted table log Z    -7.21  mean log Z   -59.70  sd log Z 16.85  spread 3.46  matches 1.0  equals reference 0.078125 (as object 0.328125)  78 s  (table agreement 0.58)
+[  3495s]  68 N  41 A 124 block_confident | product              log Z   -36.45  mean log Z   -45.62  sd log Z 5.38  spread 3.35  matches 1.0  equals reference 0.0 (as object 0.0)  38 s  (table agreement 0.58)
+[  3535s]  68 N  41 A 124 block_confident | matched chain, counted table log Z    -7.10  mean log Z   -41.08  sd log Z 11.04  spread 4.54  matches 1.0  equals reference 0.046875 (as object 0.046875)  40 s  (table agreement 0.58)
+[  3668s]  69 N  57 A 131 token_confident | product              log Z   -31.43  mean log Z   -95.25  sd log Z 13.65  spread 8.00  matches 1.0  equals reference 0.0 (as object 0.0)  133 s  (table agreement 0.57)
+[  3812s]  69 N  57 A 131 token_confident | matched chain, counted table log Z    -5.18  mean log Z   -63.48  sd log Z 14.98  spread 8.00  matches 1.0  equals reference 0.0 (as object 0.015625)  143 s  (table agreement 0.57)
+[  3879s]  69 N  57 A 131 block_confident | product              log Z   -10.52  mean log Z   -60.26  sd log Z 23.77  spread 7.30  matches 1.0  equals reference 0.0 (as object 0.0)  67 s  (table agreement 0.57)
+[  3952s]  69 N  57 A 131 block_confident | matched chain, counted table log Z    -8.41  mean log Z   -35.00  sd log Z 14.55  spread 7.83  matches 1.0  equals reference 0.0 (as object 0.0)  73 s  (table agreement 0.57)
+done in 3952s

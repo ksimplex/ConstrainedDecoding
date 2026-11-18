@@ -1,0 +1,102 @@
+{
+ "random | product": {
+  "reference_match": 0.13671875,
+  "sd_log_weight_median": 22.920415385424153,
+  "mean_log_weight": -42.44384725285151,
+  "parses": 0.9440104166666666,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 103.175
+ },
+ "random | matched chain, counted table": {
+  "reference_match": 0.109375,
+  "sd_log_weight_median": 17.01616329609904,
+  "mean_log_weight": -32.70109393658977,
+  "parses": 0.9375,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 110.39166666666665
+ },
+ "confident | product": {
+  "reference_match": 0.14322916666666666,
+  "sd_log_weight_median": 15.304554139591207,
+  "mean_log_weight": -48.90964448304703,
+  "parses": 0.95703125,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 104.80000000000001
+ },
+ "confident | matched chain, counted table": {
+  "reference_match": 0.21875,
+  "sd_log_weight_median": 16.499490092220974,
+  "mean_log_weight": -38.85744278011962,
+  "parses": 0.9739583333333334,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 111.95833333333333
+ },
+ "token_confident | product": {
+  "reference_match": 0.37109375,
+  "sd_log_weight_median": 7.923624915181098,
+  "mean_log_weight": -55.66851254941085,
+  "parses": 0.9270833333333334,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 105.68333333333334
+ },
+ "token_confident | matched chain, counted table": {
+  "reference_match": 0.3372395833333333,
+  "sd_log_weight_median": 12.102240898588928,
+  "mean_log_weight": -44.352701502435565,
+  "parses": 0.92578125,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 112.70833333333331
+ },
+ "block_confident | product": {
+  "reference_match": 0.265625,
+  "sd_log_weight_median": 5.092448780128132,
+  "mean_log_weight": -42.99617575976168,
+  "parses": 0.9322916666666666,
+  "model_calls_per_run": 24.166666666666668,
+  "seconds": 53.4
+ },
+ "block_confident | matched chain, counted table": {
+  "reference_match": 0.2578125,
+  "sd_log_weight_median": 8.275910398326644,
+  "mean_log_weight": -36.83410932817605,
+  "parses": 0.91796875,
+  "model_calls_per_run": 24.166666666666668,
+  "seconds": 57.041666666666664
+ },
+ "sum | product": {
+  "reference_match": 0.5390625,
+  "sd_log_weight_median": 5.2779140098837445,
+  "mean_log_weight": -21.810160052351847,
+  "parses": 0.9947916666666666,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 106.3
+ },
+ "sum | matched chain, counted table": {
+  "reference_match": 0.5768229166666666,
+  "sd_log_weight_median": 6.013305846396099,
+  "mean_log_weight": -19.180835806353993,
+  "parses": 0.9986979166666666,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 113.65833333333332
+ },
+ "ltr | product": {
+  "reference_match": 0.7825520833333334,
+  "sd_log_weight_median": 1.1331998142587174,
+  "mean_log_weight": -20.133194568773803,
+  "parses": 0.9921875,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 105.575
+ },
+ "ltr | matched chain, counted table": {
+  "reference_match": 0.7760416666666666,
+  "sd_log_weight_median": 5.4983315464017775,
+  "mean_log_weight": -19.481337358989006,
+  "parses": 0.9622395833333334,
+  "model_calls_per_run": 47.666666666666664,
+  "seconds": 112.55
+ },
+ "unconstrained, shipped setting": {
+  "reference_match_after_stripping": 0.53125,
+  "matches_pattern": 0.0
+ }
+}
