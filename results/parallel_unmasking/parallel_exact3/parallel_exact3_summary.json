@@ -1,0 +1,1013 @@
+{
+ "counting|hidden_0.85|8|0.003": {
+  "sequential_product": {
+   "compute": 15.999999999999991,
+   "steps": 7.999999999999996,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 12.579319263103175,
+   "steps": 6.289659631551587,
+   "particles": 2.0,
+   "rule": "plan mu=0.01 lam=1"
+  },
+  "sequential_chain": {
+   "compute": 16.000000000000004,
+   "steps": 8.000000000000002,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 13.684305730804743,
+   "steps": 6.8421528654023716,
+   "particles": 2.0,
+   "rule": "plan mu=0.01 lam=10"
+  },
+  "plan_chain_product_reference": {
+   "compute": 13.266904273752957,
+   "steps": 6.633452136876478,
+   "particles": 2.0,
+   "rule": "plan mu=0.01 lam=3"
+  },
+  "greedy_product": {
+   "compute": 15.209941927248389,
+   "steps": 7.6049709636241944,
+   "particles": 2.0,
+   "rule": "greedy tau=0.001"
+  },
+  "repository_product": {
+   "compute": 23.999999999999986,
+   "steps": 7.999999999999996,
+   "particles": 3.0,
+   "rule": "policy lex sequential"
+  }
+ },
+ "counting|chain_0.85|8|0.003": {
+  "sequential_product": {
+   "compute": 56.0,
+   "steps": 8.0,
+   "particles": 7.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 28.49696446258209,
+   "steps": 4.070994923226013,
+   "particles": 7.0,
+   "rule": "plan mu=0.3 lam=10"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 2.0,
+   "steps": 2.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=1"
+  },
+  "plan_chain_product_reference": {
+   "compute": 3.2769190539755164,
+   "steps": 3.2769190539755164,
+   "particles": 1.0,
+   "rule": "plan mu=0.001 lam=0"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 46.79975549427327,
+   "steps": 5.19997283269703,
+   "particles": 9.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "forbidden|hidden_0.85|8|0.003": {
+  "sequential_product": {
+   "compute": 48.000000000000014,
+   "steps": 8.000000000000002,
+   "particles": 6.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 35.05834657743462,
+   "steps": 5.84305776290577,
+   "particles": 6.0,
+   "rule": "plan mu=0.1 lam=100"
+  },
+  "sequential_chain": {
+   "compute": 16.000000000000004,
+   "steps": 8.000000000000002,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 12.984397538768288,
+   "steps": 6.492198769384144,
+   "particles": 2.0,
+   "rule": "plan mu=0.001 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 11.51434076982537,
+   "steps": 5.757170384912685,
+   "particles": 2.0,
+   "rule": "plan mu=0.003 lam=1"
+  },
+  "greedy_product": {
+   "compute": 62.475026622925256,
+   "steps": 7.809378327865657,
+   "particles": 8.0,
+   "rule": "greedy tau=0.003"
+  },
+  "repository_product": {
+   "compute": 64.00000000000001,
+   "steps": 8.000000000000002,
+   "particles": 8.0,
+   "rule": "policy lex sequential"
+  }
+ },
+ "window_small|hidden_0.85|8|0.003": {
+  "sequential_product": {
+   "compute": 24.0,
+   "steps": 8.0,
+   "particles": 3.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 16.803899973077737,
+   "steps": 5.601299991025912,
+   "particles": 3.0,
+   "rule": "plan mu=0.01 lam=1"
+  },
+  "sequential_chain": {
+   "compute": 24.000000000000007,
+   "steps": 8.000000000000002,
+   "particles": 3.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 15.488928360133198,
+   "steps": 5.162976120044399,
+   "particles": 3.0,
+   "rule": "plan mu=0.01 lam=1"
+  },
+  "plan_chain_product_reference": {
+   "compute": 15.713434262369613,
+   "steps": 5.237811420789871,
+   "particles": 3.0,
+   "rule": "plan mu=0.01 lam=1"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 32.0,
+   "steps": 8.0,
+   "particles": 4.0,
+   "rule": "policy lex sequential"
+  }
+ },
+ "dyck|hidden_0.85|10|0.003": {
+  "sequential_product": {
+   "compute": 49.999999999999986,
+   "steps": 9.999999999999996,
+   "particles": 5.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 39.25715108970598,
+   "steps": 7.8514302179411954,
+   "particles": 5.0,
+   "rule": "plan mu=0.003 lam=1"
+  },
+  "sequential_chain": {
+   "compute": 10.000000000000002,
+   "steps": 10.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 4.988902929014348,
+   "steps": 4.988902929014348,
+   "particles": 1.0,
+   "rule": "plan mu=0.001 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 4.988902929014348,
+   "steps": 4.988902929014348,
+   "particles": 1.0,
+   "rule": "plan mu=0.001 lam=0"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 57.68204098695763,
+   "steps": 9.613673497826271,
+   "particles": 6.0,
+   "rule": "policy lex B=0.03"
+  }
+ },
+ "dyck|chain_0.85|10|0.003": {
+  "sequential_product": {
+   "compute": 80.0,
+   "steps": 10.0,
+   "particles": 8.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 36.38095238095238,
+   "steps": 4.5476190476190474,
+   "particles": 8.0,
+   "rule": "plan mu=1 lam=100"
+  },
+  "sequential_chain": {
+   "compute": 10.0,
+   "steps": 10.0,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 51.49964955229309,
+   "steps": 5.722183283588121,
+   "particles": 9.0,
+   "rule": "policy sum B=0.3"
+  }
+ },
+ "counting|hidden_0.85|8|0.01": {
+  "sequential_product": {
+   "compute": 7.999999999999996,
+   "steps": 7.999999999999996,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 6.38034689191066,
+   "steps": 6.38034689191066,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 6.290611142116487,
+   "steps": 6.290611142116487,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 6.290611142116487,
+   "steps": 6.290611142116487,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "greedy_product": {
+   "compute": 14.840416871955952,
+   "steps": 7.420208435977976,
+   "particles": 2.0,
+   "rule": "greedy tau=0.003"
+  },
+  "repository_product": {
+   "compute": 12.797290396620578,
+   "steps": 6.398645198310289,
+   "particles": 2.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "counting|chain_0.85|8|0.01": {
+  "sequential_product": {
+   "compute": 32.0,
+   "steps": 8.0,
+   "particles": 4.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 20.0,
+   "steps": 4.0,
+   "particles": 5.0,
+   "rule": "plan mu=1 lam=10"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 25.99986416348515,
+   "steps": 5.19997283269703,
+   "particles": 5.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "forbidden|hidden_0.85|8|0.01": {
+  "sequential_product": {
+   "compute": 32.00000000000001,
+   "steps": 8.000000000000002,
+   "particles": 4.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 20.069036119423963,
+   "steps": 5.017259029855991,
+   "particles": 4.0,
+   "rule": "plan mu=0.1 lam=10"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 5.4443069576523015,
+   "steps": 5.4443069576523015,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 5.4443069576523015,
+   "steps": 5.4443069576523015,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "greedy_product": {
+   "compute": 31.237513311462628,
+   "steps": 7.809378327865657,
+   "particles": 4.0,
+   "rule": "greedy tau=0.003"
+  },
+  "repository_product": {
+   "compute": 32.00000000000001,
+   "steps": 8.000000000000002,
+   "particles": 4.0,
+   "rule": "policy sum sequential"
+  }
+ },
+ "window_small|hidden_0.85|8|0.01": {
+  "sequential_product": {
+   "compute": 16.0,
+   "steps": 8.0,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 10.278135293784889,
+   "steps": 5.139067646892444,
+   "particles": 2.0,
+   "rule": "plan mu=0.1 lam=10"
+  },
+  "sequential_chain": {
+   "compute": 16.000000000000004,
+   "steps": 8.000000000000002,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 8.158923037535919,
+   "steps": 4.0794615187679595,
+   "particles": 2.0,
+   "rule": "plan mu=0.03 lam=3"
+  },
+  "plan_chain_product_reference": {
+   "compute": 9.691851850805367,
+   "steps": 4.845925925402684,
+   "particles": 2.0,
+   "rule": "plan mu=1 lam=100"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 16.917077627036097,
+   "steps": 5.639025875678699,
+   "particles": 3.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "dyck|hidden_0.85|10|0.01": {
+  "sequential_product": {
+   "compute": 29.99999999999999,
+   "steps": 9.999999999999996,
+   "particles": 3.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 20.073007038644338,
+   "steps": 6.69100234621478,
+   "particles": 3.0,
+   "rule": "plan mu=0.03 lam=3"
+  },
+  "sequential_chain": {
+   "compute": 10.000000000000002,
+   "steps": 10.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 3.626965496906266,
+   "steps": 3.626965496906266,
+   "particles": 1.0,
+   "rule": "plan mu=0.01 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 3.626965496906266,
+   "steps": 3.626965496906266,
+   "particles": 1.0,
+   "rule": "plan mu=0.01 lam=0"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 28.841020493478815,
+   "steps": 9.613673497826271,
+   "particles": 3.0,
+   "rule": "policy lex B=0.03"
+  }
+ },
+ "dyck|chain_0.85|10|0.01": {
+  "sequential_product": {
+   "compute": 60.0,
+   "steps": 10.0,
+   "particles": 6.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 27.285714285714285,
+   "steps": 4.5476190476190474,
+   "particles": 6.0,
+   "rule": "plan mu=1 lam=100"
+  },
+  "sequential_chain": {
+   "compute": 10.0,
+   "steps": 10.0,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 40.05528298511685,
+   "steps": 5.722183283588121,
+   "particles": 7.0,
+   "rule": "policy sum B=0.3"
+  }
+ },
+ "counting|hidden_0.85|8|0.03": {
+  "sequential_product": {
+   "compute": 7.999999999999996,
+   "steps": 7.999999999999996,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 4.811129799638888,
+   "steps": 4.811129799638888,
+   "particles": 1.0,
+   "rule": "plan mu=0.03 lam=1"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 5.255655903938236,
+   "steps": 5.255655903938236,
+   "particles": 1.0,
+   "rule": "plan mu=0.01 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 5.255655903938236,
+   "steps": 5.255655903938236,
+   "particles": 1.0,
+   "rule": "plan mu=0.01 lam=0"
+  },
+  "greedy_product": {
+   "compute": 5.752196933554285,
+   "steps": 5.752196933554285,
+   "particles": 1.0,
+   "rule": "greedy tau=0.01"
+  },
+  "repository_product": {
+   "compute": 7.37559031578121,
+   "steps": 7.37559031578121,
+   "particles": 1.0,
+   "rule": "policy lex B=0.03"
+  }
+ },
+ "counting|chain_0.85|8|0.03": {
+  "sequential_product": {
+   "compute": 24.0,
+   "steps": 8.0,
+   "particles": 3.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 13.813801004211072,
+   "steps": 4.604600334737024,
+   "particles": 3.0,
+   "rule": "plan mu=0.1 lam=1"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "greedy_product": null,
+  "repository_product": {
+   "compute": 20.79989133078812,
+   "steps": 5.19997283269703,
+   "particles": 4.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "forbidden|hidden_0.85|8|0.03": {
+  "sequential_product": {
+   "compute": 16.000000000000004,
+   "steps": 8.000000000000002,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 12.687038162668081,
+   "steps": 4.229012720889361,
+   "particles": 3.0,
+   "rule": "plan mu=3 lam=100"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 4.254882214272445,
+   "steps": 4.254882214272445,
+   "particles": 1.0,
+   "rule": "plan mu=0.01 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 4.254882214272445,
+   "steps": 4.254882214272445,
+   "particles": 1.0,
+   "rule": "plan mu=0.01 lam=0"
+  },
+  "greedy_product": {
+   "compute": 20.52249544822425,
+   "steps": 6.8408318160747505,
+   "particles": 3.0,
+   "rule": "greedy tau=0.03"
+  },
+  "repository_product": {
+   "compute": 17.218578527195596,
+   "steps": 5.739526175731866,
+   "particles": 3.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "window_small|hidden_0.85|8|0.03": {
+  "sequential_product": {
+   "compute": 8.0,
+   "steps": 8.0,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 4.936298113966055,
+   "steps": 4.936298113966055,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 3.4150217839344426,
+   "steps": 3.4150217839344426,
+   "particles": 1.0,
+   "rule": "plan mu=0.03 lam=1"
+  },
+  "plan_chain_product_reference": {
+   "compute": 4.0,
+   "steps": 4.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.01 lam=0"
+  },
+  "greedy_product": {
+   "compute": 4.9506924168907105,
+   "steps": 4.9506924168907105,
+   "particles": 1.0,
+   "rule": "greedy tau=0.01"
+  },
+  "repository_product": {
+   "compute": 11.278051751357397,
+   "steps": 5.639025875678699,
+   "particles": 2.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "dyck|hidden_0.85|10|0.03": {
+  "sequential_product": {
+   "compute": 19.999999999999993,
+   "steps": 9.999999999999996,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 12.434145533553565,
+   "steps": 6.2170727667767824,
+   "particles": 2.0,
+   "rule": "plan mu=0.1 lam=10"
+  },
+  "sequential_chain": {
+   "compute": 10.000000000000002,
+   "steps": 10.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 2.9198272773250338,
+   "steps": 2.9198272773250338,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=1"
+  },
+  "plan_chain_product_reference": {
+   "compute": 3.1757948561023186,
+   "steps": 3.1757948561023186,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=1"
+  },
+  "greedy_product": {
+   "compute": 16.5024869707702,
+   "steps": 8.2512434853851,
+   "particles": 2.0,
+   "rule": "greedy tau=0.0001"
+  },
+  "repository_product": {
+   "compute": 16.91461509916894,
+   "steps": 8.45730754958447,
+   "particles": 2.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "dyck|chain_0.85|10|0.03": {
+  "sequential_product": {
+   "compute": 40.0,
+   "steps": 10.0,
+   "particles": 4.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 22.738095238095237,
+   "steps": 4.5476190476190474,
+   "particles": 5.0,
+   "rule": "plan mu=1 lam=100"
+  },
+  "sequential_chain": {
+   "compute": 10.0,
+   "steps": 10.0,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "greedy_product": {
+   "compute": 54.88249491214548,
+   "steps": 7.840356416020783,
+   "particles": 7.0,
+   "rule": "greedy tau=0.3"
+  },
+  "repository_product": {
+   "compute": 28.610916417940608,
+   "steps": 5.722183283588121,
+   "particles": 5.0,
+   "rule": "policy sum B=0.3"
+  }
+ },
+ "counting|hidden_0.85|8|0.1": {
+  "sequential_product": {
+   "compute": 7.999999999999996,
+   "steps": 7.999999999999996,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 2.807430482549882,
+   "steps": 2.807430482549882,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=0"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 3.0,
+   "steps": 3.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.3 lam=3"
+  },
+  "plan_chain_product_reference": {
+   "compute": 3.0741794402797695,
+   "steps": 3.0741794402797695,
+   "particles": 1.0,
+   "rule": "plan mu=0.03 lam=0"
+  },
+  "greedy_product": {
+   "compute": 3.9093128363046286,
+   "steps": 3.9093128363046286,
+   "particles": 1.0,
+   "rule": "greedy tau=0.03"
+  },
+  "repository_product": {
+   "compute": 6.398645198310289,
+   "steps": 6.398645198310289,
+   "particles": 1.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "counting|chain_0.85|8|0.1": {
+  "sequential_product": {
+   "compute": 16.0,
+   "steps": 8.0,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 8.166348597178484,
+   "steps": 4.083174298589242,
+   "particles": 2.0,
+   "rule": "plan mu=0.3 lam=3"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.003 lam=0"
+  },
+  "greedy_product": {
+   "compute": 23.636518440116248,
+   "steps": 7.878839480038749,
+   "particles": 3.0,
+   "rule": "greedy tau=0.1"
+  },
+  "repository_product": {
+   "compute": 13.16679747012785,
+   "steps": 4.388932490042617,
+   "particles": 3.0,
+   "rule": "policy lex B=0.3"
+  }
+ },
+ "forbidden|hidden_0.85|8|0.1": {
+  "sequential_product": {
+   "compute": 16.000000000000004,
+   "steps": 8.000000000000002,
+   "particles": 2.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 6.618493770170459,
+   "steps": 3.3092468850852295,
+   "particles": 2.0,
+   "rule": "plan mu=0.3 lam=1"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 2.0,
+   "steps": 2.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 2.0,
+   "steps": 2.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=0"
+  },
+  "greedy_product": {
+   "compute": 13.681663632149501,
+   "steps": 6.8408318160747505,
+   "particles": 2.0,
+   "rule": "greedy tau=0.03"
+  },
+  "repository_product": {
+   "compute": 9.10713045925056,
+   "steps": 4.55356522962528,
+   "particles": 2.0,
+   "rule": "policy sum B=0.3"
+  }
+ },
+ "window_small|hidden_0.85|8|0.1": {
+  "sequential_product": {
+   "compute": 8.0,
+   "steps": 8.0,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 2.9018308820926073,
+   "steps": 2.9018308820926073,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=0"
+  },
+  "sequential_chain": {
+   "compute": 8.000000000000002,
+   "steps": 8.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 2.0,
+   "steps": 2.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 2.0,
+   "steps": 2.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.1 lam=0"
+  },
+  "greedy_product": {
+   "compute": 3.4509154410463037,
+   "steps": 3.4509154410463037,
+   "particles": 1.0,
+   "rule": "greedy tau=0.03"
+  },
+  "repository_product": {
+   "compute": 5.639025875678699,
+   "steps": 5.639025875678699,
+   "particles": 1.0,
+   "rule": "policy sum B=0.03"
+  }
+ },
+ "dyck|hidden_0.85|10|0.1": {
+  "sequential_product": {
+   "compute": 9.999999999999996,
+   "steps": 9.999999999999996,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 3.132064573458512,
+   "steps": 3.132064573458512,
+   "particles": 1.0,
+   "rule": "plan mu=0.03 lam=0"
+  },
+  "sequential_chain": {
+   "compute": 10.000000000000002,
+   "steps": 10.000000000000002,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 2.0,
+   "steps": 2.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.3 lam=3"
+  },
+  "plan_chain_product_reference": {
+   "compute": 2.0,
+   "steps": 2.0,
+   "particles": 1.0,
+   "rule": "plan mu=1 lam=3"
+  },
+  "greedy_product": {
+   "compute": 4.505376043989031,
+   "steps": 4.505376043989031,
+   "particles": 1.0,
+   "rule": "greedy tau=0.03"
+  },
+  "repository_product": {
+   "compute": 9.613673497826271,
+   "steps": 9.613673497826271,
+   "particles": 1.0,
+   "rule": "policy lex B=0.03"
+  }
+ },
+ "dyck|chain_0.85|10|0.1": {
+  "sequential_product": {
+   "compute": 30.0,
+   "steps": 10.0,
+   "particles": 3.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_product": {
+   "compute": 12.0,
+   "steps": 3.0,
+   "particles": 4.0,
+   "rule": "plan mu=1 lam=3"
+  },
+  "sequential_chain": {
+   "compute": 10.0,
+   "steps": 10.0,
+   "particles": 1.0,
+   "rule": "sequential (best order)"
+  },
+  "plan_chain": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "plan_chain_product_reference": {
+   "compute": 1.0,
+   "steps": 1.0,
+   "particles": 1.0,
+   "rule": "plan mu=0.0001 lam=0"
+  },
+  "greedy_product": {
+   "compute": 31.361425664083132,
+   "steps": 7.840356416020783,
+   "particles": 4.0,
+   "rule": "greedy tau=0.3"
+  },
+  "repository_product": {
+   "compute": 22.888733134352485,
+   "steps": 5.722183283588121,
+   "particles": 4.0,
+   "rule": "policy sum B=0.3"
+  }
+ }
+}

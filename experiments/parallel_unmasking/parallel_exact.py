@@ -24,7 +24,8 @@ Rules compared, all scored exactly (every finished sequence is enumerated):
     greedy tau    at each state the largest set whose step error is at most tau (ties: the least error); a single
                   position of least error if none qualifies
     policy        the repository's budgeted schedules (`lex`, `sum` at budgets B)
-For a tolerance eps on the KL of a returned sample: particles K = spread / (2 (eps - bias)) (1 if one particle already
+For a tolerance eps on the KL of a returned sample, the particles are the smallest K whose exact output law meets it (class
+OutputLaw; `compute`). The rule used before section 36ai is kept as `compute_old_rule`: particles K = spread / (2 (eps - bias)) (1 if one particle already
 meets eps; impossible if bias >= eps), compute = expected steps x K.
 """
 import argparse, itertools, json, os, sys, time
@@ -144,7 +145,7 @@ class PWorld:
             pick[c["sel"]] = bp
         return pick
 
-    def score(self, pick):
+    def score(self, pick, laws=False):
         """Exact laws of a rule. Returns a dict of the quantities in the module docstring."""
         rs = np.zeros(self.B); rn = np.zeros(self.B); rs[self.e0] = 1.0; rn[self.e0] = 1.0
         steps = 0.0; kl1 = 0.0; sizes = 0.0; worst = np.zeros(self.B, dtype=np.int64)
@@ -164,8 +165,11 @@ class PWorld:
         pC = n[inC].sum(); npar = np.where(inC, n / pC, 0.0)
         kl = lambda a, b: float((a[a > 0] * (np.log(a[a > 0]) - np.log(b[a > 0]))).sum())
         ok = npar > 0
-        return dict(steps=float(steps), max_steps=int(worst[f][s > 1e-15].max()), mean_set=float(sizes / steps), kl_one=float(kl1), kl_one_check=kl(s, tgt),
-                    bias=kl(npar, tgt), log_z_bias=float(np.log(pC) - self.log_pC), spread=float((npar[ok] ** 2 / s[ok]).sum() - 1), kl_s_to_par=kl(s, npar))
+        out = dict(steps=float(steps), max_steps=int(worst[f][s > 1e-15].max()), mean_set=float(sizes / steps), kl_one=float(kl1), kl_one_check=kl(s, tgt),
+                   bias=kl(npar, tgt), log_z_bias=float(np.log(pC) - self.log_pC), spread=float((npar[ok] ** 2 / s[ok]).sum() - 1), kl_s_to_par=kl(s, npar))
+        if laws:
+            out["laws"] = (s, npar, tgt)
+        return out
 
     def repo_policy(self, name, budget, kern):
         N, S = self.N, self.S
@@ -195,6 +199,50 @@ def compute_for(sc, eps_tol):
     return K, sc["steps"] * K
 
 
+class OutputLaw:
+    """Exact error of the returned sample for K particles (no resampling): the rule is deterministic, so a finished sequence has
+    one path and one weight w = P_par(x | C) / s(x), and the output law is q_K(x) = K s(x) w(x) E[1 / (w(x) + S_{K-1})] with S_{K-1}
+    the sum of K - 1 independent weights (section 36ai). The expectation uses R draws; KL(q_K || target) is cached per K."""
+
+    def __init__(self, s, npar, tgt, R=4000, seed=0):
+        self.s, self.tgt, self.R = s, tgt, R; self.sup = s > 0; self.w = np.where(self.sup, npar / np.where(self.sup, s, 1.0), 0.0)
+        self.rng = np.random.default_rng(seed); self.cache = {}; self.live = np.nonzero(self.sup & (self.w > 0))[0]; self.p = s / s.sum()
+
+    def kl(self, K):
+        K = int(K)
+        if K not in self.cache:
+            if K == 1:
+                qK = self.s.copy()
+            else:
+                Ssum = np.zeros(self.R)
+                for lo in range(0, K - 1, 256):                                            # draws in chunks: R x (K - 1) weights
+                    Ssum += self.w[self.rng.choice(len(self.s), size=(self.R, min(256, K - 1 - lo)), p=self.p)].sum(1)
+                qK = np.zeros(len(self.s)); wl = self.w[self.live]
+                for lo in range(0, len(self.live), 1000):
+                    sl = self.live[lo:lo + 1000]; qK[sl] = K * self.s[sl] * self.w[sl] * (1.0 / (self.w[sl][:, None] + Ssum[None])).mean(1)
+                qK = qK / qK.sum()
+            m = qK > 0
+            self.cache[K] = float((qK[m] * (np.log(qK[m]) - np.log(self.tgt[m]))).sum()) if np.all(self.tgt[m] > 0) else float("inf")
+        return self.cache[K]
+
+    def particles(self, eps_tol, bias, kmax=1 << 16):
+        """Smallest K with KL(q_K || target) <= eps_tol (inf if the bias alone exceeds it or kmax is not enough)."""
+        if self.kl(1) <= eps_tol:
+            return 1.0
+        if bias >= eps_tol:
+            return float("inf")
+        hi = 2
+        while self.kl(hi) > eps_tol:
+            hi *= 2
+            if hi > kmax:
+                return float("inf")
+        lo = hi // 2
+        while hi - lo > 1:
+            mid = (lo + hi) // 2
+            lo, hi = (lo, mid) if self.kl(mid) <= eps_tol else (mid, hi)
+        return float(hi)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--N", type=int, default=8); ap.add_argument("--model", default="hidden_0.85"); ap.add_argument("--constraint", default="counting")
@@ -204,7 +252,7 @@ def main():
     ap.add_argument("--mus", type=float, nargs="+", default=[0.0, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2, 0.1, 0.3, 1.0, 3.0])
     ap.add_argument("--taus", type=float, nargs="+", default=[1e-4, 1e-3, 3e-3, 1e-2, 3e-2, 0.1, 0.3, 1.0])
     ap.add_argument("--budgets", type=float, nargs="+", default=[0.03, 0.3, 1.0, 3.0]); ap.add_argument("--tolerances", type=float, nargs="+", default=[0.003, 0.01, 0.03, 0.1])
-    ap.add_argument("--out", default="parallel_exact.json")
+    ap.add_argument("--out", default="parallel_exact.json"); ap.add_argument("--R", type=int, default=4000, help="draws for the exact K-particle output law")
     a = ap.parse_args(); torch.set_num_threads(2); t0 = time.time(); N = a.N; S = n_symbols(a.constraint)
     den = make_model(a.model, N, S); W = PWorld(den, a.constraint, N, a.proposal, a.pilot, a.reference)
     print(f"{a.constraint} {a.model} N={N}, {a.proposal} proposal, {a.reference} reference: {W.B} states, {len(W.combos)} (pattern, set) tables, log p(C) = {W.log_pC:.3f}, built in {time.time() - t0:.0f} s", flush=True)
@@ -223,8 +271,11 @@ def main():
     res = dict(args=vars(a), provenance=provenance(), log_pC=W.log_pC, rows=[])
     print("rule | expected steps (max) | mean set | one-particle KL | bias KL | log Z bias | spread | " + " | ".join(f"compute at eps={e:g}" for e in a.tolerances))
     for name, pick in rules.items():
-        sc = W.score(pick); assert abs(sc["kl_one"] - sc["kl_one_check"]) < 1e-7, (name, sc)
-        sc["rule"] = name; sc["compute"] = {f"{e:g}": compute_for(sc, e) for e in a.tolerances}; res["rows"].append(sc)
+        sc = W.score(pick, laws=True); assert abs(sc["kl_one"] - sc["kl_one_check"]) < 1e-7, (name, sc)
+        law = OutputLaw(*sc.pop("laws"), R=a.R); sc["compute_old_rule"] = {f"{e:g}": compute_for(sc, e) for e in a.tolerances}      # spread / (2 (eps - bias)): superseded
+        sc["compute"] = {f"{e:g}": (lambda K: (K, sc["steps"] * K))(law.particles(e, sc["bias"])) for e in a.tolerances}
+        sc["kl_by_particles"] = {str(K): v for K, v in sorted(law.cache.items())}
+        sc["rule"] = name; res["rows"].append(sc)
         print(f"  {name:28s} | {sc['steps']:5.2f} ({sc['max_steps']}) | {sc['mean_set']:4.2f} | {sc['kl_one']:.4f} | {sc['bias']:.4f} | {sc['log_z_bias']:+.4f} | {sc['spread']:.4f} | "
               + " | ".join(f"{sc['compute'][f'{e:g}'][1]:7.1f}" for e in a.tolerances), flush=True)
     assert abs(res["rows"][0]["bias"]) < 1e-9 and abs(res["rows"][0]["log_z_bias"]) < 1e-9          # one token per step has no bias

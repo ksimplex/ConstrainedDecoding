@@ -2320,7 +2320,7 @@ under the model is ignored. Three laws over finished sequences follow from a rul
 - *spread*: chi-square of that limit against the sampler: the noise particles do remove.
 
 **Correction (section 36ai): the particle rule below is wrong for this quantity; the noise part falls as 1/K^2, so the compute
-figures of this section overstate the particles needed and must be recomputed before they are used.**
+figures of this section overstate the particles needed and must be recomputed before they are used. Recomputed in section 36au.**
 
 Particles for a tolerance eps: 1 if one particle already meets it; otherwise spread / (2 (eps - bias)); impossible if
 bias >= eps. The middle expression is a standard large-K expansion quoted from memory and not verified here.
@@ -3303,6 +3303,74 @@ The official checker rejects 10 of our reference texts (simple 2, parallel-multi
 
 xLAM, fixed-seed subset of 1,000 (`xlam_constraints.py`): with every argument not marked optional mandatory, the pattern accepts 941 references; with every argument optional, 972.
 The difference is 31 references that leave out an unmarked argument; 28 are rejected under either rule (type mismatches, nested containers, nulls). Rule to be chosen by the user.
+
+## 36au. Parallel reveals, exactly, with exact particle counts (recomputation of section 36y; local, 2026-11-18) [exact up to the Monte Carlo over particle draws; 8 to 10 positions; no resampling]
+
+Section 36y sized the particles with spread / (2 (eps - bias)), which section 36ai showed to be wrong for the error of the returned sample. Here the particles for a tolerance are the smallest K whose exact
+K-particle output law is within the tolerance of the target (`parallel_exact.py`, class `OutputLaw`: a deterministic rule gives each finished sequence one path and one weight, so the output law of section 36ai applies;
+bias and noise are not assumed to add). Rules, cells and tolerances as in section 36y. Results `results/parallel_unmasking/parallel_exact3/`.
+
+Compute = expected steps x particles, lower is better. Columns: best one-token order and best plan with the product proposal; the same with the chain proposal and the chain law as the reference for co-revealed
+sets; best plan with the chain proposal and the product reference; greedy and repository rules with the product proposal. The plan is the exact backward pass, an upper limit on what a scalable planner can reach.
+
+*eps = 0.003 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | plan, chain proposal, product reference | greedy, product | repository, product |
+|---|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 16.0 (8.0 x 2) | 12.6 (6.3 x 2) | 16.0 (8.0 x 2) | 13.7 (6.8 x 2) | 13.3 (6.6 x 2) | 15.2 (7.6 x 2) | 24.0 (8.0 x 3) |
+| counting, chain_0.85, N=8 | 56.0 (8.0 x 7) | 28.5 (4.1 x 7) | 8.0 (8.0 x 1) | 2.0 (2.0 x 1) | 3.3 (3.3 x 1) | not reachable | 46.8 (5.2 x 9) |
+| forbidden, hidden_0.85, N=8 | 48.0 (8.0 x 6) | 35.1 (5.8 x 6) | 16.0 (8.0 x 2) | 13.0 (6.5 x 2) | 11.5 (5.8 x 2) | 62.5 (7.8 x 8) | 64.0 (8.0 x 8) |
+| window_small, hidden_0.85, N=8 | 24.0 (8.0 x 3) | 16.8 (5.6 x 3) | 24.0 (8.0 x 3) | 15.5 (5.2 x 3) | 15.7 (5.2 x 3) | not reachable | 32.0 (8.0 x 4) |
+| dyck, hidden_0.85, N=10 | 50.0 (10.0 x 5) | 39.3 (7.9 x 5) | 10.0 (10.0 x 1) | 5.0 (5.0 x 1) | 5.0 (5.0 x 1) | not reachable | 57.7 (9.6 x 6) |
+| dyck, chain_0.85, N=10 | 80.0 (10.0 x 8) | 36.4 (4.5 x 8) | 10.0 (10.0 x 1) | 1.0 (1.0 x 1) | 1.0 (1.0 x 1) | not reachable | 51.5 (5.7 x 9) |
+
+*eps = 0.01 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | plan, chain proposal, product reference | greedy, product | repository, product |
+|---|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1) | 6.4 (6.4 x 1) | 8.0 (8.0 x 1) | 6.3 (6.3 x 1) | 6.3 (6.3 x 1) | 14.8 (7.4 x 2) | 12.8 (6.4 x 2) |
+| counting, chain_0.85, N=8 | 32.0 (8.0 x 4) | 20.0 (4.0 x 5) | 8.0 (8.0 x 1) | 1.0 (1.0 x 1) | 1.0 (1.0 x 1) | not reachable | 26.0 (5.2 x 5) |
+| forbidden, hidden_0.85, N=8 | 32.0 (8.0 x 4) | 20.1 (5.0 x 4) | 8.0 (8.0 x 1) | 5.4 (5.4 x 1) | 5.4 (5.4 x 1) | 31.2 (7.8 x 4) | 32.0 (8.0 x 4) |
+| window_small, hidden_0.85, N=8 | 16.0 (8.0 x 2) | 10.3 (5.1 x 2) | 16.0 (8.0 x 2) | 8.2 (4.1 x 2) | 9.7 (4.8 x 2) | not reachable | 16.9 (5.6 x 3) |
+| dyck, hidden_0.85, N=10 | 30.0 (10.0 x 3) | 20.1 (6.7 x 3) | 10.0 (10.0 x 1) | 3.6 (3.6 x 1) | 3.6 (3.6 x 1) | not reachable | 28.8 (9.6 x 3) |
+| dyck, chain_0.85, N=10 | 60.0 (10.0 x 6) | 27.3 (4.5 x 6) | 10.0 (10.0 x 1) | 1.0 (1.0 x 1) | 1.0 (1.0 x 1) | not reachable | 40.1 (5.7 x 7) |
+
+*eps = 0.03 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | plan, chain proposal, product reference | greedy, product | repository, product |
+|---|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1) | 4.8 (4.8 x 1) | 8.0 (8.0 x 1) | 5.3 (5.3 x 1) | 5.3 (5.3 x 1) | 5.8 (5.8 x 1) | 7.4 (7.4 x 1) |
+| counting, chain_0.85, N=8 | 24.0 (8.0 x 3) | 13.8 (4.6 x 3) | 8.0 (8.0 x 1) | 1.0 (1.0 x 1) | 1.0 (1.0 x 1) | not reachable | 20.8 (5.2 x 4) |
+| forbidden, hidden_0.85, N=8 | 16.0 (8.0 x 2) | 12.7 (4.2 x 3) | 8.0 (8.0 x 1) | 4.3 (4.3 x 1) | 4.3 (4.3 x 1) | 20.5 (6.8 x 3) | 17.2 (5.7 x 3) |
+| window_small, hidden_0.85, N=8 | 8.0 (8.0 x 1) | 4.9 (4.9 x 1) | 8.0 (8.0 x 1) | 3.4 (3.4 x 1) | 4.0 (4.0 x 1) | 5.0 (5.0 x 1) | 11.3 (5.6 x 2) |
+| dyck, hidden_0.85, N=10 | 20.0 (10.0 x 2) | 12.4 (6.2 x 2) | 10.0 (10.0 x 1) | 2.9 (2.9 x 1) | 3.2 (3.2 x 1) | 16.5 (8.3 x 2) | 16.9 (8.5 x 2) |
+| dyck, chain_0.85, N=10 | 40.0 (10.0 x 4) | 22.7 (4.5 x 5) | 10.0 (10.0 x 1) | 1.0 (1.0 x 1) | 1.0 (1.0 x 1) | 54.9 (7.8 x 7) | 28.6 (5.7 x 5) |
+
+*eps = 0.1 nats*
+
+| cell | sequential, product | plan, product | sequential, chain | plan, chain | plan, chain proposal, product reference | greedy, product | repository, product |
+|---|---|---|---|---|---|---|---|
+| counting, hidden_0.85, N=8 | 8.0 (8.0 x 1) | 2.8 (2.8 x 1) | 8.0 (8.0 x 1) | 3.0 (3.0 x 1) | 3.1 (3.1 x 1) | 3.9 (3.9 x 1) | 6.4 (6.4 x 1) |
+| counting, chain_0.85, N=8 | 16.0 (8.0 x 2) | 8.2 (4.1 x 2) | 8.0 (8.0 x 1) | 1.0 (1.0 x 1) | 1.0 (1.0 x 1) | 23.6 (7.9 x 3) | 13.2 (4.4 x 3) |
+| forbidden, hidden_0.85, N=8 | 16.0 (8.0 x 2) | 6.6 (3.3 x 2) | 8.0 (8.0 x 1) | 2.0 (2.0 x 1) | 2.0 (2.0 x 1) | 13.7 (6.8 x 2) | 9.1 (4.6 x 2) |
+| window_small, hidden_0.85, N=8 | 8.0 (8.0 x 1) | 2.9 (2.9 x 1) | 8.0 (8.0 x 1) | 2.0 (2.0 x 1) | 2.0 (2.0 x 1) | 3.5 (3.5 x 1) | 5.6 (5.6 x 1) |
+| dyck, hidden_0.85, N=10 | 10.0 (10.0 x 1) | 3.1 (3.1 x 1) | 10.0 (10.0 x 1) | 2.0 (2.0 x 1) | 2.0 (2.0 x 1) | 4.5 (4.5 x 1) | 9.6 (9.6 x 1) |
+| dyck, chain_0.85, N=10 | 30.0 (10.0 x 3) | 12.0 (3.0 x 4) | 10.0 (10.0 x 1) | 1.0 (1.0 x 1) | 1.0 (1.0 x 1) | 31.4 (7.8 x 4) | 22.9 (5.7 x 4) |
+
+Best plan against best one-token order, ratio of compute (below 1 = the plan is cheaper), minimum to maximum over the six cells:
+
+| eps | product proposal | chain proposal |
+|---|---|---|
+| 0.003 | 0.45 to 0.79 | 0.10 to 0.86 |
+| 0.01 | 0.45 to 0.80 | 0.10 to 0.79 |
+| 0.03 | 0.57 to 0.79 | 0.10 to 0.66 |
+| 0.1 | 0.31 to 0.51 | 0.10 to 0.37 |
+
+- Particles are far fewer than section 36y said at tight tolerances (forbidden on the hidden chain at eps = 0.003: 6 instead of 36; Dyck on the Markov chain: 8 instead of 118), so compute is dominated by steps sooner.
+- The best plan is cheaper than the best one-token order in every cell and at every tolerance: by a fifth to a half at eps = 0.003 with the product proposal, by a half to two thirds at eps = 0.1.
+- With the chain proposal one particle is enough in most cells and the plan cuts steps by up to ten times on the Markov chains.
+- The repository rules (`lex`, `sum`, sequential or budgeted) are at or above the best one-token order in most cells: the gap between them and the plan is what a scalable planner has to close.
+- Not covered: resampling; rules that randomise; the matched chain as the reference for co-revealed sets (the chain reference here is the ratio formula).
 
 ## 36. Next steps (2026-11-16; replaces section 34)
 
