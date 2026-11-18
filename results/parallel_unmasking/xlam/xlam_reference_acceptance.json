@@ -1,0 +1,738 @@
+{
+ "unmarked|python": {
+  "n": 1000,
+  "accepted": 941,
+  "reasons": {
+   "missing mandatory argument": 31,
+   "other": 28
+  },
+  "rejected": [
+   [
+    485,
+    "[top_headlines(language='es', category='sports', country='es'), title_get_parental_guide(tconst='tt0468569')]"
+   ],
+   [
+    1667,
+    "[simulate_query_database(table='sales', conditions=[{'product_type': 'electronics', 'sale_date': {'start': '2022-01-01', 'end': '2022-12-31'}}])]"
+   ],
+   [
+    2191,
+    "[played(limit=10), random_skin_from_weapon(weapon_name='AUG')]"
+   ],
+   [
+    3171,
+    "[image_search(q='tropical beaches Hawaii', gl='us', lr='lang_en'), image_search(q='snowy mountains Switzerland', gl='ch', lr='lang_de')]"
+   ],
+   [
+    3575,
+    "[by_geographic_coordinates(lon=-118.2437, lat=34.0522, units='metric'), get_station_information(is_id='8729500')]"
+   ],
+   [
+    4042,
+    "[stateusaprice(state='NY'), webcams_list_bbox_ne_lat_ne_lng_sw_lat_sw_lng(ne_lat=40.8, sw_lng=-74.0, sw_lat=40.6, ne_lng=-73.7)]"
+   ],
+   [
+    4293,
+    "[light_travel_time(distance_in_light_years=1000), wire_resistance(length_m=15, area_sq_m=0.3, material='aluminum')]"
+   ],
+   [
+    8883,
+    "[tmall_search_by_keyword(page=1, keyword='gaming keyboards'), countries_list()]"
+   ],
+   [
+    9723,
+    "[simulate_query_database(table='Orders', conditions=[{'status': 'pending', 'amount': 1000}])]"
+   ],
+   [
+    10843,
+    "[calculate_electric_field(charge=1, distance=1), calculate_electric_field(charge=1, distance=2)]"
+   ],
+   [
+    18163,
+    "[series(series_slug='stranger-things', is_id='series_id'), random_meme(keywords='time travel', number=3, media_type='image', min_rating=5)]"
+   ],
+   [
+    18737,
+    "[list_titles(types='movie,tv_series', regions='US', sort_by='relevance_desc', release_date_start=20150101, release_date_end=20201231)]"
+   ],
+   [
+    18749,
+    "[shorts_sound_attribution(is_id='xyz123'), country_details(countrycode='JP'), trending(time='ONE_HOUR')]"
+   ],
+   [
+    20317,
+    "[free_games(country='US'), upcoming(page=1, limit=10)]"
+   ],
+   [
+    21568,
+    "[top_headlines(language='ja', category='entertainment', country='jp'), overview(terms='Tokyo-Olympics')]"
+   ],
+   [
+    22288,
+    "[transactions_feed(size='20', t_blockchain='ethereum')]"
+   ],
+   [
+    23485,
+    "[get_case_by_id(is_id='case9876'), getimage(type='jpeg', marker=1, zoom=5, address='Taj Mahal')]"
+   ],
+   [
+    24108,
+    "[simulate_query_database(table='sales', conditions=[{'product': 'laptop', 'price': ['>1000']}])]"
+   ],
+   [
+    24851,
+    "[keyword_search_at_coordinates(query='hardware store', lng=-0.1278, lat=51.5074, zoom=13), keyword_search_at_coordinates(query='bakery', lng=2.3522, lat=48.8566"
+   ],
+   [
+    24945,
+    "[calculate_electric_field(charge=10, distance=1)]"
+   ],
+   [
+    25151,
+    "[forecast_weather_api(q='London', days=7, dt=None, lang=None), forecast_weather_api(q='iata:SYD', days=7, dt=None, lang=None)]"
+   ],
+   [
+    25680,
+    "[flatten_list(nested_list=[[1, 2], [3, [4, 5]]])]"
+   ],
+   [
+    26816,
+    "[us_ar(), vehicle_attributes()]"
+   ],
+   [
+    27008,
+    "[image_search(q='Eiffel Tower', gl='fr')]"
+   ],
+   [
+    29523,
+    "[min_meeting_rooms(intervals=[[1, 3], [2, 4], [3, 5]]), calculate_electric_field(charge=10, distance=1)]"
+   ],
+   [
+    29568,
+    "[catalog_albums(), auto_complete(term=\"Sweet Child o' Mine\")]"
+   ],
+   [
+    32759,
+    "[get_regions(keyword='north america'), get_district_capital_by_name(name='Central')]"
+   ],
+   [
+    33172,
+    "[flatten_list(nested_list=[1, [2, [3, 4], 5], 6])]"
+   ],
+   [
+    33229,
+    "[biggest_cities(is_id=9101), africa(sort='desc', sort_by='temperatureC')]"
+   ],
+   [
+    33908,
+    "[getbycordsadv(radius=20, lat=-33.8671, lng=151.2069, access_param='public', ev_connector_type_param='Type 2', ev_network_param='Fastned'), i18nlanguages(part='"
+   ],
+   [
+    34250,
+    "[keyword_search_with_ranking(query='ChIJd8BlQ2BZwokRAFUEcm_qrcA', lng=-118.2437, match_value='ChIJd8BlQ2BZwokRAFUEcm_qrcA', lat=34.0522, match_type='place_id'),"
+   ],
+   [
+    34734,
+    "[schools_list(lat=-33.856784, lon='151.215297')]"
+   ],
+   [
+    35228,
+    "[weight_category(bmi=25), places_v2_list_by_map(nelat=37.7749, nelon=-122.4194, swlat=37.7625, swlon=-122.4376, x_units_pressure='mbar', x_aqi_index='cn')]"
+   ],
+   [
+    35242,
+    "[weight_category(bmi=23), weight_category(bmi=29.5)]"
+   ],
+   [
+    36827,
+    "[earnings(symb='NVDA'), earnings(symb='AMD'), advanced_chart(symbol='BINANCE:ADAUSDT', studies='MACD')]"
+   ],
+   [
+    38908,
+    "[calculate_electric_field(charge=10, distance=5)]"
+   ],
+   [
+    40193,
+    "[get_channels(keyword='pop', country_id=50), get_channels(keyword='classic', page=2)]"
+   ],
+   [
+    40255,
+    "[is_valid_sudoku(board=[[5, 3, 0, 0, 7, 0, 0, 0, 0], [6, 0, 0, 1, 9, 5, 0, 0, 0], [0, 9, 8, 0, 0, 0, 0, 6, 0], [8, 0, 0, 0, 6, 0, 0, 0, 3], [4, 0, 0, 8, 0, 3, 0"
+   ],
+   [
+    40527,
+    "[user_followers_list(fresh=0, sec_uid='6708329742458081796', max_cursor=None, limit=None, username='kyliejenner'), user_by_screen_name(username='elonmusk')]"
+   ],
+   [
+    41221,
+    "[breweries(by_state='CO', by_type='regional'), top_grossing_ipad_apps(country='ca', category='6012')]"
+   ],
+   [
+    41697,
+    "[get_vehicule_info(immatriculation='KL-678-MN'), get_breed_information(breed='Siamese'), search_for_channels(keyword='tech', lang='de')]"
+   ],
+   [
+    41909,
+    "[calculate_electric_field(charge=15, distance=14), calculate_electric_field(charge=16, distance=15)]"
+   ],
+   [
+    42539,
+    "[livetraffic(lat=40.7128, lon=-74.006)]"
+   ],
+   [
+    43071,
+    "[qrcodepro(text='Hello, World!', validate=None, setlabel=None, forecolor='000000', type='svg', labeltext=None, size=200, labelalign='center', backcolor='FFFFFF'"
+   ],
+   [
+    46493,
+    "[simulate_query_database(table='fish', conditions=[{'color': 'blue', 'weight': {'$gte': 1000}}]), predict_evolution_rate(species='sharks', years=10000, model='D"
+   ],
+   [
+    46565,
+    "[trapezoidal_integration(func='x**3', a=0, b=1), calculate_electric_field(charge=3, distance=3)]"
+   ],
+   [
+    46792,
+    "[tangga_lagu(index=0, num=40, lang='de', country='DE', is_id='345'), artist_albums(is_id='34567')]"
+   ],
+   [
+    47012,
+    "[v1_planets(max_mass=1.5, min_mass=0.5)]"
+   ],
+   [
+    47800,
+    "[measure_distance(lon2=36.8219, lat1=1.2903, lon1=1.2903, lat2=36.8219, unit='mi')]"
+   ],
+   [
+    48493,
+    "[count_bits(num=100), count_bits(num=200), numerical_derivative(function='lambda x: math.sin(x)', x='math.pi / 4')]"
+   ],
+   [
+    48566,
+    "[avatar(name='Bob', rounded=False, font_size=0.5, length=2, size=256, background='000000', color='ffffff')]"
+   ],
+   [
+    49097,
+    "[keyword_search_at_coordinates(query='Starbucks', lng=-122.3321, lat=47.6062, zoom=10)]"
+   ],
+   [
+    49257,
+    "[schedule_date()]"
+   ],
+   [
+    51455,
+    "[ideas_list(locale='en', page=1, per_page=20, market='bitcoin', symbol='BTC', sort='latest_popular'), straddle(ticker='TSLA')]"
+   ],
+   [
+    56301,
+    "[gettimezone(longitude=2.3522, latitude=48.8566), v1_reversegeocoding(lat=48.8566, lon=2.3522)]"
+   ],
+   [
+    57288,
+    "[reviews_list_best(id_restaurant=33333, locale='it_IT'), reviews_list_best(id_restaurant=33333, locale='zh_CN'), v1_cocktail(ingredients='tequila,lime juice'), "
+   ],
+   [
+    58076,
+    "[simulate_query_database(table='products', conditions=[{'price': {'$lt': 20}, 'category': 'electronics'}])]"
+   ],
+   [
+    58107,
+    "[v1_cocktail(name='margarita'), v1_cocktail(ingredients='tequila,lime')]"
+   ],
+   [
+    59150,
+    "[find_files(directory='/Users/john/data', extension='.csv'), flatten_list(nested_list=[[1, 2, 3], [4, [5, 6], 7], [8, 9]]), reverse_string(text='Python is great"
+   ]
+  ]
+ },
+ "unmarked|json": {
+  "n": 1000,
+  "accepted": 941,
+  "reasons": {
+   "missing mandatory argument": 31,
+   "other": 28
+  },
+  "rejected": [
+   [
+    485,
+    "[{\"name\": \"top_headlines\", \"arguments\": {\"language\": \"es\", \"category\": \"sports\", \"country\": \"es\"}}, {\"name\": \"title_get_parental_guide\", \"arguments\": {\"tconst\":"
+   ],
+   [
+    1667,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"sales\", \"conditions\": [{\"product_type\": \"electronics\", \"sale_date\": {\"start\": \"2022-01-01\", \"end\": "
+   ],
+   [
+    2191,
+    "[{\"name\": \"played\", \"arguments\": {\"limit\": 10}}, {\"name\": \"random_skin_from_weapon\", \"arguments\": {\"weapon_name\": \"AUG\"}}]"
+   ],
+   [
+    3171,
+    "[{\"name\": \"image_search\", \"arguments\": {\"q\": \"tropical beaches Hawaii\", \"gl\": \"us\", \"lr\": \"lang_en\"}}, {\"name\": \"image_search\", \"arguments\": {\"q\": \"snowy mounta"
+   ],
+   [
+    3575,
+    "[{\"name\": \"by_geographic_coordinates\", \"arguments\": {\"lon\": -118.2437, \"lat\": 34.0522, \"units\": \"metric\"}}, {\"name\": \"get_station_information\", \"arguments\": {\"i"
+   ],
+   [
+    4042,
+    "[{\"name\": \"stateusaprice\", \"arguments\": {\"state\": \"NY\"}}, {\"name\": \"webcams_list_bbox_ne_lat_ne_lng_sw_lat_sw_lng\", \"arguments\": {\"ne_lat\": 40.8, \"sw_lng\": -74."
+   ],
+   [
+    4293,
+    "[{\"name\": \"light_travel_time\", \"arguments\": {\"distance_in_light_years\": 1000}}, {\"name\": \"wire_resistance\", \"arguments\": {\"length_m\": 15, \"area_sq_m\": 0.3, \"mat"
+   ],
+   [
+    8883,
+    "[{\"name\": \"tmall_search_by_keyword\", \"arguments\": {\"page\": 1, \"keyword\": \"gaming keyboards\"}}, {\"name\": \"countries_list\", \"arguments\": {}}]"
+   ],
+   [
+    9723,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"Orders\", \"conditions\": [{\"status\": \"pending\", \"amount\": 1000}]}}]"
+   ],
+   [
+    10843,
+    "[{\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 1, \"distance\": 1}}, {\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 1, \"distance\": 2}"
+   ],
+   [
+    18163,
+    "[{\"name\": \"series\", \"arguments\": {\"series_slug\": \"stranger-things\", \"is_id\": \"series_id\"}}, {\"name\": \"random_meme\", \"arguments\": {\"keywords\": \"time travel\", \"nu"
+   ],
+   [
+    18737,
+    "[{\"name\": \"list_titles\", \"arguments\": {\"types\": \"movie,tv_series\", \"regions\": \"US\", \"sort_by\": \"relevance_desc\", \"release_date_start\": 20150101, \"release_date_e"
+   ],
+   [
+    18749,
+    "[{\"name\": \"shorts_sound_attribution\", \"arguments\": {\"is_id\": \"xyz123\"}}, {\"name\": \"country_details\", \"arguments\": {\"countrycode\": \"JP\"}}, {\"name\": \"trending\", \""
+   ],
+   [
+    20317,
+    "[{\"name\": \"free_games\", \"arguments\": {\"country\": \"US\"}}, {\"name\": \"upcoming\", \"arguments\": {\"page\": 1, \"limit\": 10}}]"
+   ],
+   [
+    21568,
+    "[{\"name\": \"top_headlines\", \"arguments\": {\"language\": \"ja\", \"category\": \"entertainment\", \"country\": \"jp\"}}, {\"name\": \"overview\", \"arguments\": {\"terms\": \"Tokyo-Ol"
+   ],
+   [
+    22288,
+    "[{\"name\": \"transactions_feed\", \"arguments\": {\"size\": \"20\", \"t_blockchain\": \"ethereum\"}}]"
+   ],
+   [
+    23485,
+    "[{\"name\": \"get_case_by_id\", \"arguments\": {\"is_id\": \"case9876\"}}, {\"name\": \"getimage\", \"arguments\": {\"type\": \"jpeg\", \"marker\": 1, \"zoom\": 5, \"address\": \"Taj Maha"
+   ],
+   [
+    24108,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"sales\", \"conditions\": [{\"product\": \"laptop\", \"price\": [\">1000\"]}]}}]"
+   ],
+   [
+    24851,
+    "[{\"name\": \"keyword_search_at_coordinates\", \"arguments\": {\"query\": \"hardware store\", \"lng\": -0.1278, \"lat\": 51.5074, \"zoom\": 13}}, {\"name\": \"keyword_search_at_co"
+   ],
+   [
+    24945,
+    "[{\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 10, \"distance\": 1}}]"
+   ],
+   [
+    25151,
+    "[{\"name\": \"forecast_weather_api\", \"arguments\": {\"q\": \"London\", \"days\": 7, \"dt\": null, \"lang\": null}}, {\"name\": \"forecast_weather_api\", \"arguments\": {\"q\": \"iata:"
+   ],
+   [
+    25680,
+    "[{\"name\": \"flatten_list\", \"arguments\": {\"nested_list\": [[1, 2], [3, [4, 5]]]}}]"
+   ],
+   [
+    26816,
+    "[{\"name\": \"us_ar\", \"arguments\": {}}, {\"name\": \"vehicle_attributes\", \"arguments\": {}}]"
+   ],
+   [
+    27008,
+    "[{\"name\": \"image_search\", \"arguments\": {\"q\": \"Eiffel Tower\", \"gl\": \"fr\"}}]"
+   ],
+   [
+    29523,
+    "[{\"name\": \"min_meeting_rooms\", \"arguments\": {\"intervals\": [[1, 3], [2, 4], [3, 5]]}}, {\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 10, \"distance"
+   ],
+   [
+    29568,
+    "[{\"name\": \"catalog_albums\", \"arguments\": {}}, {\"name\": \"auto_complete\", \"arguments\": {\"term\": \"Sweet Child o' Mine\"}}]"
+   ],
+   [
+    32759,
+    "[{\"name\": \"get_regions\", \"arguments\": {\"keyword\": \"north america\"}}, {\"name\": \"get_district_capital_by_name\", \"arguments\": {\"name\": \"Central\"}}]"
+   ],
+   [
+    33172,
+    "[{\"name\": \"flatten_list\", \"arguments\": {\"nested_list\": [1, [2, [3, 4], 5], 6]}}]"
+   ],
+   [
+    33229,
+    "[{\"name\": \"biggest_cities\", \"arguments\": {\"is_id\": 9101}}, {\"name\": \"africa\", \"arguments\": {\"sort\": \"desc\", \"sort_by\": \"temperatureC\"}}]"
+   ],
+   [
+    33908,
+    "[{\"name\": \"getbycordsadv\", \"arguments\": {\"radius\": 20, \"lat\": -33.8671, \"lng\": 151.2069, \"access_param\": \"public\", \"ev_connector_type_param\": \"Type 2\", \"ev_netw"
+   ],
+   [
+    34250,
+    "[{\"name\": \"keyword_search_with_ranking\", \"arguments\": {\"query\": \"ChIJd8BlQ2BZwokRAFUEcm_qrcA\", \"lng\": -118.2437, \"match_value\": \"ChIJd8BlQ2BZwokRAFUEcm_qrcA\", \""
+   ],
+   [
+    34734,
+    "[{\"name\": \"schools_list\", \"arguments\": {\"lat\": -33.856784, \"lon\": \"151.215297\"}}]"
+   ],
+   [
+    35228,
+    "[{\"name\": \"weight_category\", \"arguments\": {\"bmi\": 25}}, {\"name\": \"places_v2_list_by_map\", \"arguments\": {\"nelat\": 37.7749, \"nelon\": -122.4194, \"swlat\": 37.7625, "
+   ],
+   [
+    35242,
+    "[{\"name\": \"weight_category\", \"arguments\": {\"bmi\": 23}}, {\"name\": \"weight_category\", \"arguments\": {\"bmi\": 29.5}}]"
+   ],
+   [
+    36827,
+    "[{\"name\": \"earnings\", \"arguments\": {\"symb\": \"NVDA\"}}, {\"name\": \"earnings\", \"arguments\": {\"symb\": \"AMD\"}}, {\"name\": \"advanced_chart\", \"arguments\": {\"symbol\": \"BI"
+   ],
+   [
+    38908,
+    "[{\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 10, \"distance\": 5}}]"
+   ],
+   [
+    40193,
+    "[{\"name\": \"get_channels\", \"arguments\": {\"keyword\": \"pop\", \"country_id\": 50}}, {\"name\": \"get_channels\", \"arguments\": {\"keyword\": \"classic\", \"page\": 2}}]"
+   ],
+   [
+    40255,
+    "[{\"name\": \"is_valid_sudoku\", \"arguments\": {\"board\": [[5, 3, 0, 0, 7, 0, 0, 0, 0], [6, 0, 0, 1, 9, 5, 0, 0, 0], [0, 9, 8, 0, 0, 0, 0, 6, 0], [8, 0, 0, 0, 6, 0, 0"
+   ],
+   [
+    40527,
+    "[{\"name\": \"user_followers_list\", \"arguments\": {\"fresh\": 0, \"sec_uid\": \"6708329742458081796\", \"max_cursor\": null, \"limit\": null, \"username\": \"kyliejenner\"}}, {\"n"
+   ],
+   [
+    41221,
+    "[{\"name\": \"breweries\", \"arguments\": {\"by_state\": \"CO\", \"by_type\": \"regional\"}}, {\"name\": \"top_grossing_ipad_apps\", \"arguments\": {\"country\": \"ca\", \"category\": \"6"
+   ],
+   [
+    41697,
+    "[{\"name\": \"get_vehicule_info\", \"arguments\": {\"immatriculation\": \"KL-678-MN\"}}, {\"name\": \"get_breed_information\", \"arguments\": {\"breed\": \"Siamese\"}}, {\"name\": \"s"
+   ],
+   [
+    41909,
+    "[{\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 15, \"distance\": 14}}, {\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 16, \"distance\":"
+   ],
+   [
+    42539,
+    "[{\"name\": \"livetraffic\", \"arguments\": {\"lat\": 40.7128, \"lon\": -74.006}}]"
+   ],
+   [
+    43071,
+    "[{\"name\": \"qrcodepro\", \"arguments\": {\"text\": \"Hello, World!\", \"validate\": null, \"setlabel\": null, \"forecolor\": \"000000\", \"type\": \"svg\", \"labeltext\": null, \"size"
+   ],
+   [
+    46493,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"fish\", \"conditions\": [{\"color\": \"blue\", \"weight\": {\"$gte\": 1000}}]}}, {\"name\": \"predict_evolution_r"
+   ],
+   [
+    46565,
+    "[{\"name\": \"trapezoidal_integration\", \"arguments\": {\"func\": \"x**3\", \"a\": 0, \"b\": 1}}, {\"name\": \"calculate_electric_field\", \"arguments\": {\"charge\": 3, \"distance\":"
+   ],
+   [
+    46792,
+    "[{\"name\": \"tangga_lagu\", \"arguments\": {\"index\": 0, \"num\": 40, \"lang\": \"de\", \"country\": \"DE\", \"is_id\": \"345\"}}, {\"name\": \"artist_albums\", \"arguments\": {\"is_id\": "
+   ],
+   [
+    47012,
+    "[{\"name\": \"v1_planets\", \"arguments\": {\"max_mass\": 1.5, \"min_mass\": 0.5}}]"
+   ],
+   [
+    47800,
+    "[{\"name\": \"measure_distance\", \"arguments\": {\"lon2\": 36.8219, \"lat1\": 1.2903, \"lon1\": 1.2903, \"lat2\": 36.8219, \"unit\": \"mi\"}}]"
+   ],
+   [
+    48493,
+    "[{\"name\": \"count_bits\", \"arguments\": {\"num\": 100}}, {\"name\": \"count_bits\", \"arguments\": {\"num\": 200}}, {\"name\": \"numerical_derivative\", \"arguments\": {\"function\""
+   ],
+   [
+    48566,
+    "[{\"name\": \"avatar\", \"arguments\": {\"name\": \"Bob\", \"rounded\": false, \"font_size\": 0.5, \"length\": 2, \"size\": 256, \"background\": \"000000\", \"color\": \"ffffff\"}}]"
+   ],
+   [
+    49097,
+    "[{\"name\": \"keyword_search_at_coordinates\", \"arguments\": {\"query\": \"Starbucks\", \"lng\": -122.3321, \"lat\": 47.6062, \"zoom\": 10}}]"
+   ],
+   [
+    49257,
+    "[{\"name\": \"schedule_date\", \"arguments\": {}}]"
+   ],
+   [
+    51455,
+    "[{\"name\": \"ideas_list\", \"arguments\": {\"locale\": \"en\", \"page\": 1, \"per_page\": 20, \"market\": \"bitcoin\", \"symbol\": \"BTC\", \"sort\": \"latest_popular\"}}, {\"name\": \"str"
+   ],
+   [
+    56301,
+    "[{\"name\": \"gettimezone\", \"arguments\": {\"longitude\": 2.3522, \"latitude\": 48.8566}}, {\"name\": \"v1_reversegeocoding\", \"arguments\": {\"lat\": 48.8566, \"lon\": 2.3522}}"
+   ],
+   [
+    57288,
+    "[{\"name\": \"reviews_list_best\", \"arguments\": {\"id_restaurant\": 33333, \"locale\": \"it_IT\"}}, {\"name\": \"reviews_list_best\", \"arguments\": {\"id_restaurant\": 33333, \"l"
+   ],
+   [
+    58076,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"products\", \"conditions\": [{\"price\": {\"$lt\": 20}, \"category\": \"electronics\"}]}}]"
+   ],
+   [
+    58107,
+    "[{\"name\": \"v1_cocktail\", \"arguments\": {\"name\": \"margarita\"}}, {\"name\": \"v1_cocktail\", \"arguments\": {\"ingredients\": \"tequila,lime\"}}]"
+   ],
+   [
+    59150,
+    "[{\"name\": \"find_files\", \"arguments\": {\"directory\": \"/Users/john/data\", \"extension\": \".csv\"}}, {\"name\": \"flatten_list\", \"arguments\": {\"nested_list\": [[1, 2, 3], "
+   ]
+  ]
+ },
+ "none|python": {
+  "n": 1000,
+  "accepted": 972,
+  "reasons": {
+   "missing mandatory argument": 0,
+   "other": 28
+  },
+  "rejected": [
+   [
+    1667,
+    "[simulate_query_database(table='sales', conditions=[{'product_type': 'electronics', 'sale_date': {'start': '2022-01-01', 'end': '2022-12-31'}}])]"
+   ],
+   [
+    3575,
+    "[by_geographic_coordinates(lon=-118.2437, lat=34.0522, units='metric'), get_station_information(is_id='8729500')]"
+   ],
+   [
+    4042,
+    "[stateusaprice(state='NY'), webcams_list_bbox_ne_lat_ne_lng_sw_lat_sw_lng(ne_lat=40.8, sw_lng=-74.0, sw_lat=40.6, ne_lng=-73.7)]"
+   ],
+   [
+    9723,
+    "[simulate_query_database(table='Orders', conditions=[{'status': 'pending', 'amount': 1000}])]"
+   ],
+   [
+    24108,
+    "[simulate_query_database(table='sales', conditions=[{'product': 'laptop', 'price': ['>1000']}])]"
+   ],
+   [
+    24851,
+    "[keyword_search_at_coordinates(query='hardware store', lng=-0.1278, lat=51.5074, zoom=13), keyword_search_at_coordinates(query='bakery', lng=2.3522, lat=48.8566"
+   ],
+   [
+    25151,
+    "[forecast_weather_api(q='London', days=7, dt=None, lang=None), forecast_weather_api(q='iata:SYD', days=7, dt=None, lang=None)]"
+   ],
+   [
+    25680,
+    "[flatten_list(nested_list=[[1, 2], [3, [4, 5]]])]"
+   ],
+   [
+    33172,
+    "[flatten_list(nested_list=[1, [2, [3, 4], 5], 6])]"
+   ],
+   [
+    33908,
+    "[getbycordsadv(radius=20, lat=-33.8671, lng=151.2069, access_param='public', ev_connector_type_param='Type 2', ev_network_param='Fastned'), i18nlanguages(part='"
+   ],
+   [
+    34250,
+    "[keyword_search_with_ranking(query='ChIJd8BlQ2BZwokRAFUEcm_qrcA', lng=-118.2437, match_value='ChIJd8BlQ2BZwokRAFUEcm_qrcA', lat=34.0522, match_type='place_id'),"
+   ],
+   [
+    34734,
+    "[schools_list(lat=-33.856784, lon='151.215297')]"
+   ],
+   [
+    35228,
+    "[weight_category(bmi=25), places_v2_list_by_map(nelat=37.7749, nelon=-122.4194, swlat=37.7625, swlon=-122.4376, x_units_pressure='mbar', x_aqi_index='cn')]"
+   ],
+   [
+    35242,
+    "[weight_category(bmi=23), weight_category(bmi=29.5)]"
+   ],
+   [
+    40255,
+    "[is_valid_sudoku(board=[[5, 3, 0, 0, 7, 0, 0, 0, 0], [6, 0, 0, 1, 9, 5, 0, 0, 0], [0, 9, 8, 0, 0, 0, 0, 6, 0], [8, 0, 0, 0, 6, 0, 0, 0, 3], [4, 0, 0, 8, 0, 3, 0"
+   ],
+   [
+    40527,
+    "[user_followers_list(fresh=0, sec_uid='6708329742458081796', max_cursor=None, limit=None, username='kyliejenner'), user_by_screen_name(username='elonmusk')]"
+   ],
+   [
+    42539,
+    "[livetraffic(lat=40.7128, lon=-74.006)]"
+   ],
+   [
+    43071,
+    "[qrcodepro(text='Hello, World!', validate=None, setlabel=None, forecolor='000000', type='svg', labeltext=None, size=200, labelalign='center', backcolor='FFFFFF'"
+   ],
+   [
+    46493,
+    "[simulate_query_database(table='fish', conditions=[{'color': 'blue', 'weight': {'$gte': 1000}}]), predict_evolution_rate(species='sharks', years=10000, model='D"
+   ],
+   [
+    46792,
+    "[tangga_lagu(index=0, num=40, lang='de', country='DE', is_id='345'), artist_albums(is_id='34567')]"
+   ],
+   [
+    47012,
+    "[v1_planets(max_mass=1.5, min_mass=0.5)]"
+   ],
+   [
+    47800,
+    "[measure_distance(lon2=36.8219, lat1=1.2903, lon1=1.2903, lat2=36.8219, unit='mi')]"
+   ],
+   [
+    48493,
+    "[count_bits(num=100), count_bits(num=200), numerical_derivative(function='lambda x: math.sin(x)', x='math.pi / 4')]"
+   ],
+   [
+    48566,
+    "[avatar(name='Bob', rounded=False, font_size=0.5, length=2, size=256, background='000000', color='ffffff')]"
+   ],
+   [
+    49097,
+    "[keyword_search_at_coordinates(query='Starbucks', lng=-122.3321, lat=47.6062, zoom=10)]"
+   ],
+   [
+    56301,
+    "[gettimezone(longitude=2.3522, latitude=48.8566), v1_reversegeocoding(lat=48.8566, lon=2.3522)]"
+   ],
+   [
+    58076,
+    "[simulate_query_database(table='products', conditions=[{'price': {'$lt': 20}, 'category': 'electronics'}])]"
+   ],
+   [
+    59150,
+    "[find_files(directory='/Users/john/data', extension='.csv'), flatten_list(nested_list=[[1, 2, 3], [4, [5, 6], 7], [8, 9]]), reverse_string(text='Python is great"
+   ]
+  ]
+ },
+ "none|json": {
+  "n": 1000,
+  "accepted": 972,
+  "reasons": {
+   "missing mandatory argument": 0,
+   "other": 28
+  },
+  "rejected": [
+   [
+    1667,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"sales\", \"conditions\": [{\"product_type\": \"electronics\", \"sale_date\": {\"start\": \"2022-01-01\", \"end\": "
+   ],
+   [
+    3575,
+    "[{\"name\": \"by_geographic_coordinates\", \"arguments\": {\"lon\": -118.2437, \"lat\": 34.0522, \"units\": \"metric\"}}, {\"name\": \"get_station_information\", \"arguments\": {\"i"
+   ],
+   [
+    4042,
+    "[{\"name\": \"stateusaprice\", \"arguments\": {\"state\": \"NY\"}}, {\"name\": \"webcams_list_bbox_ne_lat_ne_lng_sw_lat_sw_lng\", \"arguments\": {\"ne_lat\": 40.8, \"sw_lng\": -74."
+   ],
+   [
+    9723,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"Orders\", \"conditions\": [{\"status\": \"pending\", \"amount\": 1000}]}}]"
+   ],
+   [
+    24108,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"sales\", \"conditions\": [{\"product\": \"laptop\", \"price\": [\">1000\"]}]}}]"
+   ],
+   [
+    24851,
+    "[{\"name\": \"keyword_search_at_coordinates\", \"arguments\": {\"query\": \"hardware store\", \"lng\": -0.1278, \"lat\": 51.5074, \"zoom\": 13}}, {\"name\": \"keyword_search_at_co"
+   ],
+   [
+    25151,
+    "[{\"name\": \"forecast_weather_api\", \"arguments\": {\"q\": \"London\", \"days\": 7, \"dt\": null, \"lang\": null}}, {\"name\": \"forecast_weather_api\", \"arguments\": {\"q\": \"iata:"
+   ],
+   [
+    25680,
+    "[{\"name\": \"flatten_list\", \"arguments\": {\"nested_list\": [[1, 2], [3, [4, 5]]]}}]"
+   ],
+   [
+    33172,
+    "[{\"name\": \"flatten_list\", \"arguments\": {\"nested_list\": [1, [2, [3, 4], 5], 6]}}]"
+   ],
+   [
+    33908,
+    "[{\"name\": \"getbycordsadv\", \"arguments\": {\"radius\": 20, \"lat\": -33.8671, \"lng\": 151.2069, \"access_param\": \"public\", \"ev_connector_type_param\": \"Type 2\", \"ev_netw"
+   ],
+   [
+    34250,
+    "[{\"name\": \"keyword_search_with_ranking\", \"arguments\": {\"query\": \"ChIJd8BlQ2BZwokRAFUEcm_qrcA\", \"lng\": -118.2437, \"match_value\": \"ChIJd8BlQ2BZwokRAFUEcm_qrcA\", \""
+   ],
+   [
+    34734,
+    "[{\"name\": \"schools_list\", \"arguments\": {\"lat\": -33.856784, \"lon\": \"151.215297\"}}]"
+   ],
+   [
+    35228,
+    "[{\"name\": \"weight_category\", \"arguments\": {\"bmi\": 25}}, {\"name\": \"places_v2_list_by_map\", \"arguments\": {\"nelat\": 37.7749, \"nelon\": -122.4194, \"swlat\": 37.7625, "
+   ],
+   [
+    35242,
+    "[{\"name\": \"weight_category\", \"arguments\": {\"bmi\": 23}}, {\"name\": \"weight_category\", \"arguments\": {\"bmi\": 29.5}}]"
+   ],
+   [
+    40255,
+    "[{\"name\": \"is_valid_sudoku\", \"arguments\": {\"board\": [[5, 3, 0, 0, 7, 0, 0, 0, 0], [6, 0, 0, 1, 9, 5, 0, 0, 0], [0, 9, 8, 0, 0, 0, 0, 6, 0], [8, 0, 0, 0, 6, 0, 0"
+   ],
+   [
+    40527,
+    "[{\"name\": \"user_followers_list\", \"arguments\": {\"fresh\": 0, \"sec_uid\": \"6708329742458081796\", \"max_cursor\": null, \"limit\": null, \"username\": \"kyliejenner\"}}, {\"n"
+   ],
+   [
+    42539,
+    "[{\"name\": \"livetraffic\", \"arguments\": {\"lat\": 40.7128, \"lon\": -74.006}}]"
+   ],
+   [
+    43071,
+    "[{\"name\": \"qrcodepro\", \"arguments\": {\"text\": \"Hello, World!\", \"validate\": null, \"setlabel\": null, \"forecolor\": \"000000\", \"type\": \"svg\", \"labeltext\": null, \"size"
+   ],
+   [
+    46493,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"fish\", \"conditions\": [{\"color\": \"blue\", \"weight\": {\"$gte\": 1000}}]}}, {\"name\": \"predict_evolution_r"
+   ],
+   [
+    46792,
+    "[{\"name\": \"tangga_lagu\", \"arguments\": {\"index\": 0, \"num\": 40, \"lang\": \"de\", \"country\": \"DE\", \"is_id\": \"345\"}}, {\"name\": \"artist_albums\", \"arguments\": {\"is_id\": "
+   ],
+   [
+    47012,
+    "[{\"name\": \"v1_planets\", \"arguments\": {\"max_mass\": 1.5, \"min_mass\": 0.5}}]"
+   ],
+   [
+    47800,
+    "[{\"name\": \"measure_distance\", \"arguments\": {\"lon2\": 36.8219, \"lat1\": 1.2903, \"lon1\": 1.2903, \"lat2\": 36.8219, \"unit\": \"mi\"}}]"
+   ],
+   [
+    48493,
+    "[{\"name\": \"count_bits\", \"arguments\": {\"num\": 100}}, {\"name\": \"count_bits\", \"arguments\": {\"num\": 200}}, {\"name\": \"numerical_derivative\", \"arguments\": {\"function\""
+   ],
+   [
+    48566,
+    "[{\"name\": \"avatar\", \"arguments\": {\"name\": \"Bob\", \"rounded\": false, \"font_size\": 0.5, \"length\": 2, \"size\": 256, \"background\": \"000000\", \"color\": \"ffffff\"}}]"
+   ],
+   [
+    49097,
+    "[{\"name\": \"keyword_search_at_coordinates\", \"arguments\": {\"query\": \"Starbucks\", \"lng\": -122.3321, \"lat\": 47.6062, \"zoom\": 10}}]"
+   ],
+   [
+    56301,
+    "[{\"name\": \"gettimezone\", \"arguments\": {\"longitude\": 2.3522, \"latitude\": 48.8566}}, {\"name\": \"v1_reversegeocoding\", \"arguments\": {\"lat\": 48.8566, \"lon\": 2.3522}}"
+   ],
+   [
+    58076,
+    "[{\"name\": \"simulate_query_database\", \"arguments\": {\"table\": \"products\", \"conditions\": [{\"price\": {\"$lt\": 20}, \"category\": \"electronics\"}]}}]"
+   ],
+   [
+    59150,
+    "[{\"name\": \"find_files\", \"arguments\": {\"directory\": \"/Users/john/data\", \"extension\": \".csv\"}}, {\"name\": \"flatten_list\", \"arguments\": {\"nested_list\": [[1, 2, 3], "
+   ]
+  ]
+ }
+}
