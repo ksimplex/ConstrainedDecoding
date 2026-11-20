@@ -2,7 +2,9 @@
 sampler's output to the constrained target, on the hidden-chain oracle with L = 8 positions,
 one position unmasked per step, product proposal, no resampling.
 
-    python experiments/notes/table3.py            # prints the table, writes results/notes/table3.json
+    python experiments/notes/table3.py
+
+prints the table and writes results/notes/table3.json.
 
 Columns: "Unweighted" is one particle (the sampler of Dang and Ermon); 4 and 16 are the number
 of particles K of the weighted sampler. The one-particle column is exact. For K > 1 the sum
