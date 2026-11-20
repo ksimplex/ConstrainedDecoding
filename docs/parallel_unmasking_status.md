@@ -3372,6 +3372,31 @@ Best plan against best one-token order, ratio of compute (below 1 = the plan is 
 - The repository rules (`lex`, `sum`, sequential or budgeted; product proposal) cost more than the best plan in every cell at every tolerance, by 1.4 to 1.9 times at eps = 0.003 and 1.4 to 3.1 times at eps = 0.1: that gap is what a scalable planner has to close. Against the best one-token order they cost more in 4 of 6 cells at eps = 0.003 and in 0 of 6 at eps = 0.1.
 - Not covered: resampling; rules that randomise; the matched chain as the reference for co-revealed sets (the chain reference here is the ratio formula).
 
+## 36av. First BFCL run in Dang & Ermon's setting, and cluster housekeeping (cluster job `8fd2aee0`, one L40S, 2026-11-17 to 18; scored 2026-11-20) [measured; 12 examples of the simple split, Python format, temperature 1]
+
+LLaDA-8B-Instruct, 256 positions, blocks of 32, two tokens per step (128 steps), confidence order (top-token probability; under the constrained marginals for the constrained arms), BFCL default prompt,
+our call-format constraint, official checker (`bfcl_eval_outputs.py`). 16 outputs per example for the unconstrained decoder and the one-particle arms, 8 for the four-particle arms.
+
+| arm | accuracy (higher is better) | constraint satisfied | sd of log Z_hat, median | seconds per example |
+|---|---|---|---|---|
+| unconstrained decoder | 0.29 ± 0.07 | 0.42 | - | 167 |
+| local sampler (Dang & Ermon), 1 particle | 0.68 ± 0.12 | by construction | 0.159 | 184 |
+| matched chain proposal (probed table), 1 particle | 0.69 ± 0.13 | by construction | 0.108 | 213 |
+| product proposal, 4 particles | 0.69 ± 0.12 | by construction | 0.064 | 368 |
+| matched chain proposal (probed table), 4 particles | 0.69 ± 0.12 | by construction | 0.109 | 426 |
+
+- Constrained decoding raises accuracy from 0.29 to 0.68 on these examples; the four constrained arms are indistinguishable (0.68 to 0.69).
+- The weights are nearly constant in this setting (spread of log Z_hat 0.06 to 0.16 nats, mean log Z_hat about -2, resampling in under 0.1 of runs), so the local sampler is already close to the exact
+  constrained law of the shipped decoder and neither particles nor the chain proposal has anything to correct here.
+- Against Dang & Ermon's Table 1 (LLaDA, sampling, BFCL non-live, Python: unconstrained 62.3 with 76.1 satisfying the constraint, constrained 81.4, over all 1,000 non-live examples): our unconstrained decoder is
+  lower (0.29, 0.42 satisfying our stricter pattern) and our constrained arm is within noise of theirs. Twelve examples of one split cannot settle whether the unconstrained gap is the sample, our pattern's fixed
+  spacing, or a difference in the decoder; to be looked at before the table is extended.
+- Cost: about 1.4 s per model call of 16 rows; the probe 11 batches (13 s); the chain twist adds 16%.
+
+**Cluster.** The job finished but its outputs were not copied back (tracker state `harvest_failed`); fetched by hand. All four storage probes now pass (node3005, node3403, node3502, node4204): the pool-mount fault
+of 2026-11-16 is gone and node exclusions can be dropped. The grammar study (`33d29d76`) hit its 24 h limit: Dyck-1 through the chart finished on both chains (60,426 s and 79,161 s of arms, against 366 s and 494 s
+through the automaton); the stage with atoms did not run. Its results file is on the cluster, not yet collected.
+
 ## 36. Next steps (2026-11-16; replaces section 34)
 
 Done since section 34: the selection-fix run (section 31) and the refactor (section 35). One departure from item 2

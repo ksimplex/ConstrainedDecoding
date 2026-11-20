@@ -1,0 +1,422 @@
+{
+ "args": {
+  "routes": "bfcl_dev_routes",
+  "tokenizer": "/home/ksanj/orcd/pool/cfg-twister/hf/hub/models--GSAI-ML--LLaDA-8B-Instruct/snapshots/08b83a6feb34df1a6011b80c3c00c7563e963b07/tokenizer.json",
+  "stage": "baseline",
+  "synthetic": false,
+  "datapoints": [
+   0,
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   14,
+   16,
+   18,
+   20,
+   22
+  ],
+  "max_n": 160,
+  "limit": null,
+  "pilot_n": 16,
+  "pilot": "llada_pilot.npz",
+  "nrun": 16,
+  "K": 4,
+  "rpb": 4,
+  "probe_stride": 4,
+  "probe_top": 4,
+  "tables": [
+   "counted",
+   "probed"
+  ],
+  "orders": [
+   "random",
+   "sum"
+  ],
+  "block": 32,
+  "per_step": 2,
+  "traces": 8,
+  "match": 5,
+  "mix": 0.1,
+  "lam": 1.0,
+  "max_rows": 16,
+  "seed": 0,
+  "out": "bfcl_base.json"
+ },
+ "baseline": {
+  "0": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.0625,
+   "outputs": [
+    "[\n    calculate_area_under_area_under_curve(\n        {\n            \"function\": \"x^2\", \n            \"interval\": [1, 3], \n            \"method\": \"trapezoidal\"\n        })\n]",
+    "[\n    \"calculate_area_under_curve\", \n    None, \n    {\"function\": \"x ** 2\", \"interval\": [1, 3]}\n]",
+    "[calculate_area_under_curve(function=\"x**2\", interval=[1,5])]",
+    "[{\"calculate_area_under_curve' : int(x):\n^2*x*x*3*x,7*x*x*x/4*x7*x,\"interval\": [1, 3], \"method\": \"trapezoidal\"\n\"method\":\n*x*x-\nx*x3+<|endoftext|>3*xx3+\n^x-\n+\n3x*x\u76c6\u8154\n\"interval\":\":\n*x-\n-x*x(7)2\n<|endoftext|>3xxxx/\n*x*x+7xx\n*x+6x\n3x\n*x+\n*x-\n*x+\nx*xx-\n*x7x-x7x-8x7*x-\n9x8x7+\n\n{\"func36\":\n\n\"4x*7-8x\n*x4x-8x2*\nx4x+3,\"prox3\"::\n\n\"*x6x*x7*x+\"\n\"*x3x-x9x\n*8x\nx-\n*x3xx4*x8x-4x9x8x+\n\"\n8x-\n\"3x7\"\n*83*x6x-x*x,x*x-\n*x,x Moral\"]",
+    "[\"calculate_area_under_curve(functionfunction=None, x=1.0**0222,2='', interval=[1, 3], method='trapezoidal')\"]",
+    "calculate_approximation(function = lambda(x): return x ** 2, interval = [1, 3])",
+    "[calculate_area_under_curve(function(calculate_current_under_curve(), Calculate the area under function parameter.', 'function': 'x**2', 'interval': [1, 3])]",
+    "[\n    calculate_area_under_curve(function_text=lambda x: x**2, interval=(1, 3), method='trapezoidal')\n]",
+    "[\n\t\"calculate_area_under_curve(function=f(x): x**2, interval=1 to end=3, method='trapezoidal')\"\n]",
+    "[\n    \"calculate_area_under_curve({\"function\": \"x^2\", \"interval\": [1, 3], \"method\": \"trapezoidal\"})\"\n]",
+    "calculate birthdate, calculate_area_under_curve(interval,1,3), calculate_birthdate)",
+    "[calculate_area_under_curve(function=\"x**2\", interval=[1, 3])), (]",
+    "[\n    {\"calculate_area_under_curve\", (function {\"f(x) = x^2\"}, interval [1,[]{},3 float]{}, method {\"trapezoidal\"}))}\n]",
+    "[calculate_area_under_curve(function=\"x^2\", interval=[1, 3], method=\"trapezoidal\")]",
+    "[{\"calculate_area_under_curve\": {\"function\": \"x^2\", \"interval\": [1, 3], \"method\": \"trapezoidal\"}}]",
+    "[calculate_area_under_curve(function=function Powell\u52ff\u200b_suwX_, interval1:[1,3], method='trapezoidal')]"
+   ],
+   "seconds": 172.0,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "2": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.5,
+   "outputs": [
+    "[cellbio.get_proteins(cell_compartment=\"Plasma\", include_description=False)]<|eot_id|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>asma",
+    "[cellbio.get_proteins(cell_compartment=\"elementlist\", include_description=True)]",
+    "[cellbio.cellbio.get_proteins(cell_compartment=\"Plasma membrane\", include_description=True)], To retrieve the proteins without the brief description of need, [cellbio.cellbio.get_proteins(cell_compartment=\"Plasma membrane\", include_description=False)], can describe retrieve each protein instead of benefits, a",
+    "[mycell.getproteins(cellcompartment=\"Plasma membrane\")]",
+    "[cellbio.get_proteins( cell_compartment=\"Plasma Mem\")]",
+    "[cellbio.get_proteins(cell_compartment=\"PlasmaMembrane\")]",
+    "[cellbio.get_proteins(cell_compartment=\"Plasma membranebrane\")]",
+    "[cellbio.get_proteins(cell_compartment=\"Cell PlFixed Membranes\", include_description=False)]",
+    "[cellbio.get_proteins(cell_compartment=\"Plasma Mem\"), ]",
+    "[cellbio.get_proteins(cell_compartment='plasma membrane')]",
+    "[cellbio.get_proteins(cell_compartment='plasma_membrane', include= False_description), [name['name'] of name in protein<|endoftext|>\n\n]\n",
+    "[cellbio.get_proteins(cell_compartment=\"plasma membrane\")]<|eot_id|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>false",
+    "[cellbio.get_proteins(cell_compartment='Plasma Membrane', include_description=False)]",
+    "[cellbio.get_proteins(cell_compartment=\"Plasma Membrane\")]",
+    "[cellbio.get_proteins(cell_compartment=\"Plasma Membrane\")]",
+    "[cellbio.get_proteins(cell_compartment='Plasma Membrane', include_description=False)]<|eot_id|>\n<|endoftext|>Function regarding required parameter: Plasma Membrane"
+   ],
+   "seconds": 156.9,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "4": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.6875,
+   "outputs": [
+    "[calculate_clock_angle(hours=18, minutes=30, round_to=2), calculate_clock_angle(hours=0, minutes=30, round_to=2)]",
+    "[calculate_clock_angle({ours=18, minutes=30})]",
+    "[calculate_clock_angle(hours=18, minutes=30), round_to=2]",
+    "[calculate_clock_angle(hours=18, minutes=30)]<|eot_id|>_to<|endoftext|><|endoftext|>2",
+    "[calculate_clock_angle(hours=18, minutes=30)]",
+    "[calculate_clock_angle(hours=18, minutes=30, round_to=2)]",
+    "[calculate_clock_angle(hours=18, minutes=30, round_to=2)]",
+    "[calculate_clock_angle(hours=18, minutes=30)]",
+    "[calculate_clock_angle(hours=18, minutes=30)]",
+    "[\n    zat what.calculate_clock_angle_angle_of clock(hour=18, minute=30)\n]",
+    "[calculate_clock_angle(hours=18, minutes=30), round_to=2]",
+    "[calculate_clock_angle(hours=18, minutes=30)]",
+    "[calculate_clock_angle(hours=18, minutes=30)]",
+    "[calculate_clock_angle(hours=18, minutes=30)]",
+    "[calculate_clock_angle(hours=6, minutes=30)]",
+    "[calculate_clock_angle(hours=18, minutes=30)]"
+   ],
+   "seconds": 167.0,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "6": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.25,
+   "outputs": [
+    "[ Statistical.t_test ([12, 24, 36], , {={12, 24, 36})\n.t_test([15, 30, 45]\n ]",
+    "[t_test(dataset_A = [12, 24, 36], dataset_B = [15, 30, 45], alpha = 0.05)]",
+    "[t_test(dataset_A=[12, 24, 36], dataset_B=[15, 30, 45], alpha=0.05)]",
+    "[_Test')->(dataset 1, dataset 2)]",
+    "t_test({_A: [12, 24, 36], B: [15, 30, 45],}",
+    "[t_test(dataset_A=[12, 24, 36], dataset_B=[15, 30, 45], alpha=0.05)]",
+    "[t.t_test(dataset_A=[12, 24, 36], dataset_B=[15, 30, 45], alpha=0.05)]",
+    "[{_test}: ```python <t_test_1290> \"\u6280\u5de7\u65c5\u6e38\u666f\u70b9 \u4ecb\u7ecdBest[blank,\u56e0\u6b64\"\n```",
+    "#_test = 'test_test', motivations\n    {\n        'thought': 'This_test is_function tested. You need a custom function that is-list, which prepend the test used with format-params function with Python test_objmanypos to create tests for the listformat, and, %trafilerible.preprocess_alog list function must sort the list function by first records list_function percentage. When generated the block the intent to}'\n    },\n   \n\n[\n    {\n        \"name\": \"t_test\",\n        \"parameters\": \n precedent_UUID\ncurrentexec\u9752\u86d9\u558a\u544a\u8bc9\u4ed6\u6bd4\u5982etUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUID\u72b9\u8c6bUIDUID0UID(IDUIDUID1UID UID62\u4e0a\u79c1Order\ndataset_A<|endoftext|>UIDsituationprivate_D \u4eca\u5929\u52ff\u5ff5<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>\nuidUID<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>\n\nUIDUIDUIDUIDUID\nUIDUIDUID\nUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUIDUID",
+    "[_testcalculate([12, 24, 36], [15, 30, 45], alpha=0.5) ]",
+    "[t(func_name=value)]",
+    "t\n\u5de5\u7a0bt\n<|endoftext|><|endoftext|><|endoftext|>\n",
+    "[t\n    [t_test(dataset_A=[12,24,36], dataset_B=[15,30,45], alpha=0.05)]\n]",
+    "[t\nparams\ntest={ \"dataset_A\": [12, 24, 36],\n\t\"dataset_B\": [15, 30, 45]\n},\nalpha: 0.05]",
+    "[t_test(dataset_A=[12, 24, 36], dataset_B=[15, 30, 45], alpha=0.05)]",
+    "[t_test(dataset_A=[12, 24, 36], dataset_B=[15, 30, 45], alpha=0.05)]"
+   ],
+   "seconds": 176.6,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "8": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.0625,
+   "outputs": [
+    "[Supercourt.search(docket_number='123456\", location='Texas', full_text=False)]",
+    "`get_case case_id = 345 surrounded by 'case ', name = ' '`",
+    "[court_case.search(docket_number=\"123456\", location=\"Texas\", full_text=False)]",
+    "[ourt_case.search(docket_number='123456', location='Texas', full_text=False)]",
+    "[ \n.search_case(docket_number=\"123456\", location=\"Texas\", full_text=False), \n\n(d(result)\n = return_type or \n   print(result)\n( print(result)\n, print(result) )\n check: print(result.get)) disgust details<|endoftext|> check   }  check  details { } ,\n: ,  else \n  : \ncheck { \ncheck\n\n ,",
+    "[ccourt_case.search(docket_number=\"123456\", location=\"Texas\", full_text=False)]",
+    "[ccourt_case.search( docket_number=\"123456\", location=\"Texas\", full_text=False)]",
+    "[ourt_case.search(docket_number=\"123456\", location=\"Texas\", full_text=false)]",
+    "[court_case_case.search(docket_number=\"123456\", location=\"Texas\", \n                    full_text=False)]",
+    "[\n   .search(docket_number = \"123456\", location = \"Texas\", full_text = False) \n]",
+    "[ court_case {docket:id=123456, location:\"Texas\", full_text=false]",
+    "[ourt_case.search(docket_number=\"123456\", location=\"Texas\", full_text=False)]",
+    "[ccourt_case.search(docket_number=\"123456\", location=\"Texas\", full_text=False)]",
+    "[ccourt_case.search(docket_number=\"123456\", location=\"Texas\", full_text=False)]",
+    "[ccourt_case.search(docket_number=\"123456\", location=\"Texas\", full_text=False)]",
+    "[ourt_c.search(docket_number=\"123456\", location=\"New_Y_ork, full_et=False,"
+   ],
+   "seconds": 171.2,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "10": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.4375,
+   "outputs": [
+    "[lawsuit.check_case(case_id=1234, closed_status=True)]),",
+    "[lawsuit.check_case(case_id=1234, closed_status=False)]",
+    "[lawsuit.check_case(case_id=1234, closed_status=False)]<|eot_id|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>1",
+    "[lawsuit.check_case(case_id=1234, closed_status=True)]",
+    "[lawsuit.check_case({\n        \"case_id\": 1234,\n        \"closed_status\": False\n})]",
+    "[lawsuit.check_case{ case_id=1234 to closed}]<|eot_id|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>2",
+    "[lawsuit.check_case(case_id=1234, closed_status=False)]",
+    "[lawsuit.check_case(case_id=1234, closed_status=true)]",
+    "[lawsuit.check_case(case_id=1234, closed_status=False), lawsuit.check_case(c)]",
+    "[lawsuit.check_case(closed_status=True, case_id=1234), dataset.check_case_data(case_info=lawsuit.check_case<|endoftext|>closed_status=True, case_id=1234))]",
+    "[lawsuit.check_case(case_id=1234, closed_status=False)]<|eot_id|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>\nStep1: I need details of the case X with case ID of 1234 and verify if it's already closed.\nStep2: Verify the Case Details and Check Case Status",
+    "[lawsuit.check_case(case_id=1234, closed_status=True)]",
+    "[lawsuit.check_case(case_id=1234, closed_status=False)]",
+    "[lawsuit.check_case(case_id=1234, closed_status=True)]",
+    "[lawsuit.check_case(case_id=1234, closed_status=None)]",
+    "[lawsuit.check_case(case_id=1234, closed_status=True)]"
+   ],
+   "seconds": 158.3,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "12": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.8125,
+   "outputs": [
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3), environmental_data.air_quality_index(location=\"San Jose\", days=4), environmental_data.air_quality_index(location=\"San Jose\", days=5)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location={location\": \"San Jose\"}), environmental_data.air_quality_index={\"location\":{\"id\":\"San Jose\",  \"\":Point(\"POINT(37.772045,,122.084488),  \"\u767d\u5316\u5904\u7406\": \"COOR\", \"days\": 2)}, environmental_data.air_quality_index({\"location\":{\"id\":\"San Jose\"),  \"ou\":Point(\"POINT(37.772045, 122.084488)\",  \"white Vor\": \"COOR\", \"days\": 3)}]",
+    "\\[environmental_data.air_quality_index({location: \"San Jose\", days: 3})\\]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[\n    functional.environmental_data_apis.get_air_quality_index(action=get_air,\n location=\"San Jose\",\n days=3name)\n )\n]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3), environmental_data.air_quality_index(location=\"San Jose\", days=2), environmental_data.air_quality_index(location=\"San Jose\", days=5)]",
+    "[environmental_data.air_quality_index(location=\"San Jose\", days=3)]"
+   ],
+   "seconds": 160.9,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "14": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.625,
+   "outputs": [
+    "[get_song_lyrics(language=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\", lang='English')]",
+    "[key=get_song_lyrics, args={\"song_title\": \"Bohemian Rhapsody\", \"artist_name\": \"Queen\"}]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\", value1=\"lyrics]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "[get_song_lyrics({\"song_title\": \"boularhapsody\", \"artist_name\": \"Queen\"}]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\", lang=\"English\")]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]",
+    "get_lyrics(lyric_type=\"Bohemian Rhapsody\", \"Queen\")",
+    "get(set_rics_lyrics({\n    \"song_title\": \"Bohemian Rhapsody\",  \"artist_name\": \"Queen\",\n   <|endoftext|>lang\": \"English\"}))",
+    "[get_song_lyrics(song_title=\"Bohemian Rhapsody\", artist_name=\"Queen\")]"
+   ],
+   "seconds": 172.7,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "16": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.5,
+   "outputs": [
+    "[sports.match_results({\"teamteam1=\"Chicago Bulls\",\"team\"2=\"Los Angeles Lakers\"})]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\", season=\"current season\")]",
+    "[\"ports_info\"], [sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")]",
+    "\"sports_info\": {\n    \"result\": {\n        \"name\": \"sports.match_results\",\n        \"parameters\": {\n            \"team1\": \"Chicago Bulls\",\n            \"team2\": \"Los Angeles Lakers\",\n            \"season\": \"current\"\n        }\n    }\n}",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")",
+    "[sports.match_results(season1=\"current\", team11=\"Chicago Bulls\", team21=\"Los Angeles Lakers\")]",
+    "[sports.getsportsdetails({\n    \"team: Chicago Bulls\",\n    sports_type\": \"asketball_basketball\")\n}, sports.getsportsdetails({\n    \"team: Los Angeles Angeles Lakers\",\n    \"sports_type\": \"basketball_basketball\"\n}),<|endoftext|>[sports<|endoftext|>match_basketball({\n    \"team\": Chicago Bulls\n and Los Los Angeles Lakers\n}, sports.getsportsdetail({\n    \"team\": \"Los Angeles Angeles Lakers\"\n}), \"last\"}\"]",
+    "[sports.match_results(team1=Chicago Bulls, team2=Los Angeles Lakers)]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\", season=\"2 20-\u2588\u2588\")]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\", season=\"last season\"), search_match.latest_match(\"Los Angeles Lakers\")]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")]",
+    "[sports.match_results(team1=\"Chicago Bulls\", team2=\"Los Angeles Lakers\")]"
+   ],
+   "seconds": 160.9,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "18": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.375,
+   "outputs": [
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')]",
+    "get_volume_collectables(game_name='Animal Crossing: New Horizons\", season='Spring')",
+    "[get_collectables_in_season(game_name=\"Animal Crossing: New Horizons\", season=\"Spring\",)})]",
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')), get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='bug')), get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='fish')), get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='a-creatures')\uff0c\u611f\u8c22 get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')), get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='sun') to thank_collectables_in(get_collectables_in_type='all')), get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='time') to thank_collectables_in(get_collectables_in_directly=get_collectables_in_seables_in_\u97f6, get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')\u611f\u8c22 'all')]",
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring')]",
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')]",
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')]",
+    "[get_all_items_in_colason()!3]",
+    "[get_collectables_in_season(game_name=\"Animal Crossing: New Horizons', season='Spring\")]",
+    "[get_collectables_in_season(game_name=\"Animal Crossing: New Horizons', season=\"Spring')]",
+    "[get_collectables_in_season(game_name=\"Animal Crossing: New Horizons\", season=\"Spring\", item_type='all\")]",
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')]",
+    "get_all_collectables(game_name=\"Animal Crossing: New Horizons\", season=\"Spring\", details=None)",
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')]",
+    "[get_collectables_in_season(game\u641c\u6551=\"Animal Crossing: New Horizons\", summer=\"Spring\")]<|eot_id|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>\u7565",
+    "[get_collectables_in_season(item_name=\"all\", scene_name=\"Scene\",:section=\"^trigger trigger{Animal Crossing: New Horizons\\\"}}), get_collectables_in_season(item_name:trigger=\"Spring\", scene_name=\"Scene\",:trigger=\"show + stunned Tue in HC}\""
+   ],
+   "seconds": 171.1,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "20": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.625,
+   "outputs": [
+    "[whole_foods.find_top_brands(product=\"banana\", number=5, organic=True)]",
+    "[whole_foods.find_top_brands({product: \"banana\", \"number\": 5, \"organic\": true, sort_brands_bys_rating_asc: true})]",
+    "[whole_foods.find_top_brands(product=\"banana\", number=5, organic=True)]",
+    "[whole_foods.find_top_brands(product=\"banana\", number=5, organic=True)]",
+    "[whole_foods.find_top_brands(product=\"banana\", number=5, organic=True)]",
+    "[whole_foods.find_top_brands(product=\"banana\", number=5, organic=True)]",
+    "[whole_foods.find_top_brands(product=\"bananas\", number=5, organic=True)]",
+    "[\n    {\"name\": \"whole_foods.find_top_brands\", \"arguments\": {\"product\": \"bananas\", \"number\": 5, \"organic\": true}}\n]",
+    "[whole_foods.find_top_brands(params, whole_foods(list_top)], whole_foods.getTopOrganicBananasanasByRating(params=)]",
+    "[whole_foods.find_top_brands={\"product\": \"bananas\", \"number\": 5, \"organic\": true}]",
+    "[whole_foods.find_top_brands(product=\"organic bananas\", number=5, organic=True)]",
+    "[whole_foods.find_top_brands(product=\"bananas\", number=5, organic=True)]",
+    "[find_top_brandsFE({\"organic\": \"organic\", \"number\": 5})]",
+    "[whole_foods.find_top_brands(product=\"banana\", number=5, organic=True)]",
+    "[\n    entire_top\u5982\u610felement=whole_foods.find_top_brands Mexicochr\u5982\u610f\u539f\u5219(product=\"bananas\", number=5, organic=\"organic\")\n]",
+    "[whole_foods.find_top_brands(product=\"bananas\", number=5, organic=True)]"
+   ],
+   "seconds": 166.7,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  },
+  "22": {
+   "N": 256,
+   "n": 16,
+   "matches": 0.125,
+   "outputs": [
+    "[walmart.check_price(items=[\"pumpkins\", \"eggs\"], quantities=[3, 2*12], store_location=\"Walmart\"))]",
+    "[walmart.check_price(items=[ [\"pumpkin\", \"elephant\"], \"egg\"], quantities [= [24]]]",
+    "[walmart.check_price(items=[ \"pumpkin\", \"pumpkin\", \"pumpkin\" ], quantities=[  2  ]), walmart.check_price(items=[ \"eggs\" ], quantities=[  24  ]) ]",
+    "[walmart.check_price(items=[\"pumpkin\", \"pumpkin\", \"pumpkin\"], quantities=[2, 2,], store_location=\"WalMart\"), walmart.check_price(items=[\"egg\", \"egg\", \"egg\", \"egg\", \"egg\"], quantities=[1, 1, 1, 1, 1], store_location=\"WalMart\"), ]",
+    "[walmart.check_price(items=[[\"pumpkin\", \"pumpkin\", \"pumpkin\"], [2,]]),  walmart.check_price(items=[[\"egg\", \"egg\", \"egg\", \"egg\", \"egg\", \"egg\"], [2,]]),]])]",
+    "[walmart.check_price(items=[[\"pumpkin\", \"pumpkin\", \"pumpkin\"], [4, 2, 3]]), walmart.check_price(items=[[\"egg\", \"egg\"], [\"egg\", 1]]]], quantities=[]1)]",
+    "[func(name=\"walmart.check_price\", args={\"items\": [\"pumpkins\", \"eggs\"], \"quantities\": [3, 24]})]",
+    "[\n    Walmart.check_price({\"items        [\"pumpkins\", \"egese\"], \"quantity\": { \"pumpkins\": 3, \"egese\": 24 \"egesestore_location    \"} }\", \"store_location\": \"\"\n \"\" }),\n    Walmart.check_price({\"items<|endoftext|>\": [\"pumpkins\", \"egese\"], \"quantities\": {\"pumpkins\": 3, \"egesev\",\n \"\"\"\" \"store_location\": \"\" \u6c83\u5c14\u739b.check_price Walmart.check_price({\"items\": [\"pumpkins\"], \"quantity\": {\"pumpkins\": 3}, \"store_location\": \"\" }),\n    Walmart.check.check_pric({\"items\": [\"pumpkins\", \"egese\"], \"quantities\": {\"pumpkins\": 3, \"egese\": 24}, \"store_location\": \"\" }), Walmart.check.check_pric({\"items\": [\"pumpkins\"], \"quantities\": {\"pumpkins\": 3}, \"store_location\": \"\"}), Walmart.check.checkric({\"items\": [\"pumpkinskins\", \"egese\"], \"quantities\": {\"pumpkins\": 3, \"egese\": 32}, \"store_location\": \"\" })\n]",
+    "[walmart.check_price(items=[ \"pumpkin\", \"pumpkin\", \"pumpkin\" ], quantities=[ 3 ], )), walmart.check_price(items=[ \"egg\", \"egg\", \"egg\", \"egg\" ], quantities=[ 24 ], )]",
+    "[(walmart.check_price, parameters={items=[\"Pumpkins\",kin], quantities=[3, store\"github\u4fdd\u8d28\u671f\u5185=[3, store_location], store_location)], colov\u5546\u5e97='\u5904=', (walmart.check_price, parameters={items\u573a\u6240=[\"Eggs\"], quantities=[12, 2, store_location\u5904=store_location)],]",
+    "[walmart.check_price(items=[[\"pumpkin\", \"pumpkin\", \"pumpkin\"], [2, 2, 2]), quantities=[3, 24 Impact 7pdr1]\"]",
+    "[walmart.check_price(items=[[\"pumpkins\", \"egs\"], quantities=[3, 2], store_location=\"walmart\u63a2\u9669\")]",
+    "[walmart.check_price(items=[\"Pumpkins\", \"Eggs\"], quantities=[3, 24], store_location=\"all\")]",
+    "[walmart.check_price(items=[\"pumpkins\", \"eggs\"], quantities=[3, 24])]",
+    "[walmart.check_price(items=[ \"Pumpkins\", \"Eggs\"], quantities=[3, 2*12])]",
+    "[walmart.check_price(items_all=\"pumpkin\", quantity_all=3), store_location=\"all\"), walmart.check.check_price(item_all=\"\", quantity_all=2)]"
+   ],
+   "seconds": 172.8,
+   "denoiser_batches": 128,
+   "setting": {
+    "block": 32,
+    "per_step": 2,
+    "rule": "model's top-token probability",
+    "temperature": 1
+   }
+  }
+ }
+}

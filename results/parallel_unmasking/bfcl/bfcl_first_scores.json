@@ -1,0 +1,32 @@
+{
+ "block_confident | matched chain, probed table | K=1 | python | non-live": {
+  "examples": 12,
+  "accuracy": 0.6875,
+  "se": 0.1257082209649863,
+  "constraint_satisfied": null
+ },
+ "block_confident | matched chain, probed table | K=4 | python | non-live": {
+  "examples": 12,
+  "accuracy": 0.6875,
+  "se": 0.12452561498695275,
+  "constraint_satisfied": null
+ },
+ "block_confident | product | K=1 | python | non-live": {
+  "examples": 12,
+  "accuracy": 0.6822916666666666,
+  "se": 0.12320163102664779,
+  "constraint_satisfied": null
+ },
+ "block_confident | product | K=4 | python | non-live": {
+  "examples": 12,
+  "accuracy": 0.6875,
+  "se": 0.12452561498695275,
+  "constraint_satisfied": null
+ },
+ "unconstrained, shipped setting | python | non-live": {
+  "examples": 12,
+  "accuracy": 0.2864583333333333,
+  "se": 0.06503310515740535,
+  "constraint_satisfied": 0.421875
+ }
+}

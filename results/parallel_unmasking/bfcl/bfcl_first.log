@@ -1,0 +1,75 @@
+[   201s] baseline 0: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.06; 172 s
+    '[\n    calculate_area_under_area_under_curve(\n        {\n            "function": "x^2", \n            "interval": [1, 3], \n            "method": "trapezoidal"\n        })\n]'
+[   358s] baseline 2: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.50; 157 s
+    '[cellbio.get_proteins(cell_compartment="Plasma", include_description=False)]<|eot_id|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftex'
+[   525s] baseline 4: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.69; 167 s
+    '[calculate_clock_angle(hours=18, minutes=30, round_to=2), calculate_clock_angle(hours=0, minutes=30, round_to=2)]'
+[   702s] baseline 6: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.25; 177 s
+    '[ Statistical.t_test ([12, 24, 36], , {={12, 24, 36})\n.t_test([15, 30, 45]\n ]'
+[   873s] baseline 8: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.06; 171 s
+    '[Supercourt.search(docket_number=\'123456", location=\'Texas\', full_text=False)]'
+[  1031s] baseline 10: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.44; 158 s
+    '[lawsuit.check_case(case_id=1234, closed_status=True)]),'
+[  1192s] baseline 12: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.81; 161 s
+    '[environmental_data.air_quality_index(location="San Jose", days=3)]'
+[  1365s] baseline 14: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.62; 173 s
+    '[get_song_lyrics(language="Bohemian Rhapsody", artist_name="Queen")]'
+[  1526s] baseline 16: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.50; 161 s
+    '[sports.match_results({"teamteam1="Chicago Bulls","team"2="Los Angeles Lakers"})]'
+[  1697s] baseline 18: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.38; 171 s
+    "[get_collectables_in_season(game_name='Animal Crossing: New Horizons', season='Spring', item_type='all')]"
+[  1864s] baseline 20: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.62; 167 s
+    '[whole_foods.find_top_brands(product="banana", number=5, organic=True)]'
+[  2036s] baseline 22: 16 unconstrained samples of 256 tokens, blocks of 32, 2 per step; matching the constraint 0.12; 173 s
+    '[walmart.check_price(items=["pumpkins", "eggs"], quantities=[3, 2*12], store_location="Walmart"))]'
+done in 2036s
+[   210s]   0 N 256 A 207 block_confident | product              log Z    -3.03  mean log Z    -3.03  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  192 s  (table agreement nan)
+[   435s]   0 N 256 A 207 block_confident | matched chain, probed table log Z    -3.03  mean log Z    -3.03  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  225 s  (table agreement nan)
+[   619s]   2 N 256 A 215 block_confident | product              log Z    -1.70  mean log Z    -1.74  sd log Z 0.32  spread 0.24  matches 1.0  equals reference 0.0 (as object 0.0)  174 s  (table agreement nan)
+[   831s]   2 N 256 A 215 block_confident | matched chain, probed table log Z    -0.08  mean log Z    -1.45  sd log Z 1.08  spread 3.19  matches 1.0  equals reference 0.0 (as object 0.0)  211 s  (table agreement nan)
+[  1024s]   4 N 256 A 124 block_confident | product              log Z    -1.49  mean log Z    -1.49  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  184 s  (table agreement nan)
+[  1225s]   4 N 256 A 124 block_confident | matched chain, probed table log Z    -1.49  mean log Z    -1.52  sd log Z 0.26  spread 0.22  matches 1.0  equals reference 0.0 (as object 0.0)  201 s  (table agreement nan)
+[  1433s]   6 N 256 A  89 block_confident | product              log Z    -1.90  mean log Z    -2.03  sd log Z 0.77  spread 0.25  matches 1.0  equals reference 1.0 (as object 0.0)  194 s  (table agreement nan)
+[  1643s]   6 N 256 A  89 block_confident | matched chain, probed table log Z    -1.87  mean log Z    -1.87  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 1.0 (as object 0.0)  210 s  (table agreement nan)
+[  1842s]   8 N 256 A 205 block_confident | product              log Z    -1.61  mean log Z    -1.61  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  188 s  (table agreement nan)
+[  2064s]   8 N 256 A 205 block_confident | matched chain, probed table log Z    -1.65  mean log Z    -1.66  sd log Z 0.12  spread 0.12  matches 1.0  equals reference 0.0 (as object 0.0)  223 s  (table agreement nan)
+[  2249s]  10 N 256 A 121 block_confident | product              log Z    -0.81  mean log Z    -0.81  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.625 (as object 0.0)  175 s  (table agreement nan)
+[  2441s]  10 N 256 A 121 block_confident | matched chain, probed table log Z    -0.80  mean log Z    -0.80  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.75 (as object 0.0)  192 s  (table agreement nan)
+[  2630s]  12 N 256 A 190 block_confident | product              log Z    -1.26  mean log Z    -1.26  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  175 s  (table agreement nan)
+[  2837s]  12 N 256 A 190 block_confident | matched chain, probed table log Z    -1.26  mean log Z    -1.26  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  207 s  (table agreement nan)
+[  3038s]  14 N 256 A 205 block_confident | product              log Z    -1.65  mean log Z    -2.30  sd log Z 2.86  spread 0.28  matches 1.0  equals reference 0.0 (as object 0.0)  189 s  (table agreement nan)
+[  3263s]  14 N 256 A 205 block_confident | matched chain, probed table log Z    -1.55  mean log Z    -1.56  sd log Z 0.10  spread 0.11  matches 1.0  equals reference 0.0 (as object 0.0)  224 s  (table agreement nan)
+[  3453s]  16 N 256 A 151 block_confident | product              log Z    -1.03  mean log Z    -1.19  sd log Z 0.51  spread 0.75  matches 1.0  equals reference 0.0 (as object 0.0)  178 s  (table agreement nan)
+[  3658s]  16 N 256 A 151 block_confident | matched chain, probed table log Z    -1.26  mean log Z    -1.64  sd log Z 1.24  spread 0.78  matches 1.0  equals reference 0.0 (as object 0.0)  204 s  (table agreement nan)
+[  3857s]  18 N 256 A 171 block_confident | product              log Z    -2.99  mean log Z    -4.05  sd log Z 4.45  spread 0.30  matches 1.0  equals reference 0.0 (as object 0.0)  188 s  (table agreement nan)
+[  4073s]  18 N 256 A 171 block_confident | matched chain, probed table log Z    -2.71  mean log Z    -2.73  sd log Z 0.19  spread 0.21  matches 1.0  equals reference 0.125 (as object 0.0)  217 s  (table agreement nan)
+[  4269s]  20 N 256 A 205 block_confident | product              log Z    -1.80  mean log Z    -1.80  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  184 s  (table agreement nan)
+[  4487s]  20 N 256 A 205 block_confident | matched chain, probed table log Z    -1.80  mean log Z    -1.80  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  218 s  (table agreement nan)
+[  4688s]  22 N 256 A 231 block_confident | product              log Z    -4.43  mean log Z    -4.72  sd log Z 0.92  spread 0.59  matches 1.0  equals reference 0.0 (as object 0.0)  189 s  (table agreement nan)
+[  4916s]  22 N 256 A 231 block_confident | matched chain, probed table log Z    -3.90  mean log Z    -4.26  sd log Z 0.89  spread 1.26  matches 1.0  equals reference 0.0 (as object 0.0)  228 s  (table agreement nan)
+done in 4916s
+[   397s]   0 N 256 A 207 block_confident | product              log Z    -3.03  mean log Z    -3.03  sd log Z 0.01  spread 0.01  matches 1.0  equals reference 0.0 (as object 0.0)  379 s  (table agreement nan)
+[   844s]   0 N 256 A 207 block_confident | matched chain, probed table log Z    -2.79  mean log Z    -2.89  sd log Z 0.42  spread 0.62  matches 1.0  equals reference 0.0 (as object 0.0)  447 s  (table agreement nan)
+[  1203s]   2 N 256 A 215 block_confident | product              log Z    -1.77  mean log Z    -1.81  sd log Z 0.31  spread 0.25  matches 1.0  equals reference 0.0 (as object 0.0)  350 s  (table agreement nan)
+[  1624s]   2 N 256 A 215 block_confident | matched chain, probed table log Z    -0.97  mean log Z    -1.40  sd log Z 0.79  spread 1.43  matches 1.0  equals reference 0.0 (as object 0.0)  421 s  (table agreement nan)
+[  2001s]   4 N 256 A 124 block_confident | product              log Z    -1.49  mean log Z    -1.49  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  367 s  (table agreement nan)
+[  2404s]   4 N 256 A 124 block_confident | matched chain, probed table log Z    -1.46  mean log Z    -1.47  sd log Z 0.09  spread 0.09  matches 1.0  equals reference 0.0 (as object 0.0)  403 s  (table agreement nan)
+[  2807s]   6 N 256 A  89 block_confident | product              log Z    -1.90  mean log Z    -1.91  sd log Z 0.13  spread 0.12  matches 1.0  equals reference 1.0 (as object 0.0)  389 s  (table agreement nan)
+[  3227s]   6 N 256 A  89 block_confident | matched chain, probed table log Z    -1.89  mean log Z    -1.90  sd log Z 0.08  spread 0.07  matches 1.0  equals reference 1.0 (as object 0.0)  420 s  (table agreement nan)
+[  3613s]   8 N 256 A 205 block_confident | product              log Z    -1.61  mean log Z    -1.61  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  376 s  (table agreement nan)
+[  4057s]   8 N 256 A 205 block_confident | matched chain, probed table log Z    -1.62  mean log Z    -1.62  sd log Z 0.08  spread 0.08  matches 1.0  equals reference 0.0 (as object 0.0)  444 s  (table agreement nan)
+[  4417s]  10 N 256 A 121 block_confident | product              log Z    -0.81  mean log Z    -0.81  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.75 (as object 0.0)  350 s  (table agreement nan)
+[  4801s]  10 N 256 A 121 block_confident | matched chain, probed table log Z    -0.80  mean log Z    -0.80  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.75 (as object 0.0)  384 s  (table agreement nan)
+[  5165s]  12 N 256 A 190 block_confident | product              log Z    -1.26  mean log Z    -1.26  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  350 s  (table agreement nan)
+[  5578s]  12 N 256 A 190 block_confident | matched chain, probed table log Z    -1.26  mean log Z    -1.26  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  412 s  (table agreement nan)
+[  5967s]  14 N 256 A 205 block_confident | product              log Z    -1.66  mean log Z    -1.67  sd log Z 0.12  spread 0.11  matches 1.0  equals reference 0.0 (as object 0.0)  377 s  (table agreement nan)
+[  6415s]  14 N 256 A 205 block_confident | matched chain, probed table log Z    -1.58  mean log Z    -1.59  sd log Z 0.13  spread 0.12  matches 1.0  equals reference 0.0 (as object 0.0)  448 s  (table agreement nan)
+[  6783s]  16 N 256 A 151 block_confident | product              log Z    -1.26  mean log Z    -1.58  sd log Z 0.89  spread 0.93  matches 1.0  equals reference 0.0 (as object 0.0)  356 s  (table agreement nan)
+[  7192s]  16 N 256 A 151 block_confident | matched chain, probed table log Z    -1.26  mean log Z    -1.31  sd log Z 0.31  spread 0.30  matches 1.0  equals reference 0.0 (as object 0.0)  409 s  (table agreement nan)
+[  7577s]  18 N 256 A 171 block_confident | product              log Z    -2.98  mean log Z    -2.98  sd log Z 0.12  spread 0.11  matches 1.0  equals reference 0.0 (as object 0.0)  375 s  (table agreement nan)
+[  8011s]  18 N 256 A 171 block_confident | matched chain, probed table log Z    -2.79  mean log Z    -2.80  sd log Z 0.16  spread 0.15  matches 1.0  equals reference 0.0 (as object 0.0)  434 s  (table agreement nan)
+[  8389s]  20 N 256 A 205 block_confident | product              log Z    -1.80  mean log Z    -1.80  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  366 s  (table agreement nan)
+[  8824s]  20 N 256 A 205 block_confident | matched chain, probed table log Z    -1.80  mean log Z    -1.80  sd log Z 0.00  spread 0.00  matches 1.0  equals reference 0.0 (as object 0.0)  435 s  (table agreement nan)
+[  9214s]  22 N 256 A 231 block_confident | product              log Z    -4.40  mean log Z    -4.41  sd log Z 0.20  spread 0.19  matches 1.0  equals reference 0.0 (as object 0.0)  377 s  (table agreement nan)
+[  9669s]  22 N 256 A 231 block_confident | matched chain, probed table log Z    -4.10  mean log Z    -4.19  sd log Z 0.43  spread 0.54  matches 1.0  equals reference 0.0 (as object 0.0)  456 s  (table agreement nan)
+done in 9669s
