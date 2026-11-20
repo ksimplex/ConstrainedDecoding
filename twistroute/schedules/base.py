@@ -77,3 +77,32 @@ def as_schedule(schedule: Any) -> Schedule:
     if hasattr(schedule, "reveal"):
         return FromPolicy(schedule)
     raise TypeError("a schedule needs .unmask(state, step, n_steps, generator)")
+
+
+def pad(chosen: torch.Tensor) -> Unmasking:
+    """(P, L) bool, the positions each row unmasks -> (positions, valid) padded to the largest
+    row."""
+    count = chosen.sum(-1)
+    width = int(count.max().clamp_min(1))
+    order = torch.argsort(chosen.to(torch.int8), dim=-1, descending=True, stable=True)
+    valid = torch.arange(width, device=chosen.device)[None] < count[:, None]
+    return order[:, :width], valid
+
+
+def constrained_marginals(state: State) -> torch.Tensor:
+    """(P, L, A) float64: p_theta(x_0,i = a | x_t, C) under the constrained prediction of eq. (9)
+    (Proposition 1, item 1). One backward pass over the constraint; no model call."""
+    return state.constraint.marginals(state.prediction())
+
+
+def entropy(marginals: torch.Tensor) -> torch.Tensor:
+    """(P, L) entropy in nats of each position's marginal."""
+    return -torch.xlogy(marginals, marginals).sum(-1)
+
+
+def forced(state: State, marginals: torch.Tensor) -> torch.Tensor:
+    """(P, L) bool: positions whose token the constraint determines. The constrained marginal
+    puts all its mass on one class and that class holds a single token, so unmasking the
+    position asks nothing of the model."""
+    class_sizes = (state.token_classes.onehot > 0).sum(0).to(marginals.device)
+    return (entropy(marginals) < 1e-9) & (class_sizes[marginals.argmax(-1)] == 1)

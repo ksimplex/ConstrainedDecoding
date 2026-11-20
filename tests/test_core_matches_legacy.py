@@ -16,15 +16,17 @@ from make_sampler_reference import CELLS, K, L, NRUN, gen  # noqa: E402
 from pulib.cells import make_constraint, make_model, n_symbols  # noqa: E402
 
 from twistroute.constraints import Constraint  # noqa: E402
-from twistroute.decode import (  # noqa: E402
-    COUNT_EDGES,
-    ConfidenceSchedule,
-    CouplingPolicy,
-    DilatedSchedule,  # noqa: E402
-    fit_distance_kernel,
-)
 from twistroute.resampling import Resampling  # noqa: E402
 from twistroute.sampler import weighted_sampler  # noqa: E402
+from twistroute.schedules import (  # noqa: E402
+    Blocks,
+    BudgetedCoReveal,
+    Confidence,
+    Dilated,
+    LeftToRight,
+    Sum,
+    fit_distance_dependence,
+)
 from twistroute.twists import ChainTwist, ProductTwist, counted_pair_table  # noqa: E402
 
 REFERENCE = np.load(os.path.join(HERE, "reference", "sampler_reference.npz"))
@@ -32,11 +34,7 @@ REFERENCE = np.load(os.path.join(HERE, "reference", "sampler_reference.npz"))
 
 def configurations(model, classes, truth):
     """name -> (keyword arguments of weighted_sampler as a function, number of steps)."""
-    kernel = fit_distance_kernel(model, L, 300, gen("kernel"), count_edges=COUNT_EDGES)[0]
-
-    def coupling(**options):
-        return CouplingPolicy(kernel, 0.0, priority="sum", mixed=False, **options)
-
+    dependence = fit_distance_dependence(model, L, 300, gen("kernel"))
     out = {
         "product | random | plain": (lambda: dict(), L),
         "product | random | no resampling": (lambda: dict(resampling=Resampling(threshold=0.0)), L),
@@ -53,37 +51,31 @@ def configurations(model, classes, truth):
             L,
         ),
         "product | random | twist power 0.5": (lambda: dict(twist=ProductTwist(power=0.5)), L),
-        "product | left to right": (
-            lambda: dict(schedule=ConfidenceSchedule(1, None, "left", forced_first=True)),
-            L,
-        ),
-        "product | confidence, token": (
-            lambda: dict(schedule=ConfidenceSchedule(1, None, "token")),
-            L,
-        ),
-        "product | confidence, class": (
-            lambda: dict(schedule=ConfidenceSchedule(1, None, "class")),
-            L,
-        ),
+        "product | left to right": (lambda: dict(schedule=LeftToRight(forced_first=True)), L),
+        "product | confidence, token": (lambda: dict(schedule=Confidence("token")), L),
+        "product | confidence, class": (lambda: dict(schedule=Confidence("class")), L),
         "product | confidence, entropy": (
-            lambda: dict(schedule=ConfidenceSchedule(1, None, "entropy", forced_first=True)),
+            lambda: dict(schedule=Confidence("entropy", forced_first=True)),
             L,
         ),
         "product | blocks of 8, two per step": (
-            lambda: dict(schedule=ConfidenceSchedule(2, 8, "token")),
+            lambda: dict(schedule=Blocks(8, 2, "token")),
             L // 2,
         ),
-        "product | sum, one per step": (lambda: dict(schedule=coupling(max_set=1)), L),
+        "product | sum, one per step": (lambda: dict(schedule=Sum(dependence)), L),
         "product | sum, budget 0.03, pull-in": (
-            lambda: dict(schedule=coupling(rate=0.03 / L, pull_forced=8)),
+            lambda: dict(schedule=BudgetedCoReveal(dependence, 0.03)),
             L,
         ),
-        "product | sum, budget 0.3": (lambda: dict(schedule=coupling(rate=0.3 / L)), L),
+        "product | sum, budget 0.3": (
+            lambda: dict(schedule=BudgetedCoReveal(dependence, 0.3, pull_in=0)),
+            L,
+        ),
         "product | sum, one per step, forced batch 0.01": (
-            lambda: dict(schedule=coupling(max_set=1, forced_batch=0.01)),
+            lambda: dict(schedule=Sum(dependence, forced_batch=0.01)),
             L,
         ),
-        "product | dilated, base 2": (lambda: dict(schedule=DilatedSchedule(2)), L),
+        "product | dilated, base 2": (lambda: dict(schedule=Dilated(2)), L),
         "product | two per step, random": (lambda: dict(), L // 2),
     }
     if hasattr(truth, "wdfa"):
@@ -93,7 +85,6 @@ def configurations(model, classes, truth):
         def chain(**options):
             return ChainTwist(truth.wdfa, table, active=active, **options)
 
-        left = ConfidenceSchedule(1, None, "left", forced_first=True)
         out.update(
             {
                 "matched chain | random | plain": (lambda: dict(twist=chain()), L),
@@ -105,13 +96,16 @@ def configurations(model, classes, truth):
                     lambda: dict(twist=chain(), resampling=Resampling(defensive=0.25)),
                     L,
                 ),
-                "matched chain | left to right": (lambda: dict(twist=chain(), schedule=left), L),
+                "matched chain | left to right": (
+                    lambda: dict(twist=chain(), schedule=LeftToRight(forced_first=True)),
+                    L,
+                ),
                 "matched chain | sum, one per step": (
-                    lambda: dict(twist=chain(), schedule=coupling(max_set=1)),
+                    lambda: dict(twist=chain(), schedule=Sum(dependence)),
                     L,
                 ),
                 "matched chain | sum, budget 0.03, pull-in": (
-                    lambda: dict(twist=chain(), schedule=coupling(rate=0.03 / L, pull_forced=8)),
+                    lambda: dict(twist=chain(), schedule=BudgetedCoReveal(dependence, 0.03)),
                     L,
                 ),
                 "matched chain as twist only | random": (
