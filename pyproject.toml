@@ -21,3 +21,14 @@ include = ["twistroute*"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+# Style of the code that follows the notes (docs/refactor_map.md): one statement per line, at most
+# 100 characters. The earlier packages are frozen and are not reformatted.
+[tool.ruff]
+line-length = 100
+include = ["twistroute/state.py", "twistroute/sampler.py", "twistroute/resampling.py", "twistroute/twists/**/*.py",
+           "twistroute/schedules/**/*.py", "twistroute/constraints/**/*.py", "twistroute/evaluation/**/*.py",
+           "tests/test_sampler.py", "tests/test_core_matches_legacy.py", "tests/test_constraints_prop1.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]

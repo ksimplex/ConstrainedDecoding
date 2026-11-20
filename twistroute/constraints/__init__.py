@@ -11,6 +11,7 @@
 The exact algorithms are those of `twistroute.compile` (CPU reference) and
 `twistroute.torch_routes` (batched); this package gives them the names used in the notes.
 """
+
 from .automaton import at_least_k, automaton, dyck1, exactly_k, forbidden_motifs
 from .base import Constraint, fix_unmasked, one_hot_log
 from .factor_graph import copy_pairs, factor_graph
@@ -19,6 +20,25 @@ from .intersect import intersect
 from .positions import on_positions, with_allowed_sets
 from .tokens import from_regex, token_codes
 
-__all__ = ["Constraint", "fix_unmasked", "one_hot_log", "automaton", "forbidden_motifs", "exactly_k", "at_least_k", "dyck1",
-           "on_positions", "with_allowed_sets", "factor_graph", "copy_pairs", "grammar", "DYCK1", "DYCK1_AMBIGUOUS", "DYCK2",
-           "DYCK2_WITH_ATOMS", "intersect", "from_regex", "token_codes"]
+__all__ = [
+    "Constraint",
+    "fix_unmasked",
+    "one_hot_log",
+    "automaton",
+    "forbidden_motifs",
+    "exactly_k",
+    "at_least_k",
+    "dyck1",
+    "on_positions",
+    "with_allowed_sets",
+    "factor_graph",
+    "copy_pairs",
+    "grammar",
+    "DYCK1",
+    "DYCK1_AMBIGUOUS",
+    "DYCK2",
+    "DYCK2_WITH_ATOMS",
+    "intersect",
+    "from_regex",
+    "token_codes",
+]

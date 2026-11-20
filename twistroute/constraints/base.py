@@ -18,6 +18,7 @@ Conventions
     classes    A token classes: groups of tokens the constraint treats alike (section 2.1).
     sequences  integer tensors (batch, L) of class indices.
 """
+
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -29,11 +30,15 @@ NEG_INF = float("-inf")
 
 def one_hot_log(classes: torch.Tensor, n_classes: int) -> torch.Tensor:
     """(...,) class indices -> (..., A) log one-hot: 0 at the class, -inf elsewhere."""
-    out = torch.full((*classes.shape, n_classes), NEG_INF, dtype=torch.float64, device=classes.device)
+    out = torch.full(
+        (*classes.shape, n_classes), NEG_INF, dtype=torch.float64, device=classes.device
+    )
     return out.scatter(-1, classes[..., None], 0.0)
 
 
-def fix_unmasked(log_q: torch.Tensor, classes: torch.Tensor, unmasked: torch.Tensor) -> torch.Tensor:
+def fix_unmasked(
+    log_q: torch.Tensor, classes: torch.Tensor, unmasked: torch.Tensor
+) -> torch.Tensor:
     """log_q with the unmasked positions replaced by the one-hot of their class.
 
     This turns the mean-field prediction at x_t into the factorised distribution whose mass on C
@@ -56,8 +61,17 @@ class Constraint:
     2.1); `log_prob` is then the log of that weighted sum.
     """
 
-    def __init__(self, implementation: Any, *, family: str, cost: str, n_classes: int,
-                 length: Optional[int] = None, reference: Any = None, name: str = "") -> None:
+    def __init__(
+        self,
+        implementation: Any,
+        *,
+        family: str,
+        cost: str,
+        n_classes: int,
+        length: Optional[int] = None,
+        reference: Any = None,
+        name: str = "",
+    ) -> None:
         self._implementation = implementation
         self.family = family
         self.cost = cost
@@ -67,7 +81,8 @@ class Constraint:
         self.name = name or family
 
     def __repr__(self) -> str:
-        return f"Constraint({self.name!r}, family={self.family!r}, A={self.n_classes}, cost={self.cost})"
+        described = f"family={self.family!r}, A={self.n_classes}, cost={self.cost}"
+        return f"Constraint({self.name!r}, {described})"
 
     def log_prob(self, log_q: torch.Tensor) -> torch.Tensor:
         """(batch, L, A) -> (batch,): log q(C)."""
@@ -84,7 +99,9 @@ class Constraint:
             (grad,) = torch.autograd.grad(self._implementation.logZ(v).sum(), v)
         return torch.nan_to_num(grad, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
 
-    def sample(self, log_q: torch.Tensor, generator: Optional[torch.Generator] = None) -> torch.Tensor:
+    def sample(
+        self, log_q: torch.Tensor, generator: Optional[torch.Generator] = None
+    ) -> torch.Tensor:
         """(batch, L, A) -> (batch, L): one exact draw from q(. | C) per row."""
         return self._implementation.sample(log_q, generator)
 
