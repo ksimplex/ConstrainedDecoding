@@ -1,17 +1,20 @@
 """The new core (twistroute.sampler, twists, schedules, resampling) reproduces the sampler as it
 stood at tag `pre-notes-refactor`, exactly: same log Z_hat, particles, weights, steps and
-resampling counts on every case of tests/reference/sampler_reference.npz (150 cases: six
+resampling counts on every case of tests/core/reference/sampler_reference.npz (150 cases: six
 oracle cells by every twist, schedule and resampling option the core keeps)."""
 
+import json
 import os
+import platform
 import sys
 
 import numpy as np
 import pytest
+import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "reference"))
-sys.path.insert(0, os.path.join(HERE, "..", "experiments", "studies"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "experiments", "studies"))
 from make_sampler_reference import CELLS, K, L, NRUN, gen  # noqa: E402
 from pulib.cells import make_constraint, make_model, n_symbols  # noqa: E402
 
@@ -30,6 +33,14 @@ from twistroute.schedules import (  # noqa: E402
 from twistroute.twists import ChainTwist, ProductTwist, counted_pair_table  # noqa: E402
 
 REFERENCE = np.load(os.path.join(HERE, "reference", "sampler_reference.npz"))
+with open(os.path.join(HERE, "reference", "sampler_reference.json")) as _handle:
+    MADE_ON = json.load(_handle)
+HERE_NOW = dict(torch=torch.__version__, machine=platform.machine(), system=platform.system())
+# Random draws can flip on last-bit floating-point differences, so the exact comparison is only
+# meaningful where the reference was made; elsewhere it is skipped, not loosened.
+same_platform = pytest.mark.skipif(
+    MADE_ON != HERE_NOW, reason=f"reference made on {MADE_ON}, this is {HERE_NOW}"
+)
 
 
 def configurations(model, classes, truth):
@@ -121,6 +132,7 @@ def configurations(model, classes, truth):
     return out
 
 
+@same_platform
 @pytest.mark.parametrize("model_name,constraint_name", CELLS)
 def test_core_reproduces_the_frozen_sampler(model_name, constraint_name):
     model = make_model(model_name, L, n_symbols(constraint_name))
@@ -224,6 +236,7 @@ def test_options_outside_the_frozen_file_match_the_old_sampler():
         assert np.array_equal(new.log_weights, old["logw"]), number
 
 
+@same_platform
 def test_a_different_option_does_not_match():
     """Control for the comparison itself: a slightly different resampling rule must not reproduce
     the reference."""

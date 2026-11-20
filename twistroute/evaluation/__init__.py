@@ -6,13 +6,21 @@ spread  spread of the estimate of P(x_0 in C) across runs
 """
 
 from .bounds import bracket, leading_term, marginal_lower_bound, upper_bound
-from .exact import all_sequences, kl, one_particle_law, output_law, target_law
+from .exact import (
+    all_sequences,
+    kl,
+    log_prob_of_constraint,
+    one_particle_law,
+    output_law,
+    target_law,
+)
 from .spread import dead_runs, mean_ratio, rms_log_ratio, sd_log_Z_hat
 
 __all__ = [
     "all_sequences",
     "kl",
     "target_law",
+    "log_prob_of_constraint",
     "one_particle_law",
     "output_law",
     "upper_bound",

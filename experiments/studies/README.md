@@ -82,9 +82,9 @@ The log was backfilled from 22 earlier outputs (3,387 results); those lines have
 
 | Test file | What it fixes |
 |---|---|
-| `tests/test_pu_regression.py` | Every arm set on small cells against outputs frozen in `tests/golden/pu_compare.json` (296 arms, 15 cells), field by field. |
-| `tests/test_policy.py`, `tests/test_policy_split.py` | The policy: route queries, the kernel, exactness, the admission rule, scoring as a function. |
-| `tests/test_longchain.py`, `tests/test_resampling.py`, `tests/test_oracle.py` | Long-sequence schedules, resampling options, oracle models. |
+| `tests/experiments/test_pu_regression.py` | Every arm set on small cells against outputs frozen in `tests/experiments/golden/pu_compare.json` (296 arms, 15 cells), field by field. |
+| `tests/legacy/test_policy.py`, `tests/legacy/test_policy_split.py` | The policy: route queries, the kernel, exactness, the admission rule, scoring as a function. |
+| `tests/legacy/test_longchain.py`, `tests/legacy/test_resampling.py`, `tests/algorithms/test_oracle.py` | Long-sequence schedules, resampling options, oracle models. |
 
 A change to the sampler, the policy or a twist goes in under this protocol:
 
@@ -93,10 +93,10 @@ A change to the sampler, the policy or a twist goes in under this protocol:
 3. It is compared with the previous default cell by cell on the benchmark, not on medians alone.
 4. It stays opt-in until it has passed the first three.
 
-The reference is regenerated only when a change in behaviour is intended (`python tests/test_pu_regression.py`),
+The reference is regenerated only when a change in behaviour is intended (`python tests/experiments/test_pu_regression.py`),
 and the commit says so. It is tied to the platform and torch version it was made on; elsewhere the comparison is
 skipped, because multinomial draws can flip on last-bit floating-point differences.
 
 On a shared machine run the suite with `OMP_NUM_THREADS=2`: with torch's default thread count the full suite
 drove the load average of an 8-core laptop above 60. With the cap, the 14 non-biology test files (363 tests) pass
-in about 18 minutes, `tests/test_smc.py` taking 8 of them.
+in about 18 minutes, `tests/legacy/test_smc.py` taking 8 of them.

@@ -2,7 +2,7 @@
 Exact regression for the parallel-unmasking comparison (experiments/studies/compare.py).
 
 Every arm set is run on one or two small cells with fixed seeds and compared, field by field, with reference
-outputs frozen in tests/golden/pu_compare.json. Each arm draws from its own named random stream, so a change in
+outputs frozen in tests/experiments/golden/pu_compare.json. Each arm draws from its own named random stream, so a change in
 any arm's numbers means the sampler, a schedule, the policy or the metrics changed behaviour. Timing and memory
 fields are not compared.
 
@@ -10,7 +10,7 @@ The reference was produced on one platform and torch version (recorded in the fi
 on last-bit differences in floating point, so on another platform the comparison is skipped, not loosened.
 
 Regenerate (only when a change in behaviour is intended, and say so in the commit):
-    python tests/test_pu_regression.py
+    python tests/experiments/test_pu_regression.py
 """
 import json, math, os, platform, sys, time
 import numpy as np
@@ -18,7 +18,7 @@ import pytest
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path[:0] = [os.path.join(HERE, ".."), os.path.join(HERE, "..", "experiments", "studies")]
+sys.path[:0] = [os.path.join(HERE, "..", ".."), os.path.join(HERE, "..", "..", "experiments", "studies")]
 GOLDEN = os.path.join(HERE, "golden", "pu_compare.json")
 BASE = dict(nrun=6, nrun_mixed=4, K=4, pilot=60, pilot_small=20, seed=0, order_theta=0.0, gate_pilot=200,
             resample_ks=[4, 16], resample_modes=None, only=None, partial=None)
@@ -74,7 +74,7 @@ def _golden():
 def test_compare_matches_frozen_reference(case):
     g = _golden()
     if g is None:
-        pytest.skip("no reference file; run python tests/test_pu_regression.py")
+        pytest.skip("no reference file; run python tests/experiments/test_pu_regression.py")
     if g["stamp"] != stamp():
         pytest.skip(f"reference made on {g['stamp']}, this is {stamp()}")
     got = json.loads(json.dumps(run_case(*case)))          # the same JSON round trip as the reference

@@ -10,10 +10,9 @@ import pytest
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "experiments", "studies"))
-from pulib.cells import make_constraint, make_model, n_symbols  # noqa: E402
+sys.path.insert(0, os.path.join(HERE, "..", "..", "experiments", "notes"))
+from cells import cell as notes_cell  # noqa: E402
 
-from twistroute.constraints import Constraint  # noqa: E402
 from twistroute.evaluation import (  # noqa: E402
     kl,
     leading_term,
@@ -29,20 +28,16 @@ from twistroute.twists import ChainTwist, ProductTwist, counted_pair_table  # no
 
 LENGTH = 8
 STORED = os.path.join(
-    HERE, "..", "results", "parallel_unmasking", "particle_rule", "kl_bounds_check.json"
+    HERE, "..", "..", "results", "parallel_unmasking", "particle_rule", "kl_bounds_check.json"
 )
 
 
 @pytest.fixture(scope="module")
 def cell():
-    model = make_model("hidden_0.85", LENGTH, n_symbols("forbidden"))
-    classes, route, truth = make_constraint("forbidden", model, LENGTH)
-    constraint = Constraint(
-        route, family="finite automaton", cost="O(L |E|)", n_classes=classes.A, length=LENGTH
-    )
+    model, classes, constraint = notes_cell("forbidden", LENGTH)
     table = counted_pair_table(model, classes, 2000, torch.Generator().manual_seed(5))
-    chain = ChainTwist(truth.wdfa, table, active=getattr(truth, "active", None))
-    return model, classes, constraint, truth, chain
+    chain = ChainTwist.for_constraint(constraint, table)
+    return model, classes, constraint, chain
 
 
 def frequencies(tokens, n_tokens):
@@ -61,7 +56,7 @@ def assert_same_law(observed, law, n):
 )
 @pytest.mark.parametrize("twist_name", ["product", "tempered product", "chain"])
 def test_one_particle_law_is_the_law_of_one_particle(cell, schedule, twist_name):
-    model, classes, constraint, truth, chain = cell
+    model, classes, constraint, chain = cell
     twist = {
         "product": ProductTwist(),
         "tempered product": ProductTwist(temperature=0.5),
@@ -85,7 +80,7 @@ def test_one_particle_law_is_the_law_of_one_particle(cell, schedule, twist_name)
 
 
 def test_output_law_is_the_law_of_the_returned_particle(cell):
-    model, classes, constraint, truth, chain = cell
+    model, classes, constraint, chain = cell
     target = target_law(model, classes, constraint, LENGTH)
     law = output_law(
         one_particle_law(model, classes, constraint, LENGTH, schedule=LeftToRight()), target, 4
@@ -107,7 +102,7 @@ def test_output_law_is_the_law_of_the_returned_particle(cell):
 
 
 def test_exact_kl_matches_the_values_behind_table_3(cell):
-    model, classes, constraint, truth, chain = cell
+    model, classes, constraint, chain = cell
     stored = {
         (r["proposal"], r["K"]): r["exact"]
         for r in json.load(open(STORED))["cases"]
@@ -125,7 +120,7 @@ def test_exact_kl_matches_the_values_behind_table_3(cell):
 
 
 def test_bounds_bracket_the_exact_kl(cell):
-    model, classes, constraint, truth, chain = cell
+    model, classes, constraint, chain = cell
     target = target_law(model, classes, constraint, LENGTH)
     product = one_particle_law(model, classes, constraint, LENGTH, schedule=LeftToRight())
     exact = kl(output_law(product, target, 4), target)

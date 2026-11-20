@@ -3,11 +3,13 @@
 Runs the sampler as it stood at tag `pre-notes-refactor` (twistroute.decode.twisted_smc) on small oracle cells, over every
 combination of twist, schedule and resampling option that stays in the new core, with fixed random streams, and stores the
 per-run log Z_hat, the particles' tokens and log-weights, and the steps. The new core must reproduce the file exactly
-(tests/test_core_matches_legacy.py). Regenerate only from the tag:
+(tests/core/test_core_matches_legacy.py). Regenerate only from the tag:
 
-    PYTHONPATH=. python tests/reference/make_sampler_reference.py
+    PYTHONPATH=. python tests/core/reference/make_sampler_reference.py
 """
+import json
 import os
+import platform
 import sys
 import zlib
 
@@ -15,7 +17,7 @@ import numpy as np
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "..", "experiments", "studies"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "experiments", "studies"))
 from pulib.cells import make_constraint, make_model, n_symbols  # noqa: E402
 from twistroute.decode import (COUNT_EDGES, ChainTwist, ConfidenceSchedule, CouplingPolicy, DilatedSchedule,  # noqa: E402
                                fit_distance_kernel, fit_pair_kernel, twisted_smc)
@@ -88,8 +90,11 @@ def main(path=os.path.join(HERE, "sampler_reference.npz")):
         store[f"{mname} | {cname} | log_p_C"] = np.asarray(truth.log_pC, dtype=np.float64)
         print(f"{mname:16s} {cname:10s} {sum(1 for k in store if k.startswith(f'{mname} | {cname} |') and k.endswith('log_Z_hat')):3d} configurations", flush=True)
     np.savez_compressed(path, **store)
+    stamp = dict(torch=torch.__version__, machine=platform.machine(), system=platform.system())
+    with open(os.path.splitext(path)[0] + ".json", "w") as handle:      # where the reference was made: the test skips elsewhere
+        json.dump(stamp, handle, indent=1)
     return store
 
 
 if __name__ == "__main__":
-    s = main(); print(len([k for k in s if k.endswith("log_Z_hat")]), "cases ->", "tests/reference/sampler_reference.npz")
+    s = main(); print(len([k for k in s if k.endswith("log_Z_hat")]), "cases ->", "tests/core/reference/sampler_reference.npz")

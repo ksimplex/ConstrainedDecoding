@@ -13,7 +13,7 @@ from twistroute.decode import twisted_smc
 from twistroute.experiment import load_denoiser, fig1a_setup, run_smc, z_summary
 from twistroute.torch_routes import build_route
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def _load(rel):

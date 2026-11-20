@@ -127,13 +127,25 @@ threshold admission (`theta`), the mixed coupling, the guard, the dynamic "least
 
 ## 9. Progress
 
-- Step 1 done: tag `pre-notes-refactor`, branch `notes-structure`, tarball, frozen reference (`tests/reference/`, 150 cases).
+- Step 1 done: tag `pre-notes-refactor`, branch `notes-structure`, tarball, frozen reference (now `tests/core/reference/`, 150 cases).
 - Step 2 done (`316c8ef`): `constraints/`, checked by enumeration. The grammar and factor-graph passes are single precision
   (exact to about 1e-7); the automaton families are double precision.
 - Step 3 done (`01864be`): `state.py`, `twists/`, `resampling.py`, `sampler.py`. The frozen reference is reproduced exactly;
   six further option combinations match the old sampler side by side; the chain law is ported and checked by enumeration.
 - Step 4, schedules done (`abeca65`): `schedules/`. `BudgetedCoReveal` still calls `decode.policy.CouplingPolicy`; it will be
   replaced when section 4 of the notes (the parallel schedule) is settled. Evaluation in progress: `evaluation/`.
+- Step 5, Table 3 done (`77b28ea`): `experiments/notes/table3.py` (24 of 27 entries identical to the notes; 3 differ by one in
+  the last digit, Monte Carlo over the other particles' weights). Figures 1 to 3 are not ported: Figure 1 needs the dynamic
+  programme over all states in `experiments/studies/surrogate_plan.py`; the user said not to spend time on the figures.
+- Step 6 done: `experiments/parallel_unmasking/` split into `experiments/benchmarks/`, `studies/` and `archive/`, mapped in
+  `experiments/INDEX.md`. Of the 40 scripts, 36 start (`--help`), two more import cleanly, and two that run at import were checked statically; every
+  cross-folder import resolves. The benchmark scripts still call the
+  earlier sampler; porting them needs one GPU job to verify and is the user's call.
+- Tests sorted into `tests/core`, `tests/algorithms`, `tests/legacy`, `tests/experiments` (none deleted; `tests/conftest.py`
+  and the application's tests are where they were). `docs/setup.md` written. README: waiting for the user.
+- Not checked, because those files are not opened: whether application code imports from the old folder
+  `experiments/parallel_unmasking/` or from test modules that moved. Under pytest the test folders are all on the path
+  (`pyproject.toml`), so imports between test modules keep working.
 - Added by the user on 2026-11-20, after step 6: `docs/setup.md` (what everything needs; what only the real-model
   benchmarks need, with where the weights and datasets come from; what needs a GPU); tests sorted into folders that follow
   the new layout (none deleted; the application's tests are not touched); the README rewritten for the new layout.

@@ -52,6 +52,15 @@ def target_law(model: Any, token_classes: Any, constraint: Constraint, length: i
     return joint / joint.sum()
 
 
+def log_prob_of_constraint(
+    model: Any, token_classes: Any, constraint: Constraint, length: int
+) -> float:
+    """log P(x_0 in C) under the model's joint law, by listing every sequence (an oracle)."""
+    sequences = all_sequences(model.S, length)
+    inside = constraint.contains(token_classes.token_class[sequences])
+    return float(torch.logsumexp(model.log_joint(sequences)[inside].double(), 0))
+
+
 def _merge(
     tokens: torch.Tensor, mass: torch.Tensor, base: int
 ) -> Tuple[torch.Tensor, torch.Tensor]:

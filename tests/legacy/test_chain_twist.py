@@ -18,7 +18,7 @@ from twistroute.models import ConstrainedTruth, noisy_hmm, lazy_chain
 from twistroute.torch_routes import torch_route, TorchChain, TorchSubset
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "experiments", "studies"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "experiments", "studies"))
 
 
 def state(den, cl, n_rows, frac, seed):

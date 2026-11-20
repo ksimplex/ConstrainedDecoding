@@ -15,11 +15,11 @@ import pytest
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "experiments", "studies"))
-from pulib.cells import make_constraint, make_model, n_symbols  # noqa: E402
+sys.path.insert(0, os.path.join(HERE, "..", "..", "experiments", "notes"))
+from cells import cell as notes_cell  # noqa: E402
 
 from twistroute import compile as automata  # noqa: E402
-from twistroute.constraints import Constraint  # noqa: E402
+from twistroute.evaluation import log_prob_of_constraint  # noqa: E402
 from twistroute.resampling import Resampling  # noqa: E402
 from twistroute.sampler import model_prediction, unconstrained_step, weighted_sampler  # noqa: E402
 from twistroute.schedules import RandomOrder  # noqa: E402
@@ -104,15 +104,15 @@ def test_chain_sampler_draws_from_the_chain_law_given_the_constraint(small_chain
 
 
 TWISTS = {
-    "product": lambda automaton, table, active: ProductTwist(),
-    "product, tempered 0.5": lambda automaton, table, active: ProductTwist(temperature=0.5),
-    "product, power 0.5": lambda automaton, table, active: ProductTwist(power=0.5),
-    "chain": lambda automaton, table, active: ChainTwist(automaton, table, active=active),
-    "chain, product share 0.1": lambda automaton, table, active: ChainTwist(
-        automaton, table, active=active, proposal_product_share=0.1
+    "product": lambda constraint, table: ProductTwist(),
+    "product, tempered 0.5": lambda constraint, table: ProductTwist(temperature=0.5),
+    "product, power 0.5": lambda constraint, table: ProductTwist(power=0.5),
+    "chain": lambda constraint, table: ChainTwist.for_constraint(constraint, table),
+    "chain, product share 0.1": lambda constraint, table: ChainTwist.for_constraint(
+        constraint, table, proposal_product_share=0.1
     ),
-    "chain twist, product proposal": lambda automaton, table, active: ChainTwist(
-        automaton, table, active=active, proposal="product"
+    "chain twist, product proposal": lambda constraint, table: ChainTwist.for_constraint(
+        constraint, table, proposal="product"
     ),
 }
 
@@ -120,13 +120,10 @@ TWISTS = {
 @pytest.fixture(scope="module")
 def cell():
     length = 12
-    model = make_model("hidden_0.85", length, n_symbols("forbidden"))
-    classes, route, truth = make_constraint("forbidden", model, length)
-    constraint = Constraint(
-        route, family="finite automaton", cost="O(L |E|)", n_classes=classes.A, length=length
-    )
+    model, classes, constraint = notes_cell("forbidden", length)
+    log_p_C = log_prob_of_constraint(model, classes, constraint, length)
     table = counted_pair_table(model, classes, 2000, torch.Generator().manual_seed(1))
-    return model, classes, constraint, truth, table, length
+    return model, classes, constraint, log_p_C, table, length
 
 
 @pytest.mark.parametrize("name", list(TWISTS))
@@ -136,8 +133,8 @@ def cell():
     ids=["no resampling", "plain", "defensive"],
 )
 def test_estimate_of_p_C_is_unbiased(cell, name, rule):
-    model, classes, constraint, truth, table, length = cell
-    twist = TWISTS[name](truth.wdfa, table, getattr(truth, "active", None))
+    model, classes, constraint, log_p_C, table, length = cell
+    twist = TWISTS[name](constraint, table)
     out = weighted_sampler(
         model,
         classes,
@@ -150,14 +147,14 @@ def test_estimate_of_p_C_is_unbiased(cell, name, rule):
         resampling=rule,
         generator=torch.Generator().manual_seed(11),
     )
-    ratio = np.exp(out.log_Z_hat - truth.log_pC)
+    ratio = np.exp(out.log_Z_hat - log_p_C)
     z = (ratio.mean() - 1.0) / (ratio.std(ddof=1) / math.sqrt(len(ratio)))
     assert abs(z) < 4.0, (name, ratio.mean(), z)
     assert not any(out.support.values())
 
 
 def test_returned_sequences_are_in_the_constraint(cell):
-    model, classes, constraint, truth, table, length = cell
+    model, classes, constraint, log_p_C, table, length = cell
     out = weighted_sampler(
         model,
         classes,
@@ -174,7 +171,7 @@ def test_returned_sequences_are_in_the_constraint(cell):
 
 
 def test_unconstrained_step_changes_only_the_unmasking_set(cell):
-    model, classes, constraint, truth, table, length = cell
+    model, classes, constraint, log_p_C, table, length = cell
     tokens = torch.full((50, length), model.mask_id, dtype=torch.long)
     state = model_prediction(model, classes, constraint, tokens, torch.zeros_like(tokens))
     step = unconstrained_step(
