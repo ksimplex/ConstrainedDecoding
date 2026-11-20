@@ -2,7 +2,9 @@
 true error KL(proposal marginal || exact conditional) at the revealed position, split by distance from the window.
 Also the estimate (chain-vs-product disagreement) at the same position, to see where it is wrong."""
 import sys, json, time, numpy as np, torch
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 import twist_error as te
 from pulib.cells import make_model, make_constraint
 from pulib.orders import cheapest_order, estimate_order, kl

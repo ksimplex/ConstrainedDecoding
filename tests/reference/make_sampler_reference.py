@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "..", "experiments", "parallel_unmasking"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "experiments", "studies"))
 from pulib.cells import make_constraint, make_model, n_symbols  # noqa: E402
 from twistroute.decode import (COUNT_EDGES, ChainTwist, ConfidenceSchedule, CouplingPolicy, DilatedSchedule,  # noqa: E402
                                fit_distance_kernel, fit_pair_kernel, twisted_smc)

@@ -3,7 +3,7 @@ import json, os, sys
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path[:0] = [os.path.join(HERE, ".."), os.path.join(HERE, "..", "experiments", "parallel_unmasking")]
+sys.path[:0] = [os.path.join(HERE, ".."), os.path.join(HERE, "..", "experiments", "studies")]
 
 
 def test_spread_and_its_interval():

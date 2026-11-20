@@ -1,4 +1,7 @@
-# Parallel unmasking experiments
+# Comparison studies on oracle models
+
+This folder was `experiments/studies/` until 2026-11-20. Scripts that moved to `../benchmarks/` or `../archive/` are
+listed in `../INDEX.md`.
 
 Experiments on the constraint-aware unmasking schedule: which positions to reveal next, and how many at once, under
 twisted SMC for a masked diffusion model with a hard constraint. Findings and their status are in
@@ -19,11 +22,11 @@ This directory holds the studies that measure them.
 | `pulib/gate.py` | Gated resampling: a pilot without resampling decides where resampling is allowed. |
 | `pulib/suites.py` | Named benchmark suites. |
 | `pulib/summary.py`, `report.py` | The standard summary, cell-by-cell comparisons, and the results log. |
-| `weight_trust.py` | Do intermediate weights predict final weights? |
+| `../archive/weight_trust.py` | Do intermediate weights predict final weights? |
 | `twist_error.py` | Error of the product twist against the exact twist, and of a first-order chain stand-in. |
-| `twist_smc.py` | Reference sequential sampler with a pluggable twist stand-in. |
-| `mdlm_first_look.py` | Kernel, unconstrained audit, order inconsistency and constrained runs on MDLM (GPU). |
-| `control_check.py`, `hidden_mass_check.py`, `first_look.py` | Earlier checks of the one-per-step control and of hidden mass. |
+| `../archive/twist_smc.py` | Reference sequential sampler with a pluggable twist stand-in. |
+| `../benchmarks/mdlm_first_look.py` | Kernel, unconstrained audit, order inconsistency and constrained runs on MDLM (GPU). |
+| `../archive/control_check.py`, `hidden_mass_check.py`, `first_look.py` | Earlier checks of the one-per-step control and of hidden mass. |
 | `jobs/` | Queue scripts as they were run (local overnight queues, cluster batch files). |
 
 Results are in `results/parallel_unmasking/`.
@@ -31,7 +34,7 @@ Results are in `results/parallel_unmasking/`.
 ## Running a study
 
 ```
-PYTHONPATH=. python experiments/parallel_unmasking/compare.py --arms fix --N 256 \
+PYTHONPATH=. python experiments/studies/compare.py --arms fix --N 256 \
     --models hidden_0.85 --constraints copy_block copy_spread window two_window \
     --nrun 100 --K 16 --pilot 2000 --workers 3 --resume --out fix_N256.json
 ```

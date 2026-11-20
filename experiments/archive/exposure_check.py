@@ -22,6 +22,7 @@ import numpy as np
 import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 from pulib.arms import Cell                                                                       # noqa: E402
 from pulib.cells import make_model, make_constraint, n_symbols                                    # noqa: E402
 from pulib.summary import provenance                                                              # noqa: E402

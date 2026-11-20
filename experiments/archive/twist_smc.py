@@ -16,6 +16,7 @@ from multiprocessing import Pool
 import numpy as np
 import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 import compare as cp
 import twist_error as te
 

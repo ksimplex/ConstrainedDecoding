@@ -18,6 +18,7 @@ from twistroute.decode.schedule import clamp_revealed
 from twistroute.torch_routes import torch_route, TorchSubset
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 from pulib.summary import provenance                                                               # noqa: E402
 
 

@@ -7,6 +7,7 @@ timers, so every state stays feasible."""
 import argparse, json, sys, os, time
 import numpy as np, torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 from pulib.cells import make_model, make_constraint, n_symbols
 from pulib.summary import provenance
 from twistroute.decode import CouplingPolicy, fit_distance_kernel, COUNT_EDGES, constrained_marginals

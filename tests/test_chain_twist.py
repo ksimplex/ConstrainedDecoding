@@ -2,7 +2,7 @@
 
 * its value and its constrained marginals against brute-force enumeration of the chain law, with some positions
   revealed, on the whole sequence and on a subset of positions;
-* against the reference implementation used in the twist-error study (experiments/parallel_unmasking/twist_error.py);
+* against the reference implementation used in the twist-error study (experiments/studies/twist_error.py);
 * with eps = 1 it is the product twist;
 * in the sampler: without resampling the weights are those of the product twist (the intermediate twists
   telescope); with resampling Z_hat stays unbiased for the exact p(C).
@@ -18,7 +18,7 @@ from twistroute.models import ConstrainedTruth, noisy_hmm, lazy_chain
 from twistroute.torch_routes import torch_route, TorchChain, TorchSubset
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "experiments", "parallel_unmasking"))
+sys.path.insert(0, os.path.join(HERE, "..", "experiments", "studies"))
 
 
 def state(den, cl, n_rows, frac, seed):

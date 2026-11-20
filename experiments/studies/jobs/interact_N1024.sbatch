@@ -14,7 +14,7 @@ PY=$HOME/orcd/pool/cfg-twister/envs/cfgtw/bin/python
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 tar --warning=no-unknown-keyword -xzf pu_code8.tar.gz
 export PYTHONPATH=$PWD
-CMP=experiments/parallel_unmasking/compare.py
+CMP=experiments/studies/compare.py
 echo "start $(date)  job ${SLURM_JOB_ID:-none}  restarts ${SLURM_RESTART_COUNT:-0}" | tee -a progress.txt
 if [ ! -f tests_ok ]; then
   $PY -m pytest -q -x -p no:cacheprovider tests/test_longchain.py tests/test_resampling.py > unit_tests.txt 2>&1 || { tail -30 unit_tests.txt; echo "UNIT TESTS FAILED" | tee -a progress.txt; exit 1; }

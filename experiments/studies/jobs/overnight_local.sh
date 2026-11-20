@@ -2,7 +2,7 @@
 # Overnight local queue (laptop, 8 cores / 16 GB). Every compare.py stage resumes cell by cell and arm by arm.
 ROOT="$(cd "$(dirname "$0")" && pwd)"; REPO="$ROOT/cd_repo_tmp"; OUT="$ROOT/overnight"
 export PYTHONPATH="$REPO" OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
-CMP="$REPO/experiments/parallel_unmasking/compare.py"; WT="$REPO/experiments/parallel_unmasking/weight_trust.py"
+CMP="$REPO/experiments/studies/compare.py"; WT="$REPO/experiments/archive/weight_trust.py"
 stage() { name="$1"; shift
   if [ -f "$OUT/$name.done" ]; then echo "skip $name (done)" | tee -a "$OUT/progress.txt"; return; fi
   echo "start $name $(date '+%H:%M:%S')" | tee -a "$OUT/progress.txt"

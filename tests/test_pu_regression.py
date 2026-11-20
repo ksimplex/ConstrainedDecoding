@@ -1,5 +1,5 @@
 """
-Exact regression for the parallel-unmasking comparison (experiments/parallel_unmasking/compare.py).
+Exact regression for the parallel-unmasking comparison (experiments/studies/compare.py).
 
 Every arm set is run on one or two small cells with fixed seeds and compared, field by field, with reference
 outputs frozen in tests/golden/pu_compare.json. Each arm draws from its own named random stream, so a change in
@@ -18,7 +18,7 @@ import pytest
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path[:0] = [os.path.join(HERE, ".."), os.path.join(HERE, "..", "experiments", "parallel_unmasking")]
+sys.path[:0] = [os.path.join(HERE, ".."), os.path.join(HERE, "..", "experiments", "studies")]
 GOLDEN = os.path.join(HERE, "golden", "pu_compare.json")
 BASE = dict(nrun=6, nrun_mixed=4, K=4, pilot=60, pilot_small=20, seed=0, order_theta=0.0, gate_pilot=200,
             resample_ks=[4, 16], resample_modes=None, only=None, partial=None)

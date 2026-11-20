@@ -16,6 +16,7 @@ def run(job):
     m, c, N, arm, seed, nrun, K = job
     torch.set_num_threads(1)
     import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
     from compare import make_model, make_constraint, n_symbols
     from twistroute.decode import twisted_smc
     den = make_model(m, N, n_symbols(c))

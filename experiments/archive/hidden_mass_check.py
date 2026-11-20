@@ -15,6 +15,7 @@ import numpy as np
 import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 SETTINGS = {  # name: (smc keyword arguments, particles per run, runs relative to --nrun)
     "off": (dict(ess_min=0.0), 4, 1.0),
     "defensive": (dict(defensive=0.25), 4, 1.0),

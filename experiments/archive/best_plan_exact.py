@@ -31,6 +31,7 @@ import numpy as np
 import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 import twist_error as te                                                                           # noqa: E402
 from pulib.cells import make_model, make_constraint, n_symbols                                     # noqa: E402
 from pulib.orders import kl                                                                        # noqa: E402

@@ -21,6 +21,7 @@ from multiprocessing import Pool
 import numpy as np
 import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 import compare as cp
 
 ALPHAS = (0.25, 0.5, 0.75, 1.0)

@@ -24,6 +24,7 @@ import torch
 
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 import twist_error as te                                                                           # noqa: E402
 from pulib.cells import make_model, make_constraint, n_symbols, stream_seed                         # noqa: E402
 from pulib.orders import kl, exact_conditionals                                                     # noqa: E402

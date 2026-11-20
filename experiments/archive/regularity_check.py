@@ -1,7 +1,9 @@
 """Are sequences that satisfy a forbidden-motif constraint unusually regular? Exact draws from p(. | C) against exact
 draws from the model p, 64 positions, default hidden chain. Also the size of the allowed set."""
 import sys, json, itertools, numpy as np, torch
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "studies"))
 from pulib.cells import make_model, make_constraint, FORBIDDEN_MOTIFS
 torch.set_num_threads(2)
 N, n = 64, 40000
