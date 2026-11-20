@@ -1,20 +1,25 @@
-"""The chain law r(. | x_t) and its passes over an automaton (notes, eq. 11 to 13).
+"""The chain prediction r(. | x_t) of the notes (eq. 11) and its passes over an automaton.
 
 Notation: mu_i(a) is the model's class marginal at position i (one-hot at unmasked positions),
-K the pair table, A the number of classes, S the number of automaton states.
+K the pair table, A the number of classes, S the number of automaton states. The code calls
+r(. | x_t) the chain law and r(x_0 in C | x_t) its mass on C.
 
-    transitions  eq. (11): for each adjacent pair the joint Q_i(a, b) = u_i(a) K(a, b) v_i(b)
-                 with marginals mu_i and mu_{i+1}, returned as the conditional
-                 Q_i(a, b) / mu_i(a) of eq. (12).
-    log_mass     log r(C | x_t): a forward pass over pairs (class at i, automaton state).
-    log_mass_with
-                 log r(x_U = c, C | x_t): the same pass with the classes at U fixed. The
-                 chain's transitions are not changed by fixing them.
-    sample       a draw from r(. | x_t, C), eq. (13): a backward pass stores, for every
-                 position, class and state, the chance of ending in an accepting state; a
-                 forward sweep then draws the classes one position at a time.
+    transitions    the conditionals Q_i(a, b) / mu_i(a) that eq. (11) multiplies together.
+                   Q_i(a, b) = u_i(a) K(a, b) v_i(b) is the joint with marginals mu_i and
+                   mu_{i+1} (text before eq. 11); u_i and v_i are found by row and column scaling.
+    log_mass       log r(x_0 in C | x_t), the normaliser in eq. (12) and the chain twist:
+                   a forward pass over pairs (class at i, automaton state).
+    log_mass_with  log r(x_0,U = c, x_0 in C | x_t): the same pass with the classes at U fixed.
+                   The transitions are those of the chain at x_t; fixing U does not change them.
+                   Enters the weight, eq. (13).
+    sample         a draw from the constrained chain prediction r(. | x_t, C) of eq. (12): a
+                   backward pass stores, for every position, class and state, the chance of
+                   ending in an accepting state; a forward sweep then draws the classes one
+                   position at a time. Returns log r(x_0 in C | x_t) as well.
+    marginals      r(x_0,i = a | x_t, C).
 
-Cost: O(L A |E|) for the forward pass, O(L A^2 S) time and O(L A S) memory for the sampler.
+Cost: the matching is O(m L A^2) for m sweeps. Each pass multiplies, at every position, a
+(class, state) table by an (A, A) transition: O(L A^2 S) time; `sample` stores O(L A S).
 """
 
 from __future__ import annotations
@@ -27,6 +32,8 @@ TINY = 1e-300
 
 
 class ChainLaw:
+    """The chain prediction for one automaton and one pair table; see the module docstring."""
+
     def __init__(
         self,
         automaton: Any,
@@ -62,7 +69,7 @@ class ChainLaw:
         )
         self.next_state[self.edge_from, self.edge_class] = self.edge_to
 
-    # ------------------------------------------------------------------ eq. (11) and (12)
+    # ------------------------------------------------------ the conditionals in eq. (11)
     def transitions(self, mu: torch.Tensor) -> torch.Tensor:
         """(B, L, A) marginals -> (B, L - 1, A, A): the chance of class b at i + 1 given class a
         at i, for every adjacent pair."""
@@ -154,7 +161,7 @@ class ChainLaw:
             )
         return torch.nan_to_num(grad, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
 
-    # ------------------------------------------------------------------ eq. (13)
+    # ------------------------------------------------------------------ a draw from eq. (12)
     def sample(
         self,
         prediction: torch.Tensor,

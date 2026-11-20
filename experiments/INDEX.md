@@ -11,7 +11,7 @@ Tables and figures of the notes, from the new core (`twistroute.sampler`, `twist
 | Script | What it does |
 |---|---|
 | `cells.py` | The oracle model and the constraints of the notes' experiments. |
-| `table3.py` | Table 3 of the notes: exact KL divergence (nats, lower is better) from the law of the sampler's output to the constrained target, on the hidden-chain oracle with L = 8 positions, one position unmasked per step, product proposal, no resampling. |
+| `table3.py` | Table 3 of the notes: KL divergence KL(q_K \|\| pi), in nats, lower is better, from the law q_K of the sampler's output to the constrained target pi, with one position unmasked per step, the product proposal and no resampling. Exact where feasible, Monte Carlo with a stated error otherwise. |
 
 ## `experiments/benchmarks/`
 
@@ -20,7 +20,7 @@ Real models and text benchmarks: LLaDA and MDLM; JSON-Mode-Eval, BFCL, xLAM. The
 | Script | What it does | Recorded in status sections |
 |---|---|---|
 | `bfcl_compile.py` | Compile a sample of BFCL single-turn examples into token-level routes for one tokenizer (CPU), and report sizes. | 36aq |
-| `bfcl_constraints.py` | Regular-expression constraints for BFCL function calls, in the two output formats of Dang & Ermon (2026). | 36aq |
+| `bfcl_constraints.py` | Regular-expression constraints for BFCL function calls, in the two output formats of Dang & Ermon (2026). python [name(arg=value, arg=value), name(...)] json [{"name": "name", "arguments": {"arg": value, "arg": value}}, {...}] The constraint fixes: the function name (one of those offered), the ar... | 36aq |
 | `bfcl_eval_outputs.py` | Score stored BFCL outputs (llada_json.py --stage baseline / compare on routes from bfcl_compile.py) with the official checker. | 36av |
 | `bfcl_score.py` | Score function calls with the official BFCL checker (package bfcl-eval, installed with --no-deps). | 36aq |
 | `json_classes.py` | How many token classes does a JSON constraint have under a real tokenizer? | not named there |
@@ -42,11 +42,11 @@ Studies on oracle models that current claims rest on, and the library they share
 |---|---|---|
 | `compare.py` | Policy against the fixed schedule on oracle models, measured against the exact target p(. \| C). | 8, 8b, 9, 10, 20, 34, 35, 36a, ... |
 | `forced_batch_check.py` | Exact check of the forced-only batch step (CouplingPolicy(forced_batch=...)) at a size where every sequence can be listed. | 36ap |
-| `kl_bounds_check.py` | Bounds on the error of the returned sample's law, checked where the law itself is known (8 positions, one token per step, no resampling). | 36as |
+| `kl_bounds_check.py` | Bounds on the error of the returned sample's law, checked where the law itself is known (8 positions, one token per step, no resampling). q_K = law of the output when K particles are drawn from the sampler q and one is returned in proportion to its weight w = pi / q. exact KL(q_K \|\| pi), by enume... | 36as |
 | `parallel_exact.py` | Parallel reveals, exactly: the best trade of steps against error at a length where every state can be tabulated. | 36y, 36au |
 | `parallel_exact_check.py` | Cross-check of the sampler against the exact tables of parallel_exact.py at 8 positions. | 36z |
 | `particle_rule_check.py` | How many particles for a tolerance on the returned sample's law? | 36ai |
-| `report.py` | Standard report of comparison outputs, and the log of results across settings. | 36a |
+| `report.py` | Standard report of comparison outputs, and the log of results across settings. report.py OUT.json [--baseline ARM] [--log] table per cell; --log appends the summary to the log report.py A.json --against B.json the same arms in two outputs, cell by cell (b / a) report.py OUT.json --arm-a ARM --arm... | 36a |
 | `surrogate_plan.py` | Can the ideal reveal order be found without the exact twist? | 36t, 36w |
 | `twist_error.py` | How wrong is the twist, and does a first-order chain stand-in fix it? | 29, 35, 36f |
 
@@ -66,7 +66,7 @@ Questions that are answered. Kept runnable (they import the shared library from 
 | `error_estimate_check.py` | Does the disagreement between the chain twist and the product twist estimate the product twist's error? | 36g |
 | `exposure_check.py` | Does exposure predict the variance of the weights? | 36b |
 | `first_look.py` | First look at the coupling policy on oracle chains (CPU, small). | 3, 28 |
-| `hidden_mass_check.py` | Is the accuracy loss at long lengths hidden mass (notes Sec. | 11 |
+| `hidden_mass_check.py` | Is the accuracy loss at long lengths hidden mass (notes Sec. 6), and which remedy keeps resampling? | 11 |
 | `order_attribution.py` | Attribute a sequential order's KL(sampler \|\| exact law) to the positions it reveals: the sum over steps of the true error KL(proposal marginal \|\| exact conditional) at the revealed position, split by distance from the window. | 36i |
 | `pair_cost_check.py` | Does a pairwise account of the model's dependence predict the true cost of revealing a position? | 36n |
 | `plan_check.py` | Does one step of planning on an estimated cost beat the greedy use of the same estimate? | 36r |

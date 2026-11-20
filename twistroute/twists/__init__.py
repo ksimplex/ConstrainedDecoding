@@ -1,10 +1,10 @@
 """Twists and their proposals (notes, section 2.3).
 
-base     the interface, and the weight of a step, eq. (5)
-product  the product twist and proposal, eq. (9) and (10); tempered and powered variants
-chain    the chain twist and proposal, eq. (11) to (13)
-chain_law  the chain law itself: matched transitions, forward pass, sampler
-tables   pair tables K for the chain twist
+base       the interface, and the weight of a step, eq. (5)
+product    the product twist and proposal, eq. (9) and (10); tempered and powered variants
+chain      the chain twist and proposal, eq. (11) and (12), and their weight, eq. (13)
+chain_law  the chain prediction of eq. (11) itself: matched transitions, mass on C, sampler
+tables     pair tables K for the chain twist
 """
 
 from .base import Twist, drawn_log_prob, weight_from_ratio

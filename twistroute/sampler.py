@@ -78,7 +78,7 @@ def model_prediction(
     tokens: torch.Tensor,
     classes: torch.Tensor,
 ) -> State:
-    """Call the model at x_t and package its prediction (notes, eq. 1)."""
+    """Call the model at x_t and package its mean-field prediction (notes, eq. 2)."""
     log_p = model.logits(tokens)
     return State(
         tokens,
@@ -180,7 +180,11 @@ def weighted_sampler(
     classes = torch.zeros(n_rows, length, dtype=torch.long, device=device)
     state = model_prediction(model, token_classes, constraint, tokens, classes)
     state.log_psi = twist.log_psi(state)
-    log_weights = state.log_psi  # W_j = psi(x_T)
+    # Differs from the notes on purpose: the notes start every weight at 1; here W_j starts at
+    # psi(x_T), the twist of the fully masked sequence. All weights of a run are multiplied by the
+    # same number, so the returned particle has the same law, and the mean final weight then
+    # estimates P(x_0 in C) (`log_Z_hat`).
+    log_weights = state.log_psi
     log_Z_hat = torch.zeros(runs, dtype=torch.float64, device=device)
     ess_min = torch.full((runs,), float(particles), device=device, dtype=torch.float64)
     resamplings = torch.zeros(runs, device=device)
@@ -192,9 +196,9 @@ def weighted_sampler(
         # a constrained denoising step x_t -> x_s ~ M(. | x_t)
         if twist.needs_unmask_set:
             unmask, valid = schedule.unmask(state, step_index, n_steps, generator)
-            completion, extra = twist.complete(state, generator, unmask, valid)
+            completion, extra = twist.draw_completion(state, generator, unmask, valid)
         else:
-            completion, extra = twist.complete(state, generator)
+            completion, extra = twist.draw_completion(state, generator)
             unmask, valid = schedule.unmask(state, step_index, n_steps, generator)
         step = commit(state, completion, unmask, valid, generator)
         step.extra = extra
@@ -207,7 +211,6 @@ def weighted_sampler(
                 step.tokens, step.classes, None, None, model.mask_id, constraint, token_classes
             )
             log_psi_next = new_state.in_constraint()
-            new_state.cache["log_product"] = log_psi_next
         else:
             new_state = model_prediction(
                 model, token_classes, constraint, step.tokens, step.classes
@@ -218,7 +221,7 @@ def weighted_sampler(
 
         # eq. (6): W_j <- W_j w(x_t, x_s)
         log_w, log_fixed = twist.log_weight(state, step, log_psi_next)
-        alive = torch.isfinite(log_weights) & torch.isfinite(state.cache["log_product"])
+        alive = torch.isfinite(log_weights) & torch.isfinite(state.log_psi)
         support["proposal_off_support"] += int((alive & ~torch.isfinite(log_fixed)).sum())
         if not last:
             collapsed = alive & torch.isfinite(log_fixed) & ~torch.isfinite(log_psi_next)

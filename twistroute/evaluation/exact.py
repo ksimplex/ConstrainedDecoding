@@ -112,6 +112,8 @@ def one_particle_law(
                 rows, positions = state.masked.nonzero(as_tuple=True)
                 share = 1.0 / state.masked.sum(-1)[rows]
             else:
+                # length + 1 steps in total, so that no step is the schedule's last one (at its
+                # last step a schedule unmasks everything that is left)
                 unmask, valid = schedule.unmask(state, step, length + 1, None)
                 if unmask.shape[1] != 1 or (valid is not None and not bool(valid.all())):
                     raise ValueError(
@@ -169,6 +171,7 @@ def output_law(
     *,
     n_draws: int = 20000,
     rng: Optional[np.random.Generator] = None,
+    exact_limit: int = 50_000_000,
 ) -> np.ndarray:
     """q_K over `all_sequences`: the law of the sequence returned by K particles without
     resampling, for a deterministic schedule.
@@ -178,20 +181,66 @@ def output_law(
 
         q_K(x) = K q(x) w(x) E[ 1 / (w(x) + S) ],
 
-    with S the sum of the weights of the other K - 1 particles. The sum over x is exact; the
-    expectation over S is a mean over `n_draws` draws of K - 1 weights.
+    with S the sum of the weights of the other K - 1 particles. The sum over x is exact. The
+    expectation over S is exact too when q has n sequences with n^K <= `exact_limit` (every
+    combination of the other particles is listed); otherwise it is a mean over `n_draws` draws
+    of K - 1 weights, and the result carries Monte Carlo error (`kl_of_output` estimates it).
     """
     if particles == 1:
         return one_particle.copy()
-    rng = np.random.default_rng(0) if rng is None else rng
     support = one_particle > 0
     weight = np.where(support, target / np.where(support, one_particle, 1.0), 0.0)
-    others = weight[rng.choice(len(weight), size=(n_draws, particles - 1), p=one_particle)].sum(1)
-    law = np.zeros(len(weight))
     live = np.nonzero(weight > 0)[0]
+    law = np.zeros(len(weight))
+    if output_law_is_exact(one_particle, particles, exact_limit):
+        members = np.nonzero(support)[0]
+        sums = np.zeros(1)  # all values of S, with their probabilities
+        chance = np.ones(1)
+        for _ in range(particles - 1):
+            sums = (sums[:, None] + weight[members][None]).ravel()
+            chance = (chance[:, None] * one_particle[members][None]).ravel()
+        for row in live:
+            law[row] = (
+                particles * one_particle[row] * weight[row] * (chance / (weight[row] + sums)).sum()
+            )
+        return law / law.sum()
+    rng = np.random.default_rng(0) if rng is None else rng
+    others = weight[rng.choice(len(weight), size=(n_draws, particles - 1), p=one_particle)].sum(1)
     block = max(1, 40_000_000 // n_draws)  # rows per block: about 320 MB of doubles
     for low in range(0, len(live), block):
         rows = live[low : low + block]
         inverse = (1.0 / (weight[rows][:, None] + others[None])).mean(1)
         law[rows] = particles * one_particle[rows] * weight[rows] * inverse
     return law / law.sum()
+
+
+def output_law_is_exact(
+    one_particle: np.ndarray, particles: int, exact_limit: int = 50_000_000
+) -> bool:
+    """Whether `output_law` lists every combination of the other particles (no Monte Carlo)."""
+    return particles == 1 or int((one_particle > 0).sum()) ** particles <= exact_limit
+
+
+def kl_of_output(
+    one_particle: np.ndarray,
+    target: np.ndarray,
+    particles: int,
+    *,
+    n_draws: int = 100_000,
+    n_batches: int = 8,
+    seed: int = 0,
+) -> Tuple[float, float]:
+    """KL(q_K || pi) in nats and its Monte Carlo standard error.
+
+    Exact (standard error 0) when `output_law` is exact. Otherwise `n_batches` independent
+    estimates of q_K with `n_draws` draws each are averaged; the standard error is the spread of
+    the batches' own KL values divided by sqrt(n_batches).
+    """
+    if output_law_is_exact(one_particle, particles):
+        return kl(output_law(one_particle, target, particles), target), 0.0
+    laws = []
+    for batch in range(n_batches):
+        rng = np.random.default_rng([seed, batch])
+        laws.append(output_law(one_particle, target, particles, n_draws=n_draws, rng=rng))
+    each = np.array([kl(law, target) for law in laws])
+    return kl(np.mean(laws, axis=0), target), float(each.std(ddof=1) / np.sqrt(n_batches))

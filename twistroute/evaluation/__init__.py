@@ -9,9 +9,11 @@ from .bounds import bracket, leading_term, marginal_lower_bound, upper_bound
 from .exact import (
     all_sequences,
     kl,
+    kl_of_output,
     log_prob_of_constraint,
     one_particle_law,
     output_law,
+    output_law_is_exact,
     target_law,
 )
 from .spread import dead_runs, mean_ratio, rms_log_ratio, sd_log_Z_hat
@@ -23,6 +25,8 @@ __all__ = [
     "log_prob_of_constraint",
     "one_particle_law",
     "output_law",
+    "output_law_is_exact",
+    "kl_of_output",
     "upper_bound",
     "leading_term",
     "marginal_lower_bound",

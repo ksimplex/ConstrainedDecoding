@@ -3,4 +3,6 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 *.npz
+# the frozen sampler reference is small and the exact-equality test needs it
+!tests/core/reference/*.npz
 hpc/

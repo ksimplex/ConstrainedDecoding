@@ -20,44 +20,63 @@ Out of scope and untouched: the directories marked off-limits, and `experiments/
 - A test asserts that the new core and the legacy surface give identical results on the reference set.
 - When nothing imports the legacy surface any more, it is deleted in one commit.
 
-## 3. Target layout
+## 3. Layout as built
 
-| Notes | New module | Contents (new names) | Built from |
+This section, section 4 and section 6 describe the code as it is (rewritten 2026-11-20 after the readability test, which found
+that the earlier text was the plan and named things that were never built). What was planned and not done is listed at the end
+of this section.
+
+| Notes | Module | What is in it | Wraps or ports |
 |---|---|---|---|
-| §1 model, mean-field prediction | `twistroute/models/` | `Denoiser` interface; `OracleHMM` (consistent); `LLaDA`; `MDLM`; `TokenClasses` | `models/*` (already here; renames only) |
-| §1 unconstrained step, eq. (2), (4) | `twistroute/sampler.py` | `unconstrained_step`, `unconstrained_sample` | `decode/native.py` |
-| §2.1 families, Table 1 | `twistroute/constraints/` one file per family: `automaton.py`, `positions.py` (subset of positions; per-position allowed sets), `factor_graph.py`, `grammar.py` | one class per family; cost from Table 1 in the docstring | `compile/*`, `torch_routes/*` |
-| §2.1 intersection, Table 2 | `constraints/intersect.py` | `intersect(constraint, automaton)` | `compile/products.py` |
-| §2.2 Proposition 1 | `constraints/base.py` | `Constraint` interface: `log_prob(q)` = log q(C), `marginals(q)`, `sample(q)` | `torch_routes/routes.py`, `decode/policy.constrained_marginals` |
-| (tokens to classes, regular expressions) | `constraints/tokens.py` | `from_regex`, token classes of a pattern | `compile/tokens.py` |
-| §2.3 twist, proposal, eq. (5) | `twistroute/twists/base.py` | `Twist` interface (`log_psi`, `propose`); `step_weight` | `decode/twist.py` |
-| §2.3 ideal twist, eq. (7)–(8) | `twists/ideal.py` | `IdealTwist` (exact, small oracles only) | `decode/exact.py` |
-| §2.3 product twist, eq. (9)–(10) | `twists/product.py` | `ProductTwist` | `decode/twist.py` |
-| §2.3 chain twist, eq. (11)–(13) | `twists/chain.py`, `twists/pair_table.py` | `ChainTwist` (matching on by default); `counted_table`, `probed_table` | `decode/chain_twist.py`, `compile/tokens.pair_ratio_table` |
-| §2.3 weighted sampler, eq. (6) | `twistroute/sampler.py`, `twistroute/resampling.py` | `weighted_sampler` (particles, resampling, returned sample); resampling rules | `decode/smc.py`, `decode/resampling.py` |
-| §4.1 sequential schedules | `twistroute/schedules/sequential.py` | `Schedule` interface (`unmask(state)`); `LeftToRight`, `RandomOrder`, `Confidence`, `Sum` | `decode/policy.py`, `decode/schedule.py` |
-| §4.2 parallel schedules | `schedules/parallel.py`, `schedules/dependence.py` | `FixedPerStep`, `Blocks`, `BudgetedCoReveal`; the pilot dependence estimate; later the planner | `decode/policy.py` |
-| (not yet in the notes) evaluation | `twistroute/evaluation/` | exact laws and exact KL at small L; exact K-particle output law; bounds; spread of the estimate of P(C) | `decode/exact.py`, `diagnostics.py`, `parallel_exact.OutputLaw`, `kl_bounds_check.py` |
+| §1 model | `twistroute/models/` | `noisy_hmm`, `lazy_chain`, ... (oracles; `OracleHMM`), `LLaDA`, `MDLM`, `TokenClasses`. A model is any object with `.logits(tokens)` (log-probabilities, despite the name), `.mask_id`; oracles also have `.S` (tokens), `.log_joint` | unchanged earlier code and names |
+| §1 mean-field prediction, eq. (2) | `twistroute/state.py` | `State` (x_t and the prediction at it; `State.prediction()`), `Step` (x_t to x_s) | new |
+| §1, eq. (4) unconstrained step | `twistroute/sampler.py` | `unconstrained_step`, `model_prediction`, `commit` | new |
+| §2.1 families, Table 1 | `twistroute/constraints/`: `automaton.py`, `positions.py`, `factor_graph.py`, `grammar.py` | functions that return a `Constraint`: `automaton`, `forbidden_motifs`, `exactly_k`, `at_least_k`, `dyck1`; `on_positions`, `with_allowed_sets`; `factor_graph`, `copy_pairs`; `grammar` | wraps `torch_routes`, `compile` |
+| §2.1 intersections, Table 2 | `constraints/intersect.py` | `intersect` | wraps `compile/products.py` |
+| §2.2 Proposition 1 | `constraints/base.py` | `Constraint`: `log_prob`, `marginals`, `sample`, `contains`; `fix_unmasked` | wraps the `.logZ`, `.sample`, `.accepts` of a "route" |
+| (tokens to classes) | `constraints/tokens.py` | `from_regex`, `token_codes` | wraps `compile/tokens.py` |
+| §2.3 twist, proposal, eq. (5) | `twists/base.py` | `Twist` (`log_psi`, `draw_completion`, `log_weight`, `class_marginals`); `weight_from_ratio` is eq. (5); `drawn_log_prob` | port of `decode/twist.py` |
+| §2.3 product twist, eq. (9), (10) | `twists/product.py` | `ProductTwist(temperature, power)`; `log_product_twist` | port of `decode/twist.py` |
+| §2.3 chain twist, eq. (11) to (13) | `twists/chain.py`, `twists/chain_law.py` | `ChainTwist` (twist, proposal; `log_weight` is eq. 13); `ChainLaw` (`transitions`, `log_mass`, `log_mass_with`, `sample`, `marginals`) | port of `decode/chain_twist.py` |
+| pair table K | `twists/tables.py` | `counted_pair_table`, `probed_pair_table` | wraps `decode/chain_twist.py` |
+| §2.3 weighted sampler, eq. (6) | `twistroute/sampler.py`, `twistroute/resampling.py` | `weighted_sampler`, `SamplerResult` (`.returned()` draws the output); `Resampling`, `resample` | port of `decode/smc.py`, `decode/resampling.py` |
+| §4.1 sequential schedules | `schedules/base.py`, `schedules/sequential.py` | `Schedule` (`unmask`), `RandomOrder`; `LeftToRight`, `FixedOrder`, `Confidence`, `Sum` | ports of `decode/policy.py`, `decode/schedule.py` |
+| §4.2 parallel schedules | `schedules/parallel.py`, `schedules/dependence.py`, `schedules/baselines.py` | `Blocks`, `BudgetedCoReveal` (still calls `decode.policy.CouplingPolicy`); `fit_distance_dependence`; `Dilated` | wraps `decode/policy.py` |
+| Table 3, Figures 1 and 2 | `twistroute/evaluation/` | `exact.py`: `target_law`, `one_particle_law`, `output_law`, `kl_of_output`, `kl`; `bounds.py`: `upper_bound`, `leading_term`, `marginal_lower_bound`; `spread.py` | new, after `kl_bounds_check.py` |
 
-## 4. Vocabulary (code follows the notes)
+Planned and not built: an `IdealTwist` (eq. 7 and 8; the exact twist exists only in `experiments/studies/twist_error.py`); a
+`Denoiser` interface class; `unconstrained_sample` (a full unconstrained run; `decode/native.py` has it); a `FixedPerStep`
+schedule (use `RandomOrder` with fewer steps than positions); the diagnostics callback is the `observe` argument of
+`weighted_sampler`, not a module in `evaluation/`.
 
-| Today in the code | After | Notes |
+Where the code differs from the notes: section 8, item 5, and the module docstring of `twists/chain.py`.
+
+## 4. Vocabulary
+
+| Notes | New code | Earlier code (still used in `decode`, `torch_routes`, `models`, experiments) |
 |---|---|---|
-| route, `TorchChain`, `TorchSubset`, ... | constraint, `AutomatonConstraint`, `PositionSubset`, ... | §2 |
-| `route.logZ(lw)`, `constrained_marginals(route, lw)`, `route.sample(...)` | `constraint.log_prob(q)`, `.marginals(q)`, `.sample(q)` | Prop. 1 |
-| `N` (length) | `L` | §1 |
-| `den`, denoiser | `model` | §1 |
-| native (`native_sample`) | unconstrained | §1 |
-| policy, order, schedule (three words) | schedule | §1, §4 |
-| reveal | unmask | §1 |
-| `lw` (class log-weights) | `log_q` | Prop. 1 |
-| `twisted_smc` | `weighted_sampler` | §2.3 |
-| `logZ` returned by the sampler | `log_Z_hat` | Fig. 2 |
-| `K` (particles) and `K` (pair table) | particles stay `K`; the pair table takes whatever letter the notes settle on | §2.3 uses K for both |
+| constraint C | `Constraint` | route (`TorchChain`, `TorchSubset`, ...; `TorchChain` is the automaton, not the chain twist) |
+| q(C); constrained marginals; a draw | `constraint.log_prob`, `.marginals`, `.sample` | `route.logZ`, `constrained_marginals(route, .)`, `route.sample` |
+| L | `length` | `N` |
+| model, p_theta | `model` | `den`, denoiser |
+| mean-field prediction, class level | `State.log_q`, `State.prediction()` | `lw`, `clamp_revealed(lw, ...)` |
+| unconstrained | `unconstrained_step` | native |
+| schedule pi(U \| x_t) | `Schedule.unmask` | policy, order, `reveal` |
+| x-hat_0; commit on U | `completion`; `commit` | `y`; inside `_propose` |
+| twist psi; step weight w | `log_psi`; `log_weight`, `weight_from_ratio` | `psi`, `eta`; `_log_potential` |
+| chain prediction r; r(C \| x_t) | `ChainLaw` ("chain law"); `log_mass` | `ChainTwist.log_chain` |
+| pair table K | `pair_table` | `kernel` |
+| particles K | `particles` | `K` |
+| weighted sampler | `weighted_sampler` | `twisted_smc` |
+| estimate of P(C) | `log_Z_hat` | `logZ` |
+| Dang and Ermon's sampler | one particle ("Unweighted" in Table 3) | `K=1` |
+
+Two classes are called `ChainTwist`: `twistroute.twists.ChainTwist` (new; matching on by default) and
+`twistroute.decode.ChainTwist` (earlier; `match=0` by default, argument names `kernel`, `eps`, `temp`, `match`).
 
 ## 5. Where each sampler and schedule option goes
 
-**New core** (in the notes, or decided): number of particles; twist (`ProductTwist` or `ChainTwist`; the proposal follows the twist; the chain proposal keeps a share of the product proposal, today `proposal_mix`);
+**New core** (in the notes, or decided): number of particles; twist (`ProductTwist` or `ChainTwist`; the proposal follows the twist; the chain proposal can keep a share of the product proposal, `proposal_product_share` (earlier `proposal_mix`), off by default);
 schedule; resampling threshold (`ess_min`); schedules left to right, random, confidence (token, class, entropy; blocks; several per step), `sum`; budgeted co-reveal; forced positions first; forced-only batch (off by default).
 
 **Legacy surface only** (ruled out or superseded; still runnable through the old `twisted_smc` and `CouplingPolicy`): look-ahead (`lookahead*`), `mix_native`, the unmatched chain as reference for co-revealed sets (`reference_twist` with the ratio formula),
@@ -74,28 +93,24 @@ threshold admission (`theta`), the mixed coupling, the guard, the dynamic "least
 | Diagnostics threaded through the sampler | One optional callback, defined in `evaluation/`. |
 | Constraint implementations | Wrapped behind the Proposition 1 interface; the code itself is not moved. |
 
-## 6. Experiments
+## 6. Experiments and tests as built
 
-**`experiments/notes/`** (one script per item of the notes)
+`experiments/INDEX.md` lists every script, what it does and the status sections that record it.
 
-| Notes item | Script | Source today |
-|---|---|---|
-| Table 3, KL by particles, L = 8 | `table3_kl_by_particles.py` | `kl_bounds_check.py` |
-| Figure 1, exact one-particle KL by order, product against chain, L = 10–12 | `fig1_exact_kl_by_order.py` | `best_plan_exact.py`, `surrogate_plan.py` |
-| Figure 2, spread of log Z_hat at L = 256 | `fig2_spread_L256.py` | `compare.py --arms matched` (pulib) |
-| Figure 3 (no caption yet), the same with all orders and four other chains | `fig3_spread_other_chains.py` | same |
-
-**`experiments/benchmarks/`** (real models): `json_mode/` (`json_mode_compile.py`, `json_classes.py`, `json_mode_classes.py`), `bfcl/` (`bfcl_constraints.py`, `bfcl_compile.py`, `bfcl_score.py`, `bfcl_eval_outputs.py`), `xlam/` (`xlam_constraints.py`),
-`run_real_model.py` (today `llada_json.py`, split into stages), `llada_pilot_check.py`, `mdlm/` (`mdlm_first_look.py`, `mdlm_order_consistency.py`, `mdlm_orders_output.py`, `mdlm_timing.py`).
-
-**`experiments/studies/`** (live, not yet in the notes): `parallel_exact.py`, `parallel_exact_check.py`, `particle_rule_check.py`, `forced_batch_check.py`, `hidden_mass_check.py`, `compare.py` with `pulib/` (the oracle comparison harness), `report.py`.
-
-**`experiments/archive/`** (finished one-off studies, with `INDEX.md`: script, status-document section, verdict; they run against the legacy surface): `collective_check.py`, `control_check.py`, `counting_orders.py`, `error_estimate_check.py`,
-`exposure_check.py`, `first_look.py`, `order_attribution.py`, `pair_cost_check.py`, `plan_check.py`, `regularity_check.py`, `reveal_stages.py`, `revision_check.py`, `twist_error.py`, `twist_order.py`, `twist_smc.py`, `weight_trust.py`.
-
-**Tests**: existing tests stay and keep testing the legacy surface. New tests, one file per new module, named after the notes (`test_constraints_prop1.py`, `test_twists_weights.py`, `test_sampler.py`, `test_schedules.py`, `test_evaluation.py`), plus `test_core_matches_legacy.py`.
-
-**Style for everything that stays live**: one statement per line, lines of at most 100 characters, type hints on public functions, no path set-up lines (the package is installed in editable mode).
+- `experiments/notes/`: `cells.py` (the oracle and constraints of the notes' experiments), `table3.py` (Table 3). Figures 1 to 3
+  have no script: Figure 1 comes from `experiments/studies/surrogate_plan.py` (with the unmatched chain), Figures 2 and 3 from
+  `experiments/studies/compare.py --arms matched` and plotting code that is not in the repository.
+- `experiments/benchmarks/` (flat, one folder): the JSON-Mode-Eval, BFCL, xLAM and MDLM scripts; `llada_json.py` is the runner for
+  LLaDA. They call the earlier sampler.
+- `experiments/studies/`: `compare.py` with `pulib/`, `twist_error.py`, `surrogate_plan.py`, `parallel_exact.py`,
+  `parallel_exact_check.py`, `kl_bounds_check.py`, `particle_rule_check.py`, `forced_batch_check.py`, `report.py`, `jobs/`.
+- `experiments/archive/`: the answered questions.
+- Tests: `tests/core` (new code: `test_constraints_prop1.py`, `test_sampler.py` with the chain prediction and the chain weight
+  against enumeration, `test_evaluation.py`, `test_core_matches_legacy.py` with the frozen reference in `reference/`),
+  `tests/algorithms`, `tests/legacy`, `tests/experiments`. The new schedule classes have no test file of their own: they are
+  covered by the exact comparison with the earlier sampler.
+- Style of the new code: one statement per line, at most 100 characters, type hints (`ruff`, settings in `pyproject.toml`).
+  Scripts and some tests still add folders to the path by hand.
 
 ## 7. Order of work and checks
 
@@ -146,6 +161,12 @@ threshold admission (`theta`), the mixed coupling, the guard, the dynamic "least
 - Not checked, because those files are not opened: whether application code imports from the old folder
   `experiments/parallel_unmasking/` or from test modules that moved. Under pytest the test folders are all on the path
   (`pyproject.toml`), so imports between test modules keep working.
+- Step 7, readability test done (report saved as an artifact, `readability_report.md`). Fixed after it: the chain equations
+  were numbered wrongly in the docstrings (now (11) chain prediction, (12) constrained chain prediction, (13) weight); the
+  frozen reference `.npz` had never been committed (`*.npz` was ignored); `ChainTwist.log_weight` is tested directly against
+  eq. (13); the K-particle law is exact where feasible and reports its Monte Carlo error otherwise; `product_share = 0` (the
+  notes' twist) is allowed; twists no longer need to fill `state.cache`; `Twist.complete` renamed `draw_completion`; this map
+  rewritten to describe what was built.
 - Added by the user on 2026-11-20, after step 6: `docs/setup.md` (what everything needs; what only the real-model
   benchmarks need, with where the weights and datasets come from; what needs a GPU); tests sorted into folders that follow
   the new layout (none deleted; the application's tests are not touched); the README rewritten for the new layout.

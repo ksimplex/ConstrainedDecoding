@@ -1,6 +1,6 @@
-"""Pair tables K(a, b) for the chain twist (notes, eq. 11): an estimate of the probability that
-class b follows class a at adjacent positions. Any positive table keeps the sampler exact; a
-better table gives a better proposal.
+"""Pair tables K(a, b) for the chain twist (notes, text before eq. 11): an estimate of the
+probability that class b follows class a at adjacent positions. Any positive table keeps the
+sampler exact; a better table gives a better proposal.
 
     counted_pair_table  frequencies of adjacent classes in unconstrained samples of the model
     probed_pair_table   the model's own conditionals: unmask one position of the fully masked

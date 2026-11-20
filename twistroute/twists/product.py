@@ -65,7 +65,7 @@ class ProductTwist(Twist):
         state.cache["log_product"] = log_product
         return self.power * log_product
 
-    def complete(
+    def draw_completion(
         self,
         state: State,
         generator: Optional[torch.Generator],

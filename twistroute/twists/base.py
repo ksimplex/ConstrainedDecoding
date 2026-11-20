@@ -16,12 +16,14 @@ weight depends only on how the classes at U were drawn.
 
 A `Twist` object is a twist together with its proposal. The sampler calls, in this order:
 
-    complete(state, generator, unmask, valid)   draw a full class sequence from the proposal's
-                                                law; the sampler commits it on U
-    log_psi(next_state)                         log psi(x_s), after the model has been called at x_s
-    log_weight(state, step, log_psi_next)       log w(x_t, x_s)
+    draw_completion(state, generator, unmask, valid)
+                                             draw a full class sequence (the notes' x-hat_0) from
+                                             the proposal's law; the sampler commits it on U
+    log_psi(next_state)                      log psi(x_s), after the model has been called at x_s
+    log_weight(state, step, log_psi_next)    log w(x_t, x_s)
 
-The sampler takes care of psi(x_0) = 1[x_0 in C] at the last step.
+The sampler takes care of psi(x_0) = 1[x_0 in C] at the last step. A twist needs nothing else:
+`state.cache` is the twist's own scratch space (the sampler only carries it through resampling).
 """
 
 from __future__ import annotations
@@ -43,10 +45,11 @@ class Twist:
     needs_unmask_set: bool = False
 
     def log_psi(self, state: State) -> torch.Tensor:
-        """(P,) log psi(x_t). May store per-particle tensors in `state.cache`."""
+        """(P,) log psi(x_t). May store per-particle tensors in `state.cache` for its own
+        `log_weight`; the sampler does not read them."""
         raise NotImplementedError
 
-    def complete(
+    def draw_completion(
         self,
         state: State,
         generator: Optional[torch.Generator],

@@ -92,7 +92,9 @@ class Constraint:
         """(batch, L, A) -> (batch, L, A): q(x_i = a | C). Rows with q(C) = 0 come back as zeros.
 
         Computed as the gradient of log q(C) with respect to log_q, which is the constrained
-        marginal; one backward pass, the same cost as `log_prob`.
+        marginal; one backward pass, the same cost as `log_prob`. Round-off can leave about
+        1e-16 where the exact answer is 0 (a class the constraint excludes): compare with a
+        tolerance, do not test for exact zeros.
         """
         with torch.enable_grad():
             v = log_q.detach().double().clone().requires_grad_(True)

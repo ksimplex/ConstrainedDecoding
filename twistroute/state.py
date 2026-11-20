@@ -20,7 +20,7 @@ class State:
 
     tokens         (P, L) x_t: token ids, `mask_id` at masked positions
     classes        (P, L) class of the token at each unmasked position (0 at masked ones)
-    log_p          (P, L, V) log p_theta(x_0,i = v | x_t), the model's prediction (notes, eq. 1)
+    log_p          (P, L, V) log p_theta(x_0,i = v | x_t), the model's prediction (notes, eq. 2)
     log_q          (P, L, A) the same prediction summed within token classes
     mask_id        id of the mask token
     constraint     the constraint C
