@@ -9,6 +9,136 @@ replaced by a route interface. Every output satisfies the constraint, the weight
 own conditional `p(x | x ∈ C)`, and the average weight `Ẑ` is an unbiased estimate of `P_model(C)` at every
 particle count.
 
+## Where to start
+
+| You want | Read |
+|---|---|
+| the method | the project notes, `Constrained_Diffusion.pdf` |
+| how the code follows the notes, section by section and equation by equation | `docs/refactor_map.md` |
+| to install and run something | `docs/setup.md` |
+| what each experiment script does and where its result is recorded | `experiments/INDEX.md` |
+| the results log | `docs/parallel_unmasking_status.md` |
+
+## The code that follows the notes
+
+| Notes | Module | Main names |
+|---|---|---|
+| §2, Proposition 1: constraints | `twistroute/constraints/` | `Constraint` (`log_prob`, `marginals`, `sample`, `contains`); `forbidden_motifs`, `exactly_k`, `dyck1`, `on_positions`, `factor_graph`, `grammar`, `intersect`, `from_regex` |
+| §1: a partly masked sequence and the model's prediction, eq. (2) | `twistroute/state.py` | `State`, `Step` |
+| §2.3: twists and proposals; weight of a step, eq. (5) | `twistroute/twists/` | `Twist`; `ProductTwist` (eq. 9, 10); `ChainTwist`, `ChainLaw` (eq. 11 to 13); `counted_pair_table`, `probed_pair_table` |
+| §2.3: unconstrained step, eq. (4); weighted sampler, eq. (6) | `twistroute/sampler.py`, `twistroute/resampling.py` | `unconstrained_step`, `weighted_sampler`, `Resampling` |
+| §1, §4: unmasking schedules | `twistroute/schedules/` | `RandomOrder`, `LeftToRight`, `Confidence`, `Sum`, `Blocks`, `BudgetedCoReveal` |
+| Table 3, Figures 1 and 2: evaluation | `twistroute/evaluation/` | `target_law`, `one_particle_law`, `kl_of_output`; `upper_bound`, `leading_term`; `sd_log_Z_hat` |
+
+Three places where the code differs from the notes on purpose, each marked by a comment in the code: the chain twist mixes in
+a 5% share of the product twist (`ChainTwist(product_share=0.05)`; 0 is the notes' twist); the pairwise joints of the chain are
+matched to the model's marginals by 5 rounds of scaling, not to convergence; the sampler starts every weight at the twist of
+the fully masked sequence, so that the mean final weight estimates P(x_0 in C).
+
+## Example (CPU, oracle model)
+
+```python
+import numpy as np
+import torch
+
+from twistroute import constraints
+from twistroute.models import noisy_hmm
+from twistroute.sampler import weighted_sampler
+from twistroute.schedules import LeftToRight
+from twistroute.twists import ChainTwist, counted_pair_table
+
+L = 12
+model = noisy_hmm(L, 3, 0.85, 0.3, seed=1, concentration=2.0)   # an oracle model with 3 tokens
+classes = model.classes()                                        # here every token is its own class
+constraint = constraints.forbidden_motifs([(0, 0), (1, 2)], 3)   # "00" and "12" never occur
+table = counted_pair_table(model, classes, 2000, torch.Generator().manual_seed(0))
+out = weighted_sampler(
+    model, classes, constraint, L, L, runs=1000, particles=4,
+    twist=ChainTwist.for_constraint(constraint, table), schedule=LeftToRight(),
+    generator=torch.Generator().manual_seed(1),
+)
+samples = out.returned(np.random.default_rng(0))    # (1000, 12): one sequence per run, all in C
+print(np.exp(out.log_Z_hat).mean())                 # 0.141: the estimate of P(x_0 in C) (exact: 0.141)
+```
+
+`twist=None` gives the product twist (TWISTER, arXiv:2609.35609); `particles=1` without the weights is the constrained sampler
+of Dang and Ermon (arXiv:2607.07026). Table 3 of the notes: `python experiments/notes/table3.py` (about one minute).
+
+## Layout
+
+```
+twistroute/
+  constraints/    the constraint interface of Proposition 1 and the families of Table 1
+  state.py        State (x_t and the prediction at it), Step (x_t to x_s)
+  twists/         base.py (interface, eq. 5), product.py, chain.py, chain_law.py, tables.py
+  sampler.py      unconstrained_step, weighted_sampler
+  resampling.py   plain, defensive and weight-power resampling
+  schedules/      base.py, sequential.py, parallel.py, baselines.py, dependence.py
+  evaluation/     exact.py (exact laws at short length), bounds.py, spread.py
+  models/         oracle models, LLaDA and MDLM wrappers, token classes
+  compile/, torch_routes/, decode/, diagnostics.py, experiment.py
+                  the earlier packages, unchanged: the algorithms behind `constraints`, and the
+                  earlier sampler `decode.twisted_smc` with every option that was tried
+experiments/
+  notes/          tables of the notes from the new code
+  benchmarks/     LLaDA and MDLM; JSON-Mode-Eval, BFCL, xLAM
+  studies/        oracle studies that current claims rest on; pulib/ is their shared library
+  archive/        answered questions, kept runnable
+  INDEX.md        every script, what it does, where its result is recorded
+  (top level)     scripts from before this line of work, unchanged
+tests/
+  core/           the code that follows the notes; reference/ holds the frozen outputs of the earlier sampler
+  algorithms/     compile, torch_routes, models
+  legacy/         the earlier sampler and policies
+  experiments/    the experiment plumbing and the comparison studies
+docs/             setup.md, refactor_map.md, the status documents, earlier working notes
+```
+
+
+### Domain layer
+
+`twistroute_bio/` builds ordinary routes for nucleotide and mRNA constraints (codon alphabet, genetic code,
+codon lifting of nucleotide automata, synonymous-codon masks, CDS constraint builders) plus ViennaRNA scorers
+and rule-based construction baselines. It depends on `twistroute`, never the reverse. Design:
+`docs/mrna_specs.md`.
+
+`twistroute_bio/models/` holds the model adapter: a self-contained RiNALMo encoder (`_rinalmo/net.py`, no
+flash-attn dependency, block verified bit-identical to upstream) and the mRNAutilus denoiser
+(`mrnautilus.py`): `MRNAutilus` for a whole transcript, `CDSWindow` for a denoiser view over just the coding
+positions with the UTRs clamped, and `codon_classes()` mapping the model's 86-token vocabulary onto the 64
+codons. Validation: `docs/mrna_model_validation.md`.
+
+```bash
+python scripts/smoke_mrnautilus.py <checkpoint.ckpt>   # samples a short constrained CDS on CPU
+```
+
+Protein identity enters **through the route**, as per-position allowed-codon masks, never by renormalising the
+model's predictions: masking predictions step by step is the step-local projection that biases the trajectory
+law, which is exactly what this method corrects.
+
+
+## Setup and tests
+
+`docs/setup.md` has the details in three levels: the core (CPU only), benchmark preparation (datasets and a tokenizer, CPU),
+and real-model runs (weights and a GPU).
+
+```bash
+pip install -e ".[test]"
+pytest tests/core                      # the code that follows the notes, about 2 minutes
+python experiments/notes/table3.py     # Table 3 of the notes, about 1 minute
+```
+
+All tests of this work: `OMP_NUM_THREADS=4 pytest tests/core tests/algorithms tests/legacy tests/experiments` (481 tests,
+25 to 35 minutes on an 8-core laptop).
+
+## The earlier interface: `twistroute.decode`
+
+The sections from here to "Reproducing TWISTER Figure 1(a)" were written before the code was restructured to follow the notes.
+They describe the earlier sampler `twistroute.decode.twisted_smc` in its own vocabulary (a "route" is a constraint; "native" is
+unconstrained; "reveal" is unmask; `logZ` is log q(C)). That code is unchanged and still runs. The new sampler reproduces it
+exactly on a frozen set of cases (`tests/core/test_core_matches_legacy.py`).
+
+
 ## How it works
 
 A route provides three operations on per-position class log-weights `lw[L, A]` (revealed positions one-hot):
@@ -70,81 +200,8 @@ exponential only in the induced width; nested pairs plus chain factors at L = 20
 | `schedule` | `"fixed"` (N/T positions per step, the default and TWISTER's) or `"independent"` (each masked position reveals with probability 1/(T−t), the MDLM reverse step). These target **different** processes: h₀ differs by 4–10 standard errors between them |
 | `guard` | `"warn"` (default), `"raise"`, `"off"`: support invariants checked every step (a live particle must keep a finite clamped sum and twist); counts returned under `out["guard"]` |
 
-All options keep E[Ẑ] = h₀ (tests/test_smc.py, tests/test_resampling.py). The maths is in `docs/twistroute_notes.pdf`.
+All options keep E[Ẑ] = h₀ (tests/legacy/test_smc.py, tests/legacy/test_resampling.py). The maths is in `docs/twistroute_notes.pdf`.
 
-## Layout
-
-```
-twistroute/
-  compile/        CPU reference routes (clear, brute-force verified): automata, grammars, factor graphs, trees,
-                  and products of routes of different kinds
-  compile/alphabets.py   lift_dfa (inverse homomorphism), minimize_dfa, symbol_classes, Masked (per-position sets)
-  torch_routes/   batched GPU routes: TorchChain, TorchChart, TorchFactorGraph, TorchCopy, det_logZ;
-                  build_route(spec), torch_route(cpu_route)
-  decode/         smc.py (twisted_smc driver), schedule.py (reveal schedules), resampling.py (resamplers and
-                  the defensive mixture), twist.py (proposal, twist variants, potential), native.py (native
-                  sampling + two-sided weights), exact.py (exact toy laws)
-  models/         OWT-130M wrapper, synthetic denoiser, token-class projections (semantic, TWISTER-ranked)
-  diagnostics.py  PSIS tail shape, bootstrap CIs, subsample curves, pairwise TV with a matched floor,
-                  hidden-mass decomposition of weight traces
-  experiment.py   shared plumbing for the scripts: denoiser loading, Fig. 1(a) setup, batched SMC runs,
-                  native rejection counts, Z_hat summaries
-experiments/      E1, E2, E3, E4, resampling arms, TWISTER Fig. 1 reproduction, CPU controls; analysis/ and
-                  configs/ (cell specs)
-tests/            pytest suite (~6 min on CPU)
-docs/             working notes (LaTeX + PDF): theory, algorithms, proofs
-```
-
-### Domain layer
-
-`twistroute_bio/` builds ordinary routes for nucleotide and mRNA constraints (codon alphabet, genetic code,
-codon lifting of nucleotide automata, synonymous-codon masks, CDS constraint builders) plus ViennaRNA scorers
-and rule-based construction baselines. It depends on `twistroute`, never the reverse. Design:
-`docs/mrna_specs.md`.
-
-`twistroute_bio/models/` holds the model adapter: a self-contained RiNALMo encoder (`_rinalmo/net.py`, no
-flash-attn dependency, block verified bit-identical to upstream) and the mRNAutilus denoiser
-(`mrnautilus.py`): `MRNAutilus` for a whole transcript, `CDSWindow` for a denoiser view over just the coding
-positions with the UTRs clamped, and `codon_classes()` mapping the model's 86-token vocabulary onto the 64
-codons. Validation: `docs/mrna_model_validation.md`.
-
-```bash
-python scripts/smoke_mrnautilus.py <checkpoint.ckpt>   # samples a short constrained CDS on CPU
-```
-
-Protein identity enters **through the route**, as per-position allowed-codon masks, never by renormalising the
-model's predictions: masking predictions step by step is the step-local projection that biases the trajectory
-law, which is exactly what this method corrects.
-
-## Install and test
-
-```bash
-pip install -e ".[test]"          # numpy, scipy, torch, pytest
-pytest                            # ~230 tests, ~14 min on CPU, no GPU or model weights needed
-```
-
-For OWT-130M: `pip install -e ".[models]"` plus `flash-attn` (its remote code imports it). On torch 2.5.1 + cu124
-the prebuilt wheel `flash_attn-2.7.4.post1+cu12torch2.5cxx11abiFALSE` works; building from source failed against
-a CUDA 12.9 system toolkit.
-
-The tests cover:
-- every CPU route's `logZ` against enumeration, chart membership against an independent parse counter, the
-  max semiring against brute-force MAP, and the compiler's refusal past budget;
-- every exact sampler against the enumerated law (TV within 2× the multinomial noise floor, zero invalid draws);
-- every batched route against the CPU compiler (with revealed positions), membership on random strings, and the
-  law of one batched sampling call;
-- exact path laws on toy problems: the Feynman–Kac law equals the Doob law and `Ẑ/h₀ = 1` to 1e-10 for six
-  families, including an ambiguous grammar; step-exact decoding is biased unless the denoiser is frozen;
-- `twisted_smc` on a synthetic denoiser with strong re-conditioning: mean `Ẑ` matches native `h₀` (|z| < 4) for
-  five route types at K = 1 and 4 with resampling active; the two-sided identity `E_p[1_C / w] = 1`;
-- golden values from the code that produced E2, so behavioural changes are caught as well as statistical ones;
-- the resampling options: every resampler draws ancestors with the requested probabilities (systematic counts
-  within one of K·π), a defensive step preserves the weighted measure exactly with offspring weights at most
-  1/(1 − ε), defensive resampling, tempered twists and the alternative resamplers keep E[Ẑ] = h₀, the weight
-  trace agrees with Ẑ, and out-of-range options are rejected;
-- the diagnostics: the hidden-mass decomposition on a constructed trace, the perfect-twist bound (mass below ε
-  at most K·ε), and the matched TV floor;
-- end-to-end dry runs of `resampling_arms.py`, `e1_families.py` and the E1 analysis on the synthetic denoiser.
 
 ## Quick start (CPU, synthetic denoiser)
 
@@ -216,6 +273,10 @@ Three random partitions are averaged (two of the three drew the same class *a* =
   Technometrics 51 (2009). Tail diagnostic.
 - Meng & Wong. Statistica Sinica 6 (1996). Bridge sampling.
 - Gumbel (1954); Maddison, Tarlow & Minka, NeurIPS (2014). Gumbel-max sampling.
+- Nie et al. *Large Language Diffusion Models.* arXiv:2502.09992 (2025). LLaDA.
+- Luxembourg, Permuter & Nachmani. arXiv:2506.19037 (2025). Dilated unmasking (the `Dilated` schedule).
+- Hesterberg. *Weighted average importance sampling and defensive mixture distributions.* Technometrics 37 (1995).
+- Kitagawa. *Monte Carlo filter and smoother for non-Gaussian nonlinear state space models.* JCGS 5 (1996). Systematic resampling.
 
 **Ambiguous routes are run without resampling.** The chart's twist is derivation-weighted, so resampling
 concentrates particles on prefixes with many parse trees rather than high probability. A string-counting twist
