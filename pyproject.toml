@@ -29,7 +29,7 @@ line-length = 100
 include = ["twistroute/state.py", "twistroute/sampler.py", "twistroute/resampling.py", "twistroute/twists/**/*.py",
            "twistroute/schedules/**/*.py", "twistroute/constraints/**/*.py", "twistroute/evaluation/**/*.py",
            "tests/test_sampler.py", "tests/test_core_matches_legacy.py", "tests/test_constraints_prop1.py",
-           "tests/test_evaluation.py"]
+           "tests/test_evaluation.py", "experiments/notes/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]

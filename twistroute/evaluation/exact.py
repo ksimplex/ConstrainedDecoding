@@ -180,8 +180,9 @@ def output_law(
     others = weight[rng.choice(len(weight), size=(n_draws, particles - 1), p=one_particle)].sum(1)
     law = np.zeros(len(weight))
     live = np.nonzero(weight > 0)[0]
-    for low in range(0, len(live), 2000):
-        rows = live[low : low + 2000]
+    block = max(1, 40_000_000 // n_draws)  # rows per block: about 320 MB of doubles
+    for low in range(0, len(live), block):
+        rows = live[low : low + block]
         inverse = (1.0 / (weight[rows][:, None] + others[None])).mean(1)
         law[rows] = particles * one_particle[rows] * weight[rows] * inverse
     return law / law.sum()
