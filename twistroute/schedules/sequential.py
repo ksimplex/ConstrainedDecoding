@@ -9,7 +9,7 @@ left, so `n_steps` is a cap on the number of steps.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Sequence, Tuple
 
 import torch
 
@@ -82,6 +82,25 @@ class LeftToRight(Ranked):
         return -torch.arange(length, device=state.tokens.device).double().expand(
             n_rows, length
         ), None
+
+
+class FixedOrder(Ranked):
+    """The positions in a given order: `order[0]` first. Used for the fixed random orders of the
+    notes' Table 3."""
+
+    def __init__(self, order: Sequence[int]) -> None:
+        super().__init__(1, None, False)
+        self.order = [int(position) for position in order]
+
+    def scores(self, state: State) -> Scores:
+        n_rows, length = state.tokens.shape
+        if sorted(self.order) != list(range(length)):
+            raise ValueError("order must be a permutation of the positions")
+        rank = torch.empty(length, dtype=torch.float64, device=state.tokens.device)
+        rank[torch.tensor(self.order, device=state.tokens.device)] = torch.arange(
+            length, dtype=torch.float64
+        )
+        return -rank.expand(n_rows, length), None
 
 
 class Confidence(Ranked):

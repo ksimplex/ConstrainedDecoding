@@ -57,6 +57,11 @@ class Twist:
         whatever `log_weight` needs later (stored in `Step.extra`)."""
         raise NotImplementedError
 
+    def class_marginals(self, state: State, position: torch.Tensor) -> torch.Tensor:
+        """(P, A): the proposal's law of the class at `position` (P,), one position per row, when
+        that position alone is unmasked. Used by the exact evaluation, not by the sampler."""
+        raise NotImplementedError
+
     def log_weight(
         self, state: State, step: Step, log_psi_next: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:

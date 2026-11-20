@@ -87,6 +87,15 @@ class ProductTwist(Twist):
             "tempered": log_q_tempered,
         }
 
+    def class_marginals(self, state: State, position: torch.Tensor) -> torch.Tensor:
+        log_q = state.log_q
+        if self.temperature != 1.0:
+            at_position = torch.zeros(state.tokens.shape, dtype=torch.bool, device=position.device)
+            at_position.scatter_(1, position[:, None], True)
+            log_q = torch.where(at_position[..., None], log_q, tempered(log_q, self.temperature))
+        marginals = state.constraint.marginals(state.prediction(log_q))
+        return marginals[torch.arange(len(position), device=position.device), position]
+
     def log_weight(
         self, state: State, step: Step, log_psi_next: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:

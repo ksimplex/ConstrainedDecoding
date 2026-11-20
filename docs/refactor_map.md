@@ -107,15 +107,36 @@ threshold admission (`theta`), the mixed coupling, the guard, the dynamic "least
 6. Move and reformat the live experiments; archive the rest with the index.
 7. A fresh agent gets only the notes and the repository, explains how eq. (13) is computed, and reproduces Table 3. Its points of confusion become the last round of fixes.
 
-## 8. Open
+## 8. Decisions on the hidden-mass options, and what is still open
 
-1. "Tempered twist as default": the sampler has two temperings. `twist_temp` (tau) computes the constraint probability under marginals raised to the power tau, and was run at tau = 0.5 in the earlier studies
-   (`docs/twist_design_findings.md`); `twist_power` (beta) raises the whole intermediate twist to a power. Which one, and at what value?
-2. Neither tempering is implemented for the chain twist: the sampler refuses the combination. With the chain twist as the proposal of choice, a default tempering needs a definition for it (for example the chain built on
-   tempered marginals), a proof of unbiasedness and a check that it helps. That is method work, not restructuring.
-3. The default changes numbers, so it goes in as its own commit after the new core has reproduced the reference with tempering off.
+1. The core keeps all three remedies: tempered marginals in the product twist (`ProductTwist(temperature=)`), a power of the
+   twist (`power=`), and the two resampling remedies (`Resampling(defensive=, weight_power=)`).
+2. Decided (user, 2026-11-20): the default is tempered marginals with the product twist only. The value was given as 0.5.
+   **Open again:** section 36u of the status document compared 0.7 and 0.5 at 256 positions; 0.7 is clearly better on one case
+   (forbidden, one token per step: 1.39 | 0.56 against 1.92 | 1.03, RMS error of log Z_hat at 16 | 64 particles) and within
+   error elsewhere. The value is to be confirmed when the default changes.
+3. Correction to an earlier version of this section: the chain twist does have a tempering option (`ChainTwist(temperature=)`,
+   the chain inside the twist built on tempered marginals; the proposal is not tempered). Section 36u tested it as a twist with
+   the product proposal and found no gain under defensive resampling. It stays off by default. Tempering the chain proposal is
+   not defined.
+4. The default changes numbers, so it goes in as its own commit after everything else. Until then every default reproduces
+   the frozen reference.
+5. Two points where the code differs from the notes, kept and documented, for the user to settle: the chain twist mixes in a
+   share 0.05 of the product twist (`product_share`); the sampler starts every weight at the twist of the fully masked
+   sequence rather than at 1, so that the mean weight estimates P(C).
 
 ## 9. Progress
 
-- 2026-11-20, step 1 done: tag `pre-notes-refactor` (commit `bd969a2`), branch `notes-structure`, tarball of the tagged tree, and the frozen sampler reference
-  (`tests/reference/sampler_reference.npz`: 150 cases = 6 oracle cells x 25 combinations of twist, schedule and resampling that stay in the core; regenerates bit for bit).
+- Step 1 done: tag `pre-notes-refactor`, branch `notes-structure`, tarball, frozen reference (`tests/reference/`, 150 cases).
+- Step 2 done (`316c8ef`): `constraints/`, checked by enumeration. The grammar and factor-graph passes are single precision
+  (exact to about 1e-7); the automaton families are double precision.
+- Step 3 done (`01864be`): `state.py`, `twists/`, `resampling.py`, `sampler.py`. The frozen reference is reproduced exactly;
+  six further option combinations match the old sampler side by side; the chain law is ported and checked by enumeration.
+- Step 4, schedules done (`abeca65`): `schedules/`. `BudgetedCoReveal` still calls `decode.policy.CouplingPolicy`; it will be
+  replaced when section 4 of the notes (the parallel schedule) is settled. Evaluation in progress: `evaluation/`.
+- Added by the user on 2026-11-20, after step 6: `docs/setup.md` (what everything needs; what only the real-model
+  benchmarks need, with where the weights and datasets come from; what needs a GPU); tests sorted into folders that follow
+  the new layout (none deleted; the application's tests are not touched); the README rewritten for the new layout.
+- Remaining helpers the new core imports from the earlier packages: `decode.policy` (dependence estimate, `CouplingPolicy`
+  behind `BudgetedCoReveal`), `decode.chain_twist` (the two pair-table fits), `torch_routes` and `compile` (the constraint
+  algorithms, wrapped on purpose), `models`.

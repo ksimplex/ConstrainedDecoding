@@ -132,6 +132,15 @@ class ChainTwist(Twist):
             completion = torch.where(from_product[:, None], product_draw, completion)
         return completion, {"prediction": prediction, "log_chain_mass": log_chain_mass}
 
+    def class_marginals(self, state: State, position: torch.Tensor) -> torch.Tensor:
+        prediction = state.prediction()
+        rows = torch.arange(len(position), device=position.device)
+        product = state.constraint.marginals(prediction)[rows, position]
+        if self.proposal == "product":
+            return product
+        chain = self.law.marginals(prediction)[rows, position]
+        return (1.0 - self.proposal_product_share) * chain + self.proposal_product_share * product
+
     def log_weight(
         self, state: State, step: Step, log_psi_next: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:

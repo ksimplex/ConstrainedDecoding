@@ -11,7 +11,7 @@ from .base import FromPolicy, RandomOrder, Schedule, as_schedule, constrained_ma
 from .baselines import Dilated
 from .dependence import DistanceDependence, fit_distance_dependence
 from .parallel import Blocks, BudgetedCoReveal
-from .sequential import Confidence, LeftToRight, Ranked, Sum
+from .sequential import Confidence, FixedOrder, LeftToRight, Ranked, Sum
 
 __all__ = [
     "Schedule",
@@ -22,6 +22,7 @@ __all__ = [
     "forced",
     "pad",
     "LeftToRight",
+    "FixedOrder",
     "Confidence",
     "Sum",
     "Ranked",
