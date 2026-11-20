@@ -236,6 +236,37 @@ def test_options_outside_the_frozen_file_match_the_old_sampler():
         assert np.array_equal(new.log_weights, old["logw"]), number
 
 
+def test_unconstrained_sample_matches_the_old_unconstrained_sampler():
+    """`unconstrained_sample` (eq. 4, repeated) draws the same sequences as the earlier
+    `native_sample`, for a random order, several positions per step, and blocks."""
+    from twistroute.decode import ConfidenceSchedule
+    from twistroute.decode.native import native_sample
+    from twistroute.sampler import unconstrained_sample
+    from twistroute.schedules import Blocks
+
+    model = make_model("hidden_0.85", L, n_symbols("forbidden"))
+    classes, route, truth = make_constraint("forbidden", model, L)
+    constraint = Constraint(route, family="reference cell", cost="", n_classes=classes.A, length=L)
+    cases = [
+        (dict(), dict(), L),
+        (dict(), dict(), L // 4),
+        (
+            dict(schedule=ConfidenceSchedule(2, 8, "model"), route=route),
+            dict(schedule=Blocks(8, 2, "model"), constraint=constraint),
+            L // 2,
+        ),
+    ]
+    for number, (old_options, new_options, n_steps) in enumerate(cases):
+        old = native_sample(
+            model, classes, L, n_steps, 64, gen("free", number), return_tokens=True, **old_options
+        )[1]
+        new = unconstrained_sample(
+            model, classes, L, n_steps, 64, generator=gen("free", number), **new_options
+        )
+        assert bool((old == new).all()), number
+        assert bool((new != model.mask_id).all()), number
+
+
 @same_platform
 def test_a_different_option_does_not_match():
     """Control for the comparison itself: a slightly different resampling rule must not reproduce

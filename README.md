@@ -81,7 +81,7 @@ twistroute/
                   earlier sampler `decode.twisted_smc` with every option that was tried
 experiments/
   notes/          tables of the notes from the new code
-  benchmarks/     LLaDA and MDLM; JSON-Mode-Eval, BFCL, xLAM
+  benchmarks/     LLaDA and MDLM; JSON-Mode-Eval, BFCL, xLAM (the runners use the new sampler)
   studies/        oracle studies that current claims rest on; pulib/ is their shared library
   archive/        answered questions, kept runnable
   INDEX.md        every script, what it does, where its result is recorded

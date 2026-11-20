@@ -129,13 +129,51 @@ def unconstrained_step(
     n_steps: int,
     generator: Optional[torch.Generator] = None,
 ) -> Step:
-    """One step of the model's own sampler, eq. (4): U from the schedule, then every position
-    of U independently from the model's prediction at x_t."""
+    """One step of the model's own sampler, eq. (4): U from the schedule, then the token at every
+    position of U drawn independently from the model's prediction at x_t."""
     unmask, valid = schedule.unmask(state, step, n_steps, generator)
-    n_rows, length, n_classes = state.log_q.shape
-    probabilities = torch.softmax(state.log_q, -1).reshape(-1, n_classes)
-    completion = torch.multinomial(probabilities, 1, generator=generator).reshape(n_rows, length)
-    return commit(state, completion, unmask, valid, generator)
+    n_rows = unmask.shape[0]
+    log_p_rows = torch.gather(
+        state.log_p, 1, unmask[..., None].expand(-1, -1, state.log_p.shape[-1])
+    )
+    probabilities = torch.exp(log_p_rows).reshape(-1, log_p_rows.shape[-1])
+    new_tokens = torch.multinomial(probabilities, 1, generator=generator).reshape(n_rows, -1)
+    if valid is not None:  # padded columns keep what is there
+        new_tokens = torch.where(valid, new_tokens, torch.gather(state.tokens, 1, unmask))
+    tokens = state.tokens.clone()
+    tokens.scatter_(1, unmask, new_tokens)
+    drawn = state.token_classes.token_class[new_tokens]
+    classes = state.classes.clone()
+    classes.scatter_(1, unmask, drawn)
+    return Step(unmask, valid, tokens, classes, drawn)
+
+
+@torch.no_grad()
+def unconstrained_sample(
+    model: Any,
+    token_classes: Any,
+    length: int,
+    n_steps: int,
+    n_samples: int,
+    *,
+    schedule: Any = None,
+    constraint: Optional[Constraint] = None,
+    generator: Optional[torch.Generator] = None,
+) -> torch.Tensor:
+    """(n_samples, length) token sequences from the model's own sampler: `n_steps` unconstrained
+    steps (eq. 4) from the fully masked sequence. `schedule` defaults to `RandomOrder`;
+    `constraint` is only needed by a schedule that reads it."""
+    schedule = RandomOrder() if schedule is None else as_schedule(schedule)
+    device = token_classes.onehot.device
+    tokens = torch.full((n_samples, length), model.mask_id, dtype=torch.long, device=device)
+    classes = torch.zeros(n_samples, length, dtype=torch.long, device=device)
+    for step_index in range(n_steps):
+        if not bool((tokens == model.mask_id).any()):
+            break
+        state = model_prediction(model, token_classes, constraint, tokens, classes)
+        step = unconstrained_step(state, schedule, step_index, n_steps, generator)
+        tokens, classes = step.tokens, step.classes
+    return tokens
 
 
 @torch.no_grad()

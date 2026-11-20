@@ -30,7 +30,7 @@ of this section.
 |---|---|---|---|
 | §1 model | `twistroute/models/` | `noisy_hmm`, `lazy_chain`, ... (oracles; `OracleHMM`), `LLaDA`, `MDLM`, `TokenClasses`. A model is any object with `.logits(tokens)` (log-probabilities, despite the name), `.mask_id`; oracles also have `.S` (tokens), `.log_joint` | unchanged earlier code and names |
 | §1 mean-field prediction, eq. (2) | `twistroute/state.py` | `State` (x_t and the prediction at it; `State.prediction()`), `Step` (x_t to x_s) | new |
-| §1, eq. (4) unconstrained step | `twistroute/sampler.py` | `unconstrained_step`, `model_prediction`, `commit` | new |
+| §1, eq. (4) unconstrained step | `twistroute/sampler.py` | `unconstrained_step`, `unconstrained_sample`, `model_prediction`, `commit` | new; `unconstrained_sample` matches `decode/native.native_sample` exactly |
 | §2.1 families, Table 1 | `twistroute/constraints/`: `automaton.py`, `positions.py`, `factor_graph.py`, `grammar.py` | functions that return a `Constraint`: `automaton`, `forbidden_motifs`, `exactly_k`, `at_least_k`, `dyck1`; `on_positions`, `with_allowed_sets`; `factor_graph`, `copy_pairs`; `grammar` | wraps `torch_routes`, `compile` |
 | §2.1 intersections, Table 2 | `constraints/intersect.py` | `intersect` | wraps `compile/products.py` |
 | §2.2 Proposition 1 | `constraints/base.py` | `Constraint`: `log_prob`, `marginals`, `sample`, `contains`; `fix_unmasked` | wraps the `.logZ`, `.sample`, `.accepts` of a "route" |
@@ -45,7 +45,7 @@ of this section.
 | Table 3, Figures 1 and 2 | `twistroute/evaluation/` | `exact.py`: `target_law`, `one_particle_law`, `output_law`, `kl_of_output`, `kl`; `bounds.py`: `upper_bound`, `leading_term`, `marginal_lower_bound`; `spread.py` | new, after `kl_bounds_check.py` |
 
 Planned and not built: an `IdealTwist` (eq. 7 and 8; the exact twist exists only in `experiments/studies/twist_error.py`); a
-`Denoiser` interface class; `unconstrained_sample` (a full unconstrained run; `decode/native.py` has it); a `FixedPerStep`
+`Denoiser` interface class; a `FixedPerStep`
 schedule (use `RandomOrder` with fewer steps than positions); the diagnostics callback is the `observe` argument of
 `weighted_sampler`, not a module in `evaluation/`.
 
@@ -101,7 +101,12 @@ threshold admission (`theta`), the mixed coupling, the guard, the dynamic "least
   have no script: Figure 1 comes from `experiments/studies/surrogate_plan.py` (with the unmatched chain), Figures 2 and 3 from
   `experiments/studies/compare.py --arms matched` and plotting code that is not in the repository.
 - `experiments/benchmarks/` (flat, one folder): the JSON-Mode-Eval, BFCL, xLAM and MDLM scripts; `llada_json.py` is the runner for
-  LLaDA. They call the earlier sampler.
+  LLaDA. `llada_json.py`, `mdlm_first_look.py` and `mdlm_orders_output.py` call the new sampler (ported 2026-11-20).
+  Checked on CPU: with their stand-in models, each ported script gives outputs identical to its earlier version, timings
+  aside (`llada_json.py`: all four stages, two prompts, 21 arms each, 28 of the 42 arms with a nonzero spread of log Z_hat;
+  `mdlm_first_look.py` and `mdlm_orders_output.py`: every part). Not yet checked on the real models: one GPU job compares
+  the earlier and the ported `llada_json.py` on LLaDA. `mdlm_timing.py` times the earlier
+  implementation's pieces and was not ported.
 - `experiments/studies/`: `compare.py` with `pulib/`, `twist_error.py`, `surrogate_plan.py`, `parallel_exact.py`,
   `parallel_exact_check.py`, `kl_bounds_check.py`, `particle_rule_check.py`, `forced_batch_check.py`, `report.py`, `jobs/`.
 - `experiments/archive/`: the answered questions.

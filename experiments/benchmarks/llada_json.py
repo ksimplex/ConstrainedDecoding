@@ -7,11 +7,11 @@ Routes come from json_mode_compile.py (.npz + .json). Stages, each resumable and
   pilot    unconstrained samples of the model for every selected prompt, one token per step in uniformly random order
            (the reference process): the corpus the pair tables are collapsed from. Saved as token ids.
   compare  per datapoint, one token per step, K particles, nrun runs, for each order in --orders (uniformly random, or
-           a CouplingPolicy priority such as `sum`, whose distance kernel is fitted per prompt from --traces
+           a constraint-aware order such as `sum`, whose dependence estimate is fitted per prompt from --traces
            unconstrained traces): product proposal and
            twist; chain proposal and twist with matched marginals and a defensive share of the product proposal, with
            the pair table (a) collapsed from the pilot corpus of the OTHER prompts (lam = 1) and (b) probed from the
-           denoiser's own conditionals in this prompt (decode.chain_twist.probe_pair_kernel; its cost is recorded). Reported: mean and spread of
+           model's own conditionals in this prompt (twists.probed_pair_table; its cost is recorded). Reported: mean and spread of
            log Z_hat over runs, relative standard deviation of Z_hat, validity of the returned sample, seconds.
            There is no exact p(C) here; arms of one datapoint estimate the same quantity.
            The table check printed with every datapoint compares the pooled table with the one collapsed from the
@@ -25,10 +25,13 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from twistroute.compile.automata import WDFA                                                       # noqa: E402
 from twistroute.compile.tokens import pair_ratio_table                                             # noqa: E402
-from twistroute.decode import twisted_smc, ChainTwist, probe_pair_kernel, CouplingPolicy, ConfidenceSchedule, fit_distance_kernel, COUNT_EDGES   # noqa: E402
-from twistroute.decode.native import native_sample                                                 # noqa: E402
+from twistroute.constraints import automaton                                                       # noqa: E402
+from twistroute.decode import CouplingPolicy                                                       # noqa: E402  (the `lex` and `bound` orders only)
 from twistroute.models.classes import TokenClasses                                                 # noqa: E402
-from twistroute.torch_routes import torch_route                                                    # noqa: E402
+from twistroute.resampling import Resampling                                                       # noqa: E402
+from twistroute.sampler import unconstrained_sample, weighted_sampler                              # noqa: E402
+from twistroute.schedules import Blocks, Confidence, LeftToRight, RandomOrder, Sum, fit_distance_dependence   # noqa: E402
+from twistroute.twists import ChainTwist, probed_pair_table                                        # noqa: E402
 
 
 class StandIn:
@@ -54,7 +57,7 @@ def build(row, arr, V, mask_id, dev):
     i = row["index"]; cls = torch.as_tensor(arr[f"cls_{i}"].astype(np.int64))
     d = WDFA(row["states"], [tuple(int(v) for v in e) for e in arr[f"edges_{i}"]], 0, [int(q) for q in arr[f"final_{i}"]], row["classes"], name=f"json-{i}")
     full = torch.zeros(V, dtype=torch.long); full[:len(cls)] = cls; dead = int(cls[mask_id]) if mask_id < len(cls) else 0; full[len(cls):] = dead
-    return TokenClasses(full, row["classes"], excluded=(mask_id,)).to(dev), d, torch_route(d, dev)
+    return TokenClasses(full, row["classes"], excluded=(mask_id,)).to(dev), d, automaton(d, device=dev, name=f"json-{i}")
 
 
 def decode_text(den, tokfile, ids, end_ids):
@@ -121,18 +124,18 @@ def main():
             key = str(r["index"]); N = r["N"]
             if key in res["smoke"]:
                 continue
-            cl, d, route = prepare(r); x0 = torch.full((a.max_rows, N), mask_id, dtype=torch.long, device=dev)
+            cl, d, constraint = prepare(r); x0 = torch.full((a.max_rows, N), mask_id, dtype=torch.long, device=dev)
             t0 = time.time(); lp = den.logits(x0); t_call = time.time() - t0
             t0 = time.time(); lp = den.logits(x0); t_call2 = time.time() - t0
-            lw0 = cl.class_logw(lp[:1]); t0 = time.time(); z0 = float(route.logZ(lw0)[0]); t_route = time.time() - t0
-            t0 = time.time(); _, toks = native_sample(den, cl, N, N, 2, G(1), return_tokens=True); t_native = time.time() - t0
+            lw0 = cl.class_logw(lp[:1]); t0 = time.time(); z0 = float(constraint.log_prob(lw0)[0]); t_route = time.time() - t0
+            t0 = time.time(); toks = unconstrained_sample(den, cl, N, N, 2, generator=G(1)); t_native = time.time() - t0
             free_text, free_ok, free_parses = check(r, toks[0].tolist())
-            t0 = time.time(); o = twisted_smc(den, cl, route, N, N, nrun=2, K=a.K, gen=G(2), return_particles=True); t_smc = time.time() - t0
-            lw = o["logw"][0]; pick = int(np.argmax(lw)); text, ok, parses = check(r, o["tokens"][0, pick].tolist())
+            t0 = time.time(); o = weighted_sampler(den, cl, constraint, N, N, runs=2, particles=a.K, generator=G(2)); t_smc = time.time() - t0
+            lw = o.log_weights[0]; pick = int(np.argmax(lw)); text, ok, parses = check(r, o.tokens[0, pick].tolist())
             res["smoke"][key] = dict(N=N, classes=r["classes"], states=r["states"], prefix_tokens=None if a.synthetic else int(den.prefix.numel()), rows=a.max_rows,
                                      seconds_first_call=round(t_call, 3), seconds_call=round(t_call2, 3), seconds_route_pass=round(t_route, 4), log_product_twist_at_start=z0,
                                      seconds_unconstrained_decode_2=round(t_native, 1), unconstrained_text=free_text[:400], unconstrained_matches=free_ok, unconstrained_parses=free_parses,
-                                     seconds_constrained_2runs=round(t_smc, 1), logZ=[float(v) for v in o["logZ"]], constrained_text=text[:400], constrained_matches=ok, constrained_parses=parses,
+                                     seconds_constrained_2runs=round(t_smc, 1), logZ=[float(v) for v in o.log_Z_hat], constrained_text=text[:400], constrained_matches=ok, constrained_parses=parses,
                                      reference=r["completion"][:400])
             save(); s = res["smoke"][key]
             print(f"[{time.time() - t00:6.0f}s] datapoint {key}: N {N}, classes {r['classes']}, states {r['states']}; call {s['seconds_call']} s for {a.max_rows} rows; log twist at start {z0:.2f}; "
@@ -144,8 +147,8 @@ def main():
             key = f"pilot_{r['index']}"
             if key in store:
                 continue
-            cl, d, route = prepare(r); t0 = time.time()
-            _, toks = native_sample(den, cl, r["N"], r["N"], a.pilot_n, G(10 + r["index"]), return_tokens=True)
+            cl, d, constraint = prepare(r); t0 = time.time()
+            toks = unconstrained_sample(den, cl, r["N"], r["N"], a.pilot_n, generator=G(10 + r["index"]))
             store[key] = toks.cpu().numpy().astype(np.int32); np.savez_compressed(a.pilot + ".tmp.npz", **store); os.replace(a.pilot + ".tmp.npz", a.pilot)
             texts = [check(r, t.tolist()) for t in toks[:a.pilot_n]]
             res["pilot"][str(r["index"])] = dict(N=r["N"], n=a.pilot_n, seconds=round(time.time() - t0, 1), matches=float(np.mean([bool(t[1]) for t in texts])) if tokfile is not None else None, example=texts[0][0][:300])
@@ -156,8 +159,8 @@ def main():
             key = str(r["index"])
             if key in res.setdefault("baseline", {}):
                 continue
-            cl, d, route = prepare(r); N = r["N"]; t0 = time.time(); c0 = den.calls
-            _, toks = native_sample(den, cl, N, -(-N // a.per_step), a.pilot_n, G(20 + r["index"]), return_tokens=True, schedule=ConfidenceSchedule(a.per_step, a.block, "model"), route=route)
+            cl, d, constraint = prepare(r); N = r["N"]; t0 = time.time(); c0 = den.calls
+            toks = unconstrained_sample(den, cl, N, -(-N // a.per_step), a.pilot_n, schedule=Blocks(a.block, a.per_step, "model"), constraint=constraint, generator=G(20 + r["index"]))
             chk = [check(r, t.tolist()) for t in toks]
             res["baseline"][key] = dict(N=N, n=len(chk), matches=float(np.mean([bool(c[1]) for c in chk])), outputs=[c[0] for c in chk], seconds=round(time.time() - t0, 1), denoiser_batches=den.calls - c0,
                                         setting=dict(block=a.block, per_step=a.per_step, rule="model's top-token probability", temperature=1))
@@ -171,7 +174,7 @@ def main():
             gold_rows = {x["index"]: np.asarray(arr[f"gold_{x['index']}"].tolist() + [end_ids[0]] + [end_ids[-1]] * (x["N"] - x["gold_tokens"] - 1)) for x in man["rows"] if x["gold_tokens"] < x["N"]}
         for r in rows:
             key = str(r["index"]); N = r["N"]; res["compare"].setdefault(key, {})
-            cl, d, route = prepare(r); tc = cl.token_class.cpu().numpy()
+            cl, d, constraint = prepare(r); tc = cl.token_class.cpu().numpy()
             agree = float("nan")
             if counted:
                 others = [s for i, v in pilot_rows.items() if i != r["index"] for s in v]
@@ -186,25 +189,25 @@ def main():
                                                     agreement_with_reference_answers=agree, log10_min_entry=float(np.log10(Kt.min())), max_over_min_in_row=float((Kt.max(1) / Kt.min(1)).max()))
             arms = [("product", dict())]
             if counted:
-                tw = ChainTwist(d, torch.as_tensor(Kt), device=dev, match=a.match)
-                arms.append(("matched chain, counted table", dict(twist=tw, proposal_twist=tw, proposal_mix=a.mix)))
+                tw = ChainTwist(d, torch.as_tensor(Kt), device=dev, matching_sweeps=a.match, proposal_product_share=a.mix)
+                arms.append(("matched chain, counted table", dict(twist=tw)))
             if "probed" in a.tables:
                 t0 = time.time(); c0 = den.calls
-                Kp, pinfo = probe_pair_kernel(den, cl, N, G(5), stride=a.probe_stride, top=a.probe_top, rows=a.max_rows)
+                Kp, pinfo = probed_pair_table(den, cl, N, G(5), stride=a.probe_stride, top_classes=a.probe_top, batch_rows=a.max_rows)
                 pinfo.update(seconds=round(time.time() - t0, 1), denoiser_calls=den.calls - c0); res["compare"][key]["probe"] = pinfo
-                tp = ChainTwist(d, Kp, device=dev, match=a.match)
-                arms.append(("matched chain, probed table", dict(twist=tp, proposal_twist=tp, proposal_mix=a.mix)))
+                tp = ChainTwist(d, Kp, device=dev, matching_sweeps=a.match, proposal_product_share=a.mix)
+                arms.append(("matched chain, probed table", dict(twist=tp)))
             kern = None
             if any(o in ("sum", "lex", "bound") for o in a.orders):
                 t0 = time.time(); c0 = den.calls
-                kern, _ = fit_distance_kernel(den, N, a.traces, G(7), device=dev, count_edges=COUNT_EDGES)
+                kern = fit_distance_dependence(den, N, a.traces, G(7), device=dev)
                 res["compare"][key]["distance_kernel"] = dict(traces=a.traces, seconds=round(time.time() - t0, 1), denoiser_calls=den.calls - c0)
-            sched = {"random": lambda: "fixed", "ltr": lambda: ConfidenceSchedule(1, None, "left", forced_first=True),
-                     "confident": lambda: ConfidenceSchedule(1, None, "entropy", forced_first=True), "token_confident": lambda: ConfidenceSchedule(1, None, "token"),
-                     "block_confident": lambda: ConfidenceSchedule(a.per_step, a.block, "token")}
+            sched = {"random": lambda: RandomOrder(), "ltr": lambda: LeftToRight(forced_first=True),
+                     "confident": lambda: Confidence("entropy", forced_first=True), "token_confident": lambda: Confidence("token"),
+                     "block_confident": lambda: Blocks(a.block, a.per_step, "token"), "sum": lambda: Sum(kern)}
             steps = {"block_confident": -(-N // a.per_step)}                    # every other order: one token per step
             for o in a.orders:
-                if o in ("sum", "lex", "bound"):
+                if o in ("lex", "bound"):                                   # orders that were set aside: the earlier policy class
                     sched[o] = lambda o=o: CouplingPolicy(kern, 0.0, priority=o, mixed=False, max_set=1)
             arms = [(f"{o} | {pn}", dict(kw, schedule=sched[o]())) for o in a.orders for pn, kw in arms]
             for name, kw in arms:
@@ -213,11 +216,11 @@ def main():
                 t0 = time.time(); lz, toks, lws, nres = [], [], [], []; c0 = den.calls
                 try:
                     for b in range(0, a.nrun, a.rpb):
-                        if "schedule" in kw and not isinstance(kw["schedule"], str):
-                            kw = dict(kw, schedule=sched[name.split(" | ")[0]]())           # a fresh policy object per batch
-                        o = twisted_smc(den, cl, route, N, steps.get(name.split(" | ")[0], N), nrun=min(a.rpb, a.nrun - b), K=a.K, gen=G(1000 + b), return_particles=True, **kw)
-                        nres.append(float(np.mean(o["n_res"])) if "n_res" in o else float("nan"))
-                        lz.append(np.asarray(o["logZ"], dtype=np.float64)); toks.append(o["tokens"]); lws.append(o["logw"])
+                        kw = dict(kw, schedule=sched[name.split(" | ")[0]]())               # a fresh schedule object per batch
+                        o = weighted_sampler(den, cl, constraint, N, steps.get(name.split(" | ")[0], N), runs=min(a.rpb, a.nrun - b), particles=a.K, generator=G(1000 + b),
+                                             resampling=Resampling(), **kw)
+                        nres.append(float(np.mean(o.resamplings)))
+                        lz.append(np.asarray(o.log_Z_hat, dtype=np.float64)); toks.append(o.tokens); lws.append(o.log_weights)
                 except Exception as e:
                     res["compare"][key][name + "|error"] = f"{type(e).__name__}: {str(e)[:300]}"; save(); print(f"[{time.time() - t00:6.0f}s] {key} {name} FAILED {type(e).__name__}: {str(e)[:200]}", flush=True); continue
                 lz = np.concatenate(lz); toks = np.concatenate(toks); lws = np.concatenate(lws); fin = np.isfinite(lz); z = np.exp(lz[fin] - lz[fin].max())

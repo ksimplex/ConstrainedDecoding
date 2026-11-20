@@ -18,8 +18,13 @@ import numpy as np
 import torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from twistroute import compile as C                                                                # noqa: E402
-from twistroute.decode import twisted_smc, CouplingPolicy, DistanceKernel, fit_distance_kernel, COUNT_EDGES, ChainTwist, fit_pair_kernel  # noqa: E402
+from twistroute.constraints import Constraint                                                      # noqa: E402
+from twistroute.decode import CouplingPolicy, COUNT_EDGES                                          # noqa: E402  (the `lex` and `random` orders only)
+from twistroute.resampling import NO_RESAMPLING                                                    # noqa: E402
+from twistroute.sampler import weighted_sampler                                                    # noqa: E402
+from twistroute.schedules import DistanceDependence, LeftToRight, RandomOrder, Sum, fit_distance_dependence   # noqa: E402
 from twistroute.torch_routes import torch_route, TorchSubset                                       # noqa: E402
+from twistroute.twists import ChainTwist, counted_pair_table                                       # noqa: E402
 from mdlm_first_look import free_route, score_along, chunks                                        # noqa: E402
 
 
@@ -45,13 +50,14 @@ def main():
         dev = "cuda"; den = MDLM(dev); base = semantic_classes(den.tok, den.V, den.mask_id).to(dev); res["model"] = den.info()
     G = lambda s: torch.Generator(device=dev).manual_seed(a.seed * 1000 + s)
     one = base.merge([0, 0, 0, 0]); fr = free_route(1, dev); cl = base.merge([0, 1, 2, 2]); A = 3
+    free = Constraint(fr, family="finite automaton", cost="O(L |E|)", n_classes=1, name="no constraint")
 
     tabs = []                                                                   # the distance kernel of the schedule, as in mdlm_first_look
     for rep in range(a.pilot_reps):
-        k, _ = fit_distance_kernel(den, N, a.traces, G(rep), device=dev, count_edges=COUNT_EDGES)
+        k = fit_distance_dependence(den, N, a.traces, G(rep), device=dev)
         tabs.append(k.table.double().cpu().numpy() if hasattr(k, "table") else np.stack([k.ku.numpy(), k.ks.numpy()], 1))
-    kern = DistanceKernel.from_table(torch.tensor(np.mean(tabs, 0)), torch.tensor(list(COUNT_EDGES)))
-    t0 = time.time(); Kp = fit_pair_kernel(den, cl, a.pair_pilot, G(50), N=N)
+    kern = DistanceDependence.from_table(torch.tensor(np.mean(tabs, 0)), torch.tensor(list(COUNT_EDGES)))
+    t0 = time.time(); Kp = counted_pair_table(den, cl, a.pair_pilot, G(50), length=N)
     res["pair_kernel"] = dict(table=Kp.cpu().tolist(), seconds=round(time.time() - t0, 1), samples=a.pair_pilot, denoiser_calls=N)
     save(); print(f"[{time.time() - t00:6.0f}s] kernels fitted; pair kernel {res['pair_kernel']['seconds']} s: {np.round(Kp.cpu().numpy(), 3).tolist()}", flush=True)
 
@@ -62,27 +68,26 @@ def main():
             if float(rt.logZ(lw0)[0]) <= math.log(1e-3) or k >= round(0.75 * len(pos)):
                 break
         act = np.zeros(N, dtype=bool); act[pos] = True
-        return rt, k, d, act
+        return Constraint(rt, family="subset of positions", cost="O(L |E|)", n_classes=A, length=N), k, d, act
     lo = N // 2 - w // 2; w2 = 2 * (w // 2); lo2 = N // 4 - w2 // 4
     cons = dict(window=list(range(lo, lo + w)), two_window=list(range(lo2, lo2 + w2 // 2)) + list(range(lo2 + n2, lo2 + n2 + w2 // 2)))
     built = {c: window(p) for c, p in cons.items()}
     pol = lambda pr: CouplingPolicy(kern, 0.0, priority=pr, mixed=False, max_set=1)
-    ltr = lambda: pol(lambda s: -torch.arange(N, dtype=torch.float64, device=dev).expand(s.masked.shape))
-    off = dict(ess_min=0.0)
+    ltr = lambda: LeftToRight(forced_first=True)
 
     if "E" in a.parts:
         res["proposal"] = res.get("proposal", {})
-        for cname, (route, par, d, act) in built.items():
-            tw = ChainTwist(d, Kp, active=act, device=dev); tm = ChainTwist(d, Kp, active=act, device=dev, match=30)
-            for sname, mks in (("fixed 1/step", lambda: "fixed"), ("sum sequential", lambda: pol("sum"))):
-                for pname, kw in (("product", dict()), ("chain", dict(twist=tw, proposal_twist=tw)), ("matched chain", dict(twist=tm, proposal_twist=tm))):
+        for cname, (constraint, par, d, act) in built.items():
+            tw = ChainTwist(d, Kp, active=act, device=dev, matching_sweeps=0); tm = ChainTwist(d, Kp, active=act, device=dev, matching_sweeps=30)
+            for sname, mks in (("fixed 1/step", lambda: RandomOrder()), ("sum sequential", lambda: Sum(kern))):
+                for pname, kw in (("product", dict()), ("chain", dict(twist=tw)), ("matched chain", dict(twist=tm))):
                     key = f"{cname}|{sname}|{pname}"
                     if key in res["proposal"]:
                         continue
                     t0 = time.time()
                     def go(n, i):
-                        o = twisted_smc(den, cl, route, N, N, nrun=n, K=a.K, gen=G(300 + i), schedule=mks(), **off, **kw)
-                        return dict(logZ=np.asarray(o["logZ"], dtype=np.float64))
+                        o = weighted_sampler(den, cl, constraint, N, N, runs=n, particles=a.K, schedule=mks(), resampling=NO_RESAMPLING, generator=G(300 + i), **kw)
+                        return dict(logZ=np.asarray(o.log_Z_hat, dtype=np.float64))
                     try:
                         lz = chunks(go, a.nrun, max(1, a.rows // a.K))["logZ"]
                     except Exception as e:                                      # one failing arm must not end the job
@@ -95,20 +100,20 @@ def main():
 
     if "F" in a.parts:
         res["outputs"] = res.get("outputs", {}); rnd = lambda: pol("random")
-        orders = (("fixed 1/step", lambda: "fixed"), ("sum sequential", lambda: pol("sum")), ("lex sequential", lambda: pol("lex")), ("left to right", ltr))
+        orders = (("fixed 1/step", lambda: RandomOrder()), ("sum sequential", lambda: Sum(kern)), ("lex sequential", lambda: pol("lex")), ("left to right", ltr))
         for cname in ("none", "window", "two_window"):
             if cname == "none":
-                classes, route, kw = one, fr, dict()
+                classes, constraint, kw = one, free, dict()
             else:
-                route, par, d, act = built[cname]; tm = ChainTwist(d, Kp, active=act, device=dev, match=30); classes, kw = cl, dict(twist=tm, proposal_twist=tm)
+                constraint, par, d, act = built[cname]; tm = ChainTwist(d, Kp, active=act, device=dev, matching_sweeps=30); classes, kw = cl, dict(twist=tm)
             for oname, mks in orders:
                 key = f"{cname}|{oname}"
                 if key in res["outputs"]:
                     continue
                 t0 = time.time()
                 def go(n, i):
-                    o = twisted_smc(den, classes, route, N, N, nrun=n, K=1, gen=G(700 + i), schedule=mks(), return_particles=True, **off, **kw)
-                    return dict(tokens=np.asarray(o["tokens"])[:, 0], logZ=np.asarray(o["logZ"], dtype=np.float64))
+                    o = weighted_sampler(den, classes, constraint, N, N, runs=n, particles=1, schedule=mks(), resampling=NO_RESAMPLING, generator=G(700 + i), **kw)
+                    return dict(tokens=np.asarray(o.tokens)[:, 0], logZ=np.asarray(o.log_Z_hat, dtype=np.float64))
                 try:
                     o = chunks(go, a.nout, a.rows)
                 except Exception as e:

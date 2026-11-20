@@ -15,7 +15,7 @@ Tables and figures of the notes, from the new core (`twistroute.sampler`, `twist
 
 ## `experiments/benchmarks/`
 
-Real models and text benchmarks: LLaDA and MDLM; JSON-Mode-Eval, BFCL, xLAM. These need model weights, datasets and, for the runs, a GPU (docs/setup.md). They call the earlier sampler `twistroute.decode.twisted_smc`.
+Real models and text benchmarks: LLaDA and MDLM; JSON-Mode-Eval, BFCL, xLAM. These need model weights, datasets and, for the runs, a GPU (docs/setup.md). The runners (`llada_json.py`, `mdlm_first_look.py`, `mdlm_orders_output.py`) call the new sampler `twistroute.sampler.weighted_sampler`; the orders that were set aside (`lex`, `bound`, `separator`, `least_tie`) still go through the earlier policy class. `mdlm_timing.py` times the pieces of the earlier implementation.
 
 | Script | What it does | Recorded in status sections |
 |---|---|---|
