@@ -204,7 +204,8 @@ def test_chain_weight_with_default_options_is_equation_5():
 
 
 TWISTS = {
-    "product": lambda constraint, table: ProductTwist(),
+    "product, as in the notes": lambda constraint, table: ProductTwist(temperature=1.0),
+    "product, default (tempered 0.7)": lambda constraint, table: ProductTwist(),
     "product, tempered 0.5": lambda constraint, table: ProductTwist(temperature=0.5),
     "product, power 0.5": lambda constraint, table: ProductTwist(power=0.5),
     "chain": lambda constraint, table: ChainTwist.for_constraint(constraint, table),

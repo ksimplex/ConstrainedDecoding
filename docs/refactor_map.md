@@ -131,10 +131,10 @@ threshold admission (`theta`), the mixed coupling, the guard, the dynamic "least
 
 1. The core keeps all three remedies: tempered marginals in the product twist (`ProductTwist(temperature=)`), a power of the
    twist (`power=`), and the two resampling remedies (`Resampling(defensive=, weight_power=)`).
-2. Decided (user, 2026-11-20): the default is tempered marginals with the product twist only. The value was given as 0.5.
-   **Open again:** section 36u of the status document compared 0.7 and 0.5 at 256 positions; 0.7 is clearly better on one case
-   (forbidden, one token per step: 1.39 | 0.56 against 1.92 | 1.03, RMS error of log Z_hat at 16 | 64 particles) and within
-   error elsewhere. The value is to be confirmed when the default changes.
+2. Decided (user, 2026-11-20): the default is tempered marginals with the product twist only, at temperature 0.7
+   (`twists.product.DEFAULT_TEMPERATURE`; section 36u of the status document compared 0.7 and 0.5 at 256 positions). So
+   `ProductTwist()` is not the notes' product twist; `ProductTwist(temperature=1.0)` is, and every script and test that means
+   the notes' twist, TWISTER or Dang and Ermon's sampler says so explicitly.
 3. Correction to an earlier version of this section: the chain twist does have a tempering option (`ChainTwist(temperature=)`,
    the chain inside the twist built on tempered marginals; the proposal is not tempered). Section 36u tested it as a twist with
    the product proposal and found no gain under defensive resampling. It stays off by default. Tempering the chain proposal is
@@ -172,6 +172,8 @@ threshold admission (`theta`), the mixed coupling, the guard, the dynamic "least
   eq. (13); the K-particle law is exact where feasible and reports its Monte Carlo error otherwise; `product_share = 0` (the
   notes' twist) is allowed; twists no longer need to fill `state.cache`; `Twist.complete` renamed `draw_completion`; this map
   rewritten to describe what was built.
+- Default temperature 0.7 for the product twist: its own commit, the last of the refactor. The tests against the earlier
+  sampler, Table 3 and the benchmark runners pass `temperature=1.0` and give the same numbers as before.
 - Added by the user on 2026-11-20, after step 6: `docs/setup.md` (what everything needs; what only the real-model
   benchmarks need, with where the weights and datasets come from; what needs a GPU); tests sorted into folders that follow
   the new layout (none deleted; the application's tests are not touched); the README rewritten for the new layout.

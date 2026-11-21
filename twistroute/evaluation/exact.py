@@ -87,7 +87,7 @@ def one_particle_law(
 ) -> np.ndarray:
     """q over `all_sequences`: the exact law of the sequence one particle ends at when it
     follows the twist's proposal and never uses its weight (Dang and Ermon's sampler when the
-    twist is the product twist).
+    twist is `ProductTwist(temperature=1.0)`; the default is the sampler's default twist).
 
     The schedule must unmask one position per step. It is either deterministic (the position
     is a function of the state) or `RandomOrder`, for which the law is averaged over the

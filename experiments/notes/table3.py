@@ -21,6 +21,8 @@ Setting (`cells.py`)
 
 Columns
     Unweighted   one particle and no weights (the sampler of Dang and Ermon). Exact.
+                 The twist is the notes' product twist, `ProductTwist(temperature=1.0)`, not
+                 the library's tempered default.
     K = 4, 16    the weighted sampler with K particles. The sum over sequences is exact. The
                  expectation over the other particles' weights is exact when every combination
                  can be listed (Dyck at K = 4) and otherwise a mean over `--batches` x `--draws`
@@ -78,7 +80,12 @@ def main() -> None:
             schedules[order_name] = FixedOrder(order)
         for order_name, schedule in schedules.items():
             one = one_particle_law(
-                model, token_classes, constraint, LENGTH, schedule=schedule, twist=ProductTwist()
+                model,
+                token_classes,
+                constraint,
+                LENGTH,
+                schedule=schedule,
+                twist=ProductTwist(temperature=1.0),
             )
             values = {}
             errors = {}

@@ -32,6 +32,8 @@ from twistroute.schedules import (  # noqa: E402
 )
 from twistroute.twists import ChainTwist, ProductTwist, counted_pair_table  # noqa: E402
 
+# The earlier sampler's product twist is the notes' one: no tempering.
+NOTES_PRODUCT = ProductTwist(temperature=1.0)
 REFERENCE = np.load(os.path.join(HERE, "reference", "sampler_reference.npz"))
 with open(os.path.join(HERE, "reference", "sampler_reference.json")) as _handle:
     MADE_ON = json.load(_handle)
@@ -61,7 +63,10 @@ def configurations(model, classes, truth):
             lambda: dict(twist=ProductTwist(temperature=0.5)),
             L,
         ),
-        "product | random | twist power 0.5": (lambda: dict(twist=ProductTwist(power=0.5)), L),
+        "product | random | twist power 0.5": (
+            lambda: dict(twist=ProductTwist(temperature=1.0, power=0.5)),
+            L,
+        ),
         "product | left to right": (lambda: dict(schedule=LeftToRight(forced_first=True)), L),
         "product | confidence, token": (lambda: dict(schedule=Confidence("token")), L),
         "product | confidence, class": (lambda: dict(schedule=Confidence("class")), L),
@@ -156,7 +161,7 @@ def test_core_reproduces_the_frozen_sampler(model_name, constraint_name):
             runs=NRUN,
             particles=K,
             generator=gen(key),
-            **options(),
+            **{"twist": NOTES_PRODUCT, **options()},
         )
         assert np.array_equal(out.log_Z_hat, REFERENCE[key + " | log_Z_hat"]), key
         assert np.array_equal(out.tokens, REFERENCE[key + " | tokens"]), key
@@ -217,7 +222,7 @@ def test_options_outside_the_frozen_file_match_the_old_sampler():
             runs=NRUN,
             particles=particles,
             generator=gen("extra", number),
-            **new_options,
+            **{"twist": NOTES_PRODUCT, **new_options},
         )
         old = twisted_smc(
             model,
@@ -284,6 +289,7 @@ def test_a_different_option_does_not_match():
         runs=NRUN,
         particles=K,
         generator=gen(key),
+        twist=NOTES_PRODUCT,
         resampling=Resampling(defensive=0.26),
     )
     assert not np.array_equal(out.log_Z_hat, REFERENCE[key + " | log_Z_hat"])

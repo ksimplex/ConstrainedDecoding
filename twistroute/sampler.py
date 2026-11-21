@@ -197,14 +197,16 @@ def weighted_sampler(
     model          has .logits(tokens) -> (P, L, V) log p_theta(x_0,i = v | x_t) and .mask_id
     token_classes  the map from tokens to the constraint's classes
     constraint     a `twistroute.constraints.Constraint`
-    twist          a `twistroute.twists.Twist` (default: the product twist)
+    twist          a `twistroute.twists.Twist` (default: `ProductTwist()`, the product twist with
+                   tempered marginals, tau = 0.7)
     schedule       a `twistroute.schedules.Schedule` (default: `RandomOrder`)
     resampling     a `twistroute.resampling.Resampling`
     observe        called as observe(step, state, step_taken, log_weights) after every step and
                    before resampling, with log_weights (runs, particles); for diagnostics
 
-    One particle and no weights is the constrained sampler of Dang and Ermon
-    (arXiv:2607.07026); the product twist with plain resampling is TWISTER (arXiv:2609.35609).
+    With `twist=ProductTwist(temperature=1.0)`: one particle and no weights is the constrained
+    sampler of Dang and Ermon (arXiv:2607.07026), and plain resampling is TWISTER
+    (arXiv:2609.35609).
     """
     twist = ProductTwist() if twist is None else twist
     schedule = RandomOrder() if schedule is None else as_schedule(schedule)

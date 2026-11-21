@@ -25,6 +25,9 @@ from twistroute.resampling import NO_RESAMPLING
 from twistroute.sampler import weighted_sampler
 from twistroute.schedules import BudgetedCoReveal, Dilated, DistanceDependence, RandomOrder, Sum, fit_distance_dependence
 from twistroute.torch_routes import torch_route, TorchChain, TorchCopy, TorchSubset
+from twistroute.twists import ProductTwist
+
+PRODUCT = ProductTwist(temperature=1.0)        # the product twist of the notes and of TWISTER: no tempering
 
 
 def free_route(A, dev):
@@ -138,7 +141,7 @@ def main():
                 gap = torch.zeros(n, dtype=torch.float64, device=dev)
                 def observe(step_index, state, step, log_weights):
                     gap.add_(ps(state.tokens, step.tokens))
-                o = weighted_sampler(den, one, free, N, T, runs=n, particles=1, schedule=sch, resampling=NO_RESAMPLING, generator=G(100 + i), observe=observe)
+                o = weighted_sampler(den, one, free, N, T, runs=n, particles=1, twist=PRODUCT, schedule=sch, resampling=NO_RESAMPLING, generator=G(100 + i), observe=observe)
                 return dict(r=gap.cpu().numpy().reshape(-1), steps=np.asarray(o.steps).reshape(-1).astype(float))
             o = chunks(go, a.audit, a.rows); r = o["r"]
             row = dict(steps=float(o["steps"].mean()), mean_r=float(r.mean()), sd_r=float(r.std()), kl=float(-r.mean()), kl_se=float(r.std() / math.sqrt(len(r))),
@@ -151,7 +154,7 @@ def main():
     # ------------------------------------------------------------------ C: order inconsistency
     if "C" in a.parts and "orders" not in res:
         n = min(a.rows, 128)
-        x = torch.tensor(weighted_sampler(den, one, free, N, N, runs=n, particles=1, resampling=NO_RESAMPLING, generator=G(200)).tokens).view(n, N).to(dev)
+        x = torch.tensor(weighted_sampler(den, one, free, N, N, runs=n, particles=1, twist=PRODUCT, resampling=NO_RESAMPLING, generator=G(200)).tokens).view(n, N).to(dev)
         cap = lambda pr: CouplingPolicy(kern, 0.0, priority=pr, mixed=False, max_set=1)
         sc = dict(random_a=score_along(den, one, fr, x, cap("random"), G(201)), random_b=score_along(den, one, fr, x, cap("random"), G(202)),
                   separator=score_along(den, one, fr, x, cap("separator"), G(203)), left_to_right=score_along(den, one, fr, x, LeftToRight(), G(204)))
@@ -188,7 +191,7 @@ def main():
                     continue
                 t0 = time.time()
                 def go(n, i):
-                    o = weighted_sampler(den, cl, constraint, N, N, runs=n, particles=a.K, schedule=mks(), resampling=NO_RESAMPLING, generator=G(300 + i))
+                    o = weighted_sampler(den, cl, constraint, N, N, runs=n, particles=a.K, twist=PRODUCT, schedule=mks(), resampling=NO_RESAMPLING, generator=G(300 + i))
                     return dict(logZ=np.asarray(o.log_Z_hat, dtype=np.float64), steps=np.asarray(o.steps).astype(float).mean(-1))
                 o = chunks(go, a.nrun, max(1, a.rows // a.K)); lz = o["logZ"]; fin = np.isfinite(lz); z = np.exp(lz[fin] - lz[fin].max())
                 res["constrained"][key] = dict(param=par, steps=float(o["steps"].mean()), log_mean_Z=float(lz[fin].max() + math.log(z.mean())), mean_logZ=float(lz[fin].mean()),

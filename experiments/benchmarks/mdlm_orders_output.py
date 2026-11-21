@@ -24,7 +24,7 @@ from twistroute.resampling import NO_RESAMPLING                                 
 from twistroute.sampler import weighted_sampler                                                    # noqa: E402
 from twistroute.schedules import DistanceDependence, LeftToRight, RandomOrder, Sum, fit_distance_dependence   # noqa: E402
 from twistroute.torch_routes import torch_route, TorchSubset                                       # noqa: E402
-from twistroute.twists import ChainTwist, counted_pair_table                                       # noqa: E402
+from twistroute.twists import ChainTwist, ProductTwist, counted_pair_table                         # noqa: E402
 from mdlm_first_look import free_route, score_along, chunks                                        # noqa: E402
 
 
@@ -80,7 +80,7 @@ def main():
         for cname, (constraint, par, d, act) in built.items():
             tw = ChainTwist(d, Kp, active=act, device=dev, matching_sweeps=0); tm = ChainTwist(d, Kp, active=act, device=dev, matching_sweeps=30)
             for sname, mks in (("fixed 1/step", lambda: RandomOrder()), ("sum sequential", lambda: Sum(kern))):
-                for pname, kw in (("product", dict()), ("chain", dict(twist=tw)), ("matched chain", dict(twist=tm))):
+                for pname, kw in (("product", dict(twist=ProductTwist(temperature=1.0))), ("chain", dict(twist=tw)), ("matched chain", dict(twist=tm))):
                     key = f"{cname}|{sname}|{pname}"
                     if key in res["proposal"]:
                         continue
@@ -103,7 +103,7 @@ def main():
         orders = (("fixed 1/step", lambda: RandomOrder()), ("sum sequential", lambda: Sum(kern)), ("lex sequential", lambda: pol("lex")), ("left to right", ltr))
         for cname in ("none", "window", "two_window"):
             if cname == "none":
-                classes, constraint, kw = one, free, dict()
+                classes, constraint, kw = one, free, dict(twist=ProductTwist(temperature=1.0))
             else:
                 constraint, par, d, act = built[cname]; tm = ChainTwist(d, Kp, active=act, device=dev, matching_sweeps=30); classes, kw = cl, dict(twist=tm)
             for oname, mks in orders:

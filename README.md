@@ -61,8 +61,9 @@ samples = out.returned(np.random.default_rng(0))    # (1000, 12): one sequence p
 print(np.exp(out.log_Z_hat).mean())                 # 0.141: the estimate of P(x_0 in C) (exact: 0.141)
 ```
 
-`twist=None` gives the product twist (TWISTER, arXiv:2609.35609); `particles=1` without the weights is the constrained sampler
-of Dang and Ermon (arXiv:2607.07026). Table 3 of the notes: `python experiments/notes/table3.py` (about one minute).
+`twist=None` gives the product twist with tempered marginals (temperature 0.7), the library's default.
+`twist=ProductTwist(temperature=1.0)` is the product twist of the notes: TWISTER (arXiv:2609.35609), and with `particles=1` and
+no weights the constrained sampler of Dang and Ermon (arXiv:2607.07026). Table 3 of the notes: `python experiments/notes/table3.py` (about one minute).
 
 ## Layout
 

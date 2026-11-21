@@ -31,7 +31,7 @@ from twistroute.models.classes import TokenClasses                              
 from twistroute.resampling import Resampling                                                       # noqa: E402
 from twistroute.sampler import unconstrained_sample, weighted_sampler                              # noqa: E402
 from twistroute.schedules import Blocks, Confidence, LeftToRight, RandomOrder, Sum, fit_distance_dependence   # noqa: E402
-from twistroute.twists import ChainTwist, probed_pair_table                                        # noqa: E402
+from twistroute.twists import ChainTwist, ProductTwist, probed_pair_table                          # noqa: E402
 
 
 class StandIn:
@@ -130,7 +130,7 @@ def main():
             lw0 = cl.class_logw(lp[:1]); t0 = time.time(); z0 = float(constraint.log_prob(lw0)[0]); t_route = time.time() - t0
             t0 = time.time(); toks = unconstrained_sample(den, cl, N, N, 2, generator=G(1)); t_native = time.time() - t0
             free_text, free_ok, free_parses = check(r, toks[0].tolist())
-            t0 = time.time(); o = weighted_sampler(den, cl, constraint, N, N, runs=2, particles=a.K, generator=G(2)); t_smc = time.time() - t0
+            t0 = time.time(); o = weighted_sampler(den, cl, constraint, N, N, runs=2, particles=a.K, twist=ProductTwist(temperature=1.0), generator=G(2)); t_smc = time.time() - t0
             lw = o.log_weights[0]; pick = int(np.argmax(lw)); text, ok, parses = check(r, o.tokens[0, pick].tolist())
             res["smoke"][key] = dict(N=N, classes=r["classes"], states=r["states"], prefix_tokens=None if a.synthetic else int(den.prefix.numel()), rows=a.max_rows,
                                      seconds_first_call=round(t_call, 3), seconds_call=round(t_call2, 3), seconds_route_pass=round(t_route, 4), log_product_twist_at_start=z0,
@@ -187,7 +187,7 @@ def main():
                 agree = float(np.corrcoef(lr.ravel(), lg.ravel())[0, 1]) if big.sum() >= 2 else float("nan")
                 res["compare"][key]["table"] = dict(pilot_sequences=len(others), pairs=tinfo["pairs"], seen_entries=tinfo["seen_entries"], classes=r["classes"], frequent_classes=int(big.sum()),
                                                     agreement_with_reference_answers=agree, log10_min_entry=float(np.log10(Kt.min())), max_over_min_in_row=float((Kt.max(1) / Kt.min(1)).max()))
-            arms = [("product", dict())]
+            arms = [("product", dict(twist=ProductTwist(temperature=1.0)))]                  # the product twist of TWISTER: no tempering
             if counted:
                 tw = ChainTwist(d, torch.as_tensor(Kt), device=dev, matching_sweeps=a.match, proposal_product_share=a.mix)
                 arms.append(("matched chain, counted table", dict(twist=tw)))

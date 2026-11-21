@@ -27,6 +27,8 @@ from twistroute.schedules import LeftToRight, RandomOrder  # noqa: E402
 from twistroute.twists import ChainTwist, ProductTwist, counted_pair_table  # noqa: E402
 
 LENGTH = 8
+# The product twist of the notes (eq. 9 and 10); the library's default is tempered.
+NOTES_PRODUCT = ProductTwist(temperature=1.0)
 STORED = os.path.join(
     HERE, "..", "..", "results", "parallel_unmasking", "particle_rule", "kl_bounds_check.json"
 )
@@ -54,11 +56,12 @@ def assert_same_law(observed, law, n):
 @pytest.mark.parametrize(
     "schedule", [LeftToRight(), RandomOrder()], ids=["left to right", "random order"]
 )
-@pytest.mark.parametrize("twist_name", ["product", "tempered product", "chain"])
+@pytest.mark.parametrize("twist_name", ["product", "default product", "tempered product", "chain"])
 def test_one_particle_law_is_the_law_of_one_particle(cell, schedule, twist_name):
     model, classes, constraint, chain = cell
     twist = {
-        "product": ProductTwist(),
+        "product": NOTES_PRODUCT,
+        "default product": ProductTwist(),
         "tempered product": ProductTwist(temperature=0.5),
         "chain": chain,
     }[twist_name]
@@ -83,7 +86,11 @@ def test_output_law_is_the_law_of_the_returned_particle(cell):
     model, classes, constraint, chain = cell
     target = target_law(model, classes, constraint, LENGTH)
     law = output_law(
-        one_particle_law(model, classes, constraint, LENGTH, schedule=LeftToRight()), target, 4
+        one_particle_law(
+            model, classes, constraint, LENGTH, schedule=LeftToRight(), twist=NOTES_PRODUCT
+        ),
+        target,
+        4,
     )
     n = 60000
     out = weighted_sampler(
@@ -94,6 +101,7 @@ def test_output_law_is_the_law_of_the_returned_particle(cell):
         LENGTH,
         runs=n,
         particles=4,
+        twist=NOTES_PRODUCT,
         schedule=LeftToRight(),
         resampling=NO_RESAMPLING,
         generator=torch.Generator().manual_seed(8),
@@ -109,7 +117,9 @@ def test_exact_kl_matches_the_values_behind_table_3(cell):
         if r["constraint"] == "forbidden" and r["order"] == "left to right"
     }
     target = target_law(model, classes, constraint, LENGTH)
-    product = one_particle_law(model, classes, constraint, LENGTH, schedule=LeftToRight())
+    product = one_particle_law(
+        model, classes, constraint, LENGTH, schedule=LeftToRight(), twist=NOTES_PRODUCT
+    )
     matched = one_particle_law(
         model, classes, constraint, LENGTH, schedule=LeftToRight(), twist=chain
     )
@@ -122,7 +132,9 @@ def test_exact_kl_matches_the_values_behind_table_3(cell):
 def test_bounds_bracket_the_exact_kl(cell):
     model, classes, constraint, chain = cell
     target = target_law(model, classes, constraint, LENGTH)
-    product = one_particle_law(model, classes, constraint, LENGTH, schedule=LeftToRight())
+    product = one_particle_law(
+        model, classes, constraint, LENGTH, schedule=LeftToRight(), twist=NOTES_PRODUCT
+    )
     exact = kl(output_law(product, target, 4), target)
     out = weighted_sampler(
         model,
@@ -132,6 +144,7 @@ def test_bounds_bracket_the_exact_kl(cell):
         LENGTH,
         runs=20000,
         particles=4,
+        twist=NOTES_PRODUCT,
         schedule=LeftToRight(),
         resampling=NO_RESAMPLING,
         generator=torch.Generator().manual_seed(9),

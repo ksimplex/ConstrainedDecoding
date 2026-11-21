@@ -11,12 +11,16 @@ constrained prediction (`Constraint.sample`) and commits it on U. For this pair 
     w(x_t, x_s) = p_theta(x_0 in C | x_s) / p_theta(x_0 in C | x_t, x_0,U = x_s,U).        (10)
 
 Two options change the twist to counter hidden mass (section 2.3); both keep the sampler exact.
+The default is temperature 0.7, so `ProductTwist()` is NOT the product twist of eq. (9) and (10):
+that one, which is TWISTER's and, with one particle and no weights, the sampler of Dang and
+Ermon, is `ProductTwist(temperature=1.0)`.
 
     temperature  tau in (0, 1]. The twist is computed with tempered marginals
                  q_i(a) proportional to p_theta(x_0,i = a | x_t)^tau at masked positions: a
                  flatter prediction, so the twist is less sure that a completion is impossible.
                  The proposal is the best one for that twist: classes at U are drawn from the
                  model's own marginals, the positions outside U follow q, all restricted to C.
+                 With tau < 1 the proposal differs from eq. (9) even for one particle.
     power        beta in (0, 1]. The twist is psi^beta.
 """
 
@@ -28,6 +32,12 @@ import torch
 
 from ..state import State, Step
 from .base import Twist, weight_from_ratio
+
+
+#: Temperature of the default product twist (decided 2026-11-20). In the study at 256 positions
+#: (status document, section 36u) 0.7 was clearly better than 0.5 in one case and level with it
+#: in the others; 1.0 (no tempering) loses mass under resampling.
+DEFAULT_TEMPERATURE = 0.7
 
 
 def tempered(log_q: torch.Tensor, temperature: float) -> torch.Tensor:
@@ -48,7 +58,7 @@ def log_product_twist(state: State, temperature: float = 1.0) -> torch.Tensor:
 
 
 class ProductTwist(Twist):
-    def __init__(self, temperature: float = 1.0, power: float = 1.0) -> None:
+    def __init__(self, temperature: float = DEFAULT_TEMPERATURE, power: float = 1.0) -> None:
         if not 0.0 < temperature <= 1.0:
             raise ValueError("temperature must lie in (0, 1]")
         if not 0.0 < power <= 1.0:
