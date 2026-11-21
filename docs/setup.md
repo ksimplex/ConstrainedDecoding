@@ -29,7 +29,7 @@ pytest tests/core                          # the code that follows the notes; ab
 python experiments/notes/table3.py         # Table 3 of the notes; about 20 seconds
 ```
 
-All tests of this work (481 tests in `tests/core`, `tests/algorithms`, `tests/legacy`, `tests/experiments`) take 25 to 35 minutes on
+All tests of this work (489 tests in `tests/core`, `tests/algorithms`, `tests/legacy`, `tests/experiments`) take 25 to 35 minutes on
 the laptop above. Cap the threads on a shared machine, otherwise torch takes every core:
 
 ```bash

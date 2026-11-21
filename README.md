@@ -129,7 +129,7 @@ pytest tests/core                      # the code that follows the notes, about 
 python experiments/notes/table3.py     # Table 3 of the notes, about 1 minute
 ```
 
-All tests of this work: `OMP_NUM_THREADS=4 pytest tests/core tests/algorithms tests/legacy tests/experiments` (481 tests,
+All tests of this work: `OMP_NUM_THREADS=4 pytest tests/core tests/algorithms tests/legacy tests/experiments` (489 tests,
 25 to 35 minutes on an 8-core laptop).
 
 ## The earlier interface: `twistroute.decode`
